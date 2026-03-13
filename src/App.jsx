@@ -1,12 +1,11 @@
-import { useState } from "react";
-
-import "./App.css";
+import { BrowserRouter } from "react-router-dom";
+import AppRoutes from "./routes/AppRoute";
 
 function App() {
   return (
-    <>
-      <h1 className="bg">Vite + React</h1>
-    </>
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
   );
 }
 
