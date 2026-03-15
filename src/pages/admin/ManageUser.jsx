@@ -15,6 +15,7 @@ import {
   Avatar,
   Descriptions,
   Badge,
+  Tabs,
 } from "antd";
 import {
   UploadOutlined,
@@ -34,17 +35,16 @@ const ManageUser = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // States cho Modal Thêm Mới
+  const [activeTab, setActiveTab] = useState("ALL");
+
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
   const [form] = Form.useForm();
 
-  // States cho Modal Xem Chi Tiết
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  // Lấy danh sách User
   const fetchUsers = async () => {
     setLoading(true);
     try {
@@ -63,9 +63,18 @@ const ManageUser = () => {
     fetchUsers();
   }, []);
 
-  // ----------------------------------------------------
-  // XỬ LÝ THÊM MỚI USER
-  // ----------------------------------------------------
+  const filteredUsers = users.filter((user) => {
+    if (activeTab === "ALL") return true;
+    return user.status === activeTab;
+  });
+
+  const tabItems = [
+    { key: "ALL", label: "Tất cả" },
+    { key: "ACTIVE", label: "Đang hoạt động" },
+    { key: "PENDING", label: "Chờ duyệt" },
+    { key: "BLOCK", label: "Từ chối / Đã khóa" },
+  ];
+
   const openAddModal = () => {
     setAvatarFile(null);
     form.resetFields();
@@ -105,14 +114,12 @@ const ManageUser = () => {
     }
   };
 
-  // ----------------------------------------------------
-  // XỬ LÝ THAY ĐỔI TRẠNG THÁI
-  // ----------------------------------------------------
   const handleChangeStatus = async (id, newStatus) => {
     try {
       const res = await userService.changeUserStatus(id, newStatus);
       if (res.data.code === 1000) {
-        let actionName = newStatus === "ACTIVE" ? "Duyệt / Mở khóa" : "Khóa";
+        let actionName =
+          newStatus === "ACTIVE" ? "Duyệt / Mở khóa" : "Khóa / Từ chối";
         message.success(`Đã ${actionName.toLowerCase()} tài khoản thành công!`);
         fetchUsers();
 
@@ -126,12 +133,9 @@ const ManageUser = () => {
     }
   };
 
-  // ----------------------------------------------------
-  // XỬ LÝ XEM CHI TIẾT USER
-  // ----------------------------------------------------
   const handleViewDetails = async (id) => {
     setLoadingDetail(true);
-    setIsDetailModalVisible(true); // Mở modal ngay lập tức với spinner loading
+    setIsDetailModalVisible(true);
     try {
       const res = await userService.getUserById(id);
       if (res.data.code === 1000) {
@@ -145,9 +149,6 @@ const ManageUser = () => {
     }
   };
 
-  // ----------------------------------------------------
-  // CẤU HÌNH CỘT CHO TABLE
-  // ----------------------------------------------------
   const columns = [
     {
       title: "Avatar",
@@ -217,7 +218,6 @@ const ManageUser = () => {
       key: "action",
       render: (_, record) => (
         <Space size="middle">
-          {/* NÚT XEM CHI TIẾT */}
           <Button
             type="link"
             className="text-blue-500 px-0 font-medium"
@@ -227,7 +227,6 @@ const ManageUser = () => {
             Chi tiết
           </Button>
 
-          {/* CÁC NÚT DUYỆT / TỪ CHỐI (PENDING) */}
           {record.status === "PENDING" && (
             <>
               <Popconfirm
@@ -305,7 +304,7 @@ const ManageUser = () => {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-      <div className="flex justify-between items-center mb-6 border-b pb-4">
+      <div className="flex justify-between items-center mb-4 border-b pb-4">
         <h2 className="text-2xl font-bold text-gray-800">Quản lý Người dùng</h2>
         <Button
           type="primary"
@@ -316,9 +315,17 @@ const ManageUser = () => {
         </Button>
       </div>
 
+      {/* COMPONENT TABS LỌC NGƯỜI DÙNG */}
+      <Tabs
+        activeKey={activeTab}
+        onChange={(key) => setActiveTab(key)}
+        items={tabItems}
+        className="mb-4"
+      />
+
       <Table
         columns={columns}
-        dataSource={users}
+        dataSource={filteredUsers} // Đã đổi từ 'users' sang 'filteredUsers'
         rowKey="id"
         loading={loading}
         pagination={{ pageSize: 8 }}
@@ -444,10 +451,6 @@ const ManageUser = () => {
           </div>
         </Form>
       </Modal>
-
-      {/* ========================================= */}
-      {/* MODAL 2: XEM CHI TIẾT NGƯỜI DÙNG */}
-      {/* ========================================= */}
       <Modal
         title={
           <div className="text-xl font-bold border-b pb-3">Chi tiết hồ sơ</div>
@@ -467,7 +470,6 @@ const ManageUser = () => {
         width={700}
         destroyOnClose
       >
-        {/* Component hiển thị thông tin đẹp mắt của Ant Design */}
         <div className="py-4">
           <Descriptions
             bordered

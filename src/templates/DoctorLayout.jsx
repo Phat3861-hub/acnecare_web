@@ -2,13 +2,19 @@ import React from "react";
 import { Layout, Menu } from "antd";
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { logout } from "../store/slice/UserSlice";
+import { logoutUser } from "../store/slice/UserSlice";
 
 const { Header, Sider, Content } = Layout;
 
 const DoctorLayout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    dispatch(logoutUser()).then(() => {
+      navigate("/auth/login");
+    });
+  };
 
   return (
     <Layout className="min-h-screen">
@@ -20,17 +26,14 @@ const DoctorLayout = () => {
           <Menu.Item key="1">
             <Link to="/doctor/schedule">Lịch khám</Link>
           </Menu.Item>
+          <Menu.Item key="2">
+            <Link to="/doctor/manage-products">Quản lý sản phẩm</Link>
+          </Menu.Item>
         </Menu>
       </Sider>
       <Layout>
         <Header className="bg-white px-6 flex justify-end shadow-sm">
-          <button
-            onClick={() => {
-              dispatch(logout());
-              navigate("/auth/login");
-            }}
-            className="text-red-500"
-          >
+          <button onClick={handleLogout} className="text-red-500">
             Đăng xuất
           </button>
         </Header>
