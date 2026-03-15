@@ -2,7 +2,7 @@ import React from "react";
 import { Layout, Menu } from "antd";
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { logout } from "../store/slice/UserSlice";
+import { logoutUser } from "../store/slice/UserSlice";
 
 const { Header, Sider, Content } = Layout;
 
@@ -11,8 +11,9 @@ const AdminLayout = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    dispatch(logout());
-    navigate("/auth/login");
+    dispatch(logoutUser()).then(() => {
+      navigate("/auth/login");
+    });
   };
 
   return (
@@ -27,6 +28,12 @@ const AdminLayout = () => {
           </Menu.Item>
           <Menu.Item key="2">
             <Link to="/admin/manage-users">Quản lý Users</Link>
+          </Menu.Item>
+          <Menu.Item key="3">
+            <Link to="/admin/manage-categories">Quản lý Categories</Link>
+          </Menu.Item>
+          <Menu.Item key="4">
+            <Link to="/admin/manage-products">Quản lý Products</Link>
           </Menu.Item>
         </Menu>
       </Sider>

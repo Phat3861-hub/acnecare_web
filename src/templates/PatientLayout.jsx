@@ -2,7 +2,7 @@ import React from "react";
 import { Layout, Menu } from "antd";
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../store/slice/UserSlice";
+import { logoutUser } from "../store/slice/UserSlice";
 
 const { Header, Content, Footer } = Layout;
 
