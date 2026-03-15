@@ -22,6 +22,10 @@ export const pathDefault = {
   // Brand
   // brand: "/brand",
   // manageProductBrand: "/brand/manage-products",
+
+  //Patient
+  bookAppointment: "/book-appointment/:doctorId",
+  appointmentSuccess: "/appointment-success",
 };
 
 // Layouts
@@ -35,7 +39,11 @@ const Login = lazy(() => import("../pages/auth/Login"));
 const Register = lazy(() => import("../pages/auth/Register"));
 
 // Patient Pages
-const Home = lazy(() => import("../pages/Home"));
+const Home = lazy(() => import("../pages/patient/Home"));
+const BookAppointment = lazy(() => import("../pages/patient/BookAppointment"));
+const AppointmentSuccess = lazy(
+  () => import("../pages/patient/AppointmentSuccess"),
+);
 
 // Admin Pages
 const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard"));
@@ -65,6 +73,22 @@ const AppRoutes = () => {
           element: (
             <Suspense fallback={<FallbackLoad />}>
               <Home />
+            </Suspense>
+          ),
+        },
+        {
+          path: "book-appointment/:doctorId",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <BookAppointment />
+            </Suspense>
+          ),
+        },
+        {
+          path: "appointment-success",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <AppointmentSuccess />
             </Suspense>
           ),
         },

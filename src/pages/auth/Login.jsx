@@ -6,7 +6,6 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import { authService } from "../../services/AuthService";
 import { setCredentials } from "../../store/slice/UserSlice";
-// Import thư viện giải mã token
 import { jwtDecode } from "jwt-decode";
 
 const Login = () => {
@@ -37,30 +36,25 @@ const Login = () => {
           const token = res.data.result.accessToken;
           const refreshToken = res.data.result.refreshToken || null;
 
-          // 1. CHỈ lưu Token vào localStorage (Không lưu thông tin user)
           localStorage.setItem("accessToken", token);
           if (refreshToken) {
             localStorage.setItem("refreshToken", refreshToken);
           }
 
-          // 2. GIẢI MÃ TOKEN ĐỂ LẤY THÔNG TIN
           const decodedToken = jwtDecode(token);
-          console.log("=== DỮ LIỆU TỪ TOKEN ===", decodedToken);
 
-          // Lấy chuỗi roles (ví dụ: "ROLE_ADMIN")
           const tokenRoles = decodedToken.roles || "";
 
-          let role = "PATIENT"; // Mặc định là PATIENT
+          let role = "PATIENT";
           if (tokenRoles.includes("ADMIN")) role = "ADMIN";
           else if (tokenRoles.includes("DOCTOR")) role = "DOCTOR";
           else if (tokenRoles.includes("BRAND")) role = "BRAND";
 
-          // Lưu thông tin cơ bản vào Redux
           dispatch(
             setCredentials({
               user: {
-                id: decodedToken.sub, // Lấy ID từ biến 'sub'
-                role: role, // Lưu role đã làm sạch chữ 'ROLE_'
+                id: decodedToken.sub,
+                role: role,
               },
               accessToken: token,
               refreshToken: refreshToken,
@@ -69,13 +63,12 @@ const Login = () => {
 
           message.success("Đăng nhập thành công!");
 
-          // 3. ĐIỀU HƯỚNG THEO ROLE TỪ TOKEN
           if (role === "ADMIN") {
             navigate("/admin/dashboard");
           } else if (role === "DOCTOR") {
             navigate("/doctor/schedule");
           } else {
-            navigate("/"); // PATIENT
+            navigate("/");
           }
         }
       } catch (error) {
