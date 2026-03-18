@@ -1,6 +1,8 @@
 import React, { Suspense, lazy } from "react";
 import { useRoutes, Navigate } from "react-router-dom";
 import { Spin } from "antd";
+import DoctorSchedule from "../pages/doctor/DoctorSchedule";
+import DoctorAppointmentDetail from "../pages/doctor/DoctorAppointmentDetail";
 
 export const pathDefault = {
   home: "/",
@@ -17,11 +19,18 @@ export const pathDefault = {
   // Doctor
   doctor: "/doctor",
   doctorSchedule: "/doctor/schedule",
+  doctorAppointmentDetail: "/doctor/schedule/:id",
   manageProductDoctor: "/doctor/manage-products",
 
   // Brand
   // brand: "/brand",
   // manageProductBrand: "/brand/manage-products",
+
+  //Patient
+  bookAppointment: "/book-appointment/:doctorId",
+  appointmentSuccess: "/appointment-success",
+  patientHistory: "/patient/history",
+  appointmentDetail: "/patient/history/:id",
 };
 
 // Layouts
@@ -35,12 +44,23 @@ const Login = lazy(() => import("../pages/auth/Login"));
 const Register = lazy(() => import("../pages/auth/Register"));
 
 // Patient Pages
-const Home = lazy(() => import("../pages/Home"));
+const Home = lazy(() => import("../pages/patient/Home"));
+const BookAppointment = lazy(() => import("../pages/patient/BookAppointment"));
+const AppointmentSuccess = lazy(
+  () => import("../pages/patient/AppointmentSuccess"),
+);
+const PatientHistory = lazy(() => import("../pages/patient/PatientHistory"));
+const AppointmentDetail = lazy(
+  () => import("../pages/patient/AppointmentDetail"),
+);
 
 // Admin Pages
 const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard"));
 const ManageUser = lazy(() => import("../pages/admin/ManageUser"));
 const ManageCategory = lazy(() => import("../pages/admin/ManageCategory"));
+
+// Doctor Pages
+const doctorSchedule = lazy(() => import("../pages/doctor/DoctorSchedule"));
 
 // Shared Pages (Dùng chung cho Admin, Doctor, Brand)
 const ManageProduct = lazy(() => import("../pages/shared/ManageProduct"));
@@ -65,6 +85,38 @@ const AppRoutes = () => {
           element: (
             <Suspense fallback={<FallbackLoad />}>
               <Home />
+            </Suspense>
+          ),
+        },
+        {
+          path: "book-appointment/:doctorId",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <BookAppointment />
+            </Suspense>
+          ),
+        },
+        {
+          path: "appointment-success",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <AppointmentSuccess />
+            </Suspense>
+          ),
+        },
+        {
+          path: "patient/history",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <PatientHistory />
+            </Suspense>
+          ),
+        },
+        {
+          path: "patient/history/:id",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <AppointmentDetail />
             </Suspense>
           ),
         },
@@ -145,14 +197,18 @@ const AppRoutes = () => {
       ),
       children: [
         {
-          index: true,
-          element: <Navigate to={pathDefault.doctorSchedule} replace />,
-        },
-        {
           path: pathDefault.doctorSchedule,
           element: (
             <Suspense fallback={<FallbackLoad />}>
-              <doctorSchedule />
+              <DoctorSchedule />
+            </Suspense>
+          ),
+        },
+        {
+          path: pathDefault.doctorAppointmentDetail,
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <DoctorAppointmentDetail />
             </Suspense>
           ),
         },

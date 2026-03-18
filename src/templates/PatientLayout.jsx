@@ -22,6 +22,13 @@ const PatientLayout = () => {
           <Link to="/products" className="text-gray-600 hover:text-blue-600">
             Sản phẩm
           </Link>
+          <Link
+            to="/patient/history"
+            className="text-gray-600 hover:text-blue-600"
+          >
+            Lịch sử khám
+          </Link>
+
           {user ? (
             <button
               onClick={() => {
