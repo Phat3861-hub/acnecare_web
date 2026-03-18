@@ -21,6 +21,7 @@ import dayjs from "dayjs";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { http } from "../../api/config"; // CHÚ Ý: Bắt buộc import http
+import { appointmentService } from "../../services/AppointmentService";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -105,10 +106,12 @@ const BookAppointment = () => {
     const fetchBusyTimes = async () => {
       try {
         const dateStr = selectedDate.format("YYYY-MM-DD");
-        const res = await http.get(
-          `/appointments/doctor/${doctorId}/busy-times?date=${dateStr}`,
+        // Gọi API qua Service và bóc data ra
+        const response = await appointmentService.getBusyTimes(
+          doctorId,
+          dateStr,
         );
-        setDisabledSlots(res.data.result);
+        setDisabledSlots(response.data.result);
       } catch (error) {
         console.error("Lỗi lấy giờ bận:", error);
       }
@@ -132,6 +135,12 @@ const BookAppointment = () => {
 
   // Báo lỗi nếu trùng giờ (Lỗi 400 Bad Request)
   useEffect(() => {
+    if (success) {
+      navigate("/appointment-success");
+    }
+  }, [success, navigate]);
+
+  useEffect(() => {
     if (error) {
       message.error(
         error.message ||
@@ -141,9 +150,9 @@ const BookAppointment = () => {
 
       // Khung giờ bị cướp nên gọi lại API đồng bộ lại lịch mới nhất
       const dateStr = selectedDate.format("YYYY-MM-DD");
-      http
-        .get(`/appointments/doctor/${doctorId}/busy-times?date=${dateStr}`)
-        .then((res) => setDisabledSlots(res.data.result))
+      appointmentService
+        .getBusyTimes(doctorId, dateStr)
+        .then((response) => setDisabledSlots(response.data.result)) // Nhớ bóc .data.result
         .catch(console.error);
     }
   }, [error, dispatch, doctorId, selectedDate]);
