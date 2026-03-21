@@ -43,7 +43,7 @@ const DoctorAppointmentDetail = () => {
         <img
           src={detail.patientAvatar || "https://via.placeholder.com/50"}
           alt="patient"
-          className="w-16 h-16 rounded-full border-2 border-white shadow-sm"
+          className="w-16 h-16 rounded-full border-2 border-white shadow-sm object-cover"
         />
         <div>
           <h3 className="text-lg font-bold text-gray-800">
@@ -59,6 +59,13 @@ const DoctorAppointmentDetail = () => {
       </div>
 
       <Descriptions bordered column={2} className="mb-6" size="small">
+        {/* BỔ SUNG TRƯỜNG DỊCH VỤ KHÁM NỔI BẬT */}
+        <Descriptions.Item label="Dịch vụ khám" span={2}>
+          <span className="font-bold text-blue-700 text-base">
+            {detail.serviceName || "Khám da liễu tổng quát"}
+          </span>
+        </Descriptions.Item>
+
         <Descriptions.Item label="Trạng thái">
           <Tag
             color={
@@ -74,7 +81,11 @@ const DoctorAppointmentDetail = () => {
             {detail.status}
           </Tag>
         </Descriptions.Item>
-        <Descriptions.Item label="Hình thức">{detail.mode}</Descriptions.Item>
+        <Descriptions.Item label="Hình thức thực hiện">
+          <span className="font-medium">
+            {detail.mode === "ONLINE" ? "Trực tuyến" : "Trực tiếp"}
+          </span>
+        </Descriptions.Item>
 
         <Descriptions.Item label="Ngày khám">
           <b>{dayjs(detail.appointmentTime).format("DD/MM/YYYY")}</b>
@@ -87,19 +98,23 @@ const DoctorAppointmentDetail = () => {
           {detail.paymentMethod}
         </Descriptions.Item>
         <Descriptions.Item label="Trạng thái T.Toán">
-          {detail.paymentStatus}
+          <Tag color={detail.paymentStatus === "PAID" ? "green" : "red"}>
+            {detail.paymentStatus}
+          </Tag>
         </Descriptions.Item>
       </Descriptions>
 
       {/* Hiển thị Link nếu có */}
       {detail.meetingUrl && (
-        <div className="mb-6 p-3 bg-gray-50 border border-gray-200 rounded text-sm">
-          <span className="font-medium text-gray-700">Link phòng khám: </span>
+        <div className="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-lg text-sm">
+          <span className="font-semibold text-gray-700 mb-1 block">
+            Link phòng khám trực tuyến:{" "}
+          </span>
           <a
             href={detail.meetingUrl}
             target="_blank"
             rel="noreferrer"
-            className="text-blue-600 underline"
+            className="text-indigo-600 underline font-medium text-base"
           >
             {detail.meetingUrl}
           </a>

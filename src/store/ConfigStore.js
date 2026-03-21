@@ -5,6 +5,7 @@ import categoryReducer from "./slice/CategorySlice";
 import productReducer from "./slice/ProductSlice";
 import doctorReducer from "./slice/DoctorSlice";
 import appointmentReducer from "./slice/AppointmentSlice";
+import consultationReducer from "./slice/ConsultationSlice";
 
 export const store = configureStore({
   reducer: {
@@ -13,5 +14,6 @@ export const store = configureStore({
     product: productReducer,
     doctor: doctorReducer,
     appointment: appointmentReducer,
+    consultation: consultationReducer,
   },
 });
