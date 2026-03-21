@@ -12,4 +12,11 @@ export const appointmentService = {
     http.put(`/appointments/${id}/status`, data),
   reviewAppointment: (id, data) =>
     http.post(`/appointments/${id}/review`, data),
+  getDoctorServices: (doctorId) =>
+    http.get(`/consultation-services/doctor/${doctorId}`),
+  // Cập nhật lại dòng này:
+  getAvailableSchedules: (doctorId, dateStr, serviceId) =>
+    http.get(
+      `/doctor-schedules/doctor/${doctorId}?date=${dateStr}&serviceId=${serviceId}`,
+    ),
 };

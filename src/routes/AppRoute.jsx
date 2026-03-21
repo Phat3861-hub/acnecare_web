@@ -1,9 +1,10 @@
 import React, { Suspense, lazy } from "react";
 import { useRoutes, Navigate } from "react-router-dom";
 import { Spin } from "antd";
-import DoctorSchedule from "../pages/doctor/DoctorSchedule";
-import DoctorAppointmentDetail from "../pages/doctor/DoctorAppointmentDetail";
 
+// ==========================================
+// 1. ĐỊNH NGHĨA ĐƯỜNG DẪN (CHUẨN HÓA ABSOLUTE PATH)
+// ==========================================
 export const pathDefault = {
   home: "/",
   login: "/auth/login",
@@ -21,29 +22,31 @@ export const pathDefault = {
   doctorSchedule: "/doctor/schedule",
   doctorAppointmentDetail: "/doctor/schedule/:id",
   manageProductDoctor: "/doctor/manage-products",
+  doctorAvailability: "/doctor/availability",
+  testModelDoctor: "/doctor/test-model", // Đã bổ sung trang Test Model
 
-  // Brand
-  // brand: "/brand",
-  // manageProductBrand: "/brand/manage-products",
-
-  //Patient
+  // Patient
   bookAppointment: "/book-appointment/:doctorId",
   appointmentSuccess: "/appointment-success",
   patientHistory: "/patient/history",
   appointmentDetail: "/patient/history/:id",
 };
 
-// Layouts
+// ==========================================
+// 2. LAZY LOAD LAYOUTS
+// ==========================================
 const PatientLayout = lazy(() => import("../templates/PatientLayout"));
 const AdminLayout = lazy(() => import("../templates/AdminLayout"));
 const DoctorLayout = lazy(() => import("../templates/DoctorLayout"));
-// const BrandLayout = lazy(() => import("../templates/BrandLayout")); // Bạn nhớ tạo file này nhé
 
-// Auth Pages
+// ==========================================
+// 3. LAZY LOAD PAGES (CHỈ DÙNG LAZY, KHÔNG IMPORT TĨNH)
+// ==========================================
+// Auth
 const Login = lazy(() => import("../pages/auth/Login"));
 const Register = lazy(() => import("../pages/auth/Register"));
 
-// Patient Pages
+// Patient
 const Home = lazy(() => import("../pages/patient/Home"));
 const BookAppointment = lazy(() => import("../pages/patient/BookAppointment"));
 const AppointmentSuccess = lazy(
@@ -54,24 +57,43 @@ const AppointmentDetail = lazy(
   () => import("../pages/patient/AppointmentDetail"),
 );
 
-// Admin Pages
+// Admin
 const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard"));
 const ManageUser = lazy(() => import("../pages/admin/ManageUser"));
 const ManageCategory = lazy(() => import("../pages/admin/ManageCategory"));
 
-// Doctor Pages
-const doctorSchedule = lazy(() => import("../pages/doctor/DoctorSchedule"));
+// Doctor
+const DoctorSchedule = lazy(() => import("../pages/doctor/DoctorSchedule"));
+const DoctorAppointmentDetail = lazy(
+  () => import("../pages/doctor/DoctorAppointmentDetail"),
+);
+const ManageAvailability = lazy(
+  () => import("../pages/doctor/ManageAvailability"),
+);
+const DoctorScanHistory = lazy(
+  () => import("../pages/doctor/DoctorScanHistory"),
+);
+const DoctorConsultationService = lazy(
+  () => import("../pages/doctor/DoctorConsultationService"),
+);
 
-// Shared Pages (Dùng chung cho Admin, Doctor, Brand)
+// Shared (Dùng chung)
 const ManageProduct = lazy(() => import("../pages/shared/ManageProduct"));
+const TestAcneModel = lazy(() => import("../pages/shared/TestAcneModel"));
+
+// Hiệu ứng Loading khi chuyển trang
 const FallbackLoad = () => (
   <div className="flex justify-center items-center min-h-screen">
     <Spin size="large" />
   </div>
 );
 
+// ==========================================
+// 4. CẤU HÌNH ROUTER
+// ==========================================
 const AppRoutes = () => {
   const arrRoutes = [
+    // --- PATIENT ROUTES ---
     {
       path: pathDefault.home,
       element: (
@@ -89,7 +111,7 @@ const AppRoutes = () => {
           ),
         },
         {
-          path: "book-appointment/:doctorId",
+          path: pathDefault.bookAppointment,
           element: (
             <Suspense fallback={<FallbackLoad />}>
               <BookAppointment />
@@ -97,7 +119,7 @@ const AppRoutes = () => {
           ),
         },
         {
-          path: "appointment-success",
+          path: pathDefault.appointmentSuccess,
           element: (
             <Suspense fallback={<FallbackLoad />}>
               <AppointmentSuccess />
@@ -105,7 +127,7 @@ const AppRoutes = () => {
           ),
         },
         {
-          path: "patient/history",
+          path: pathDefault.patientHistory,
           element: (
             <Suspense fallback={<FallbackLoad />}>
               <PatientHistory />
@@ -113,7 +135,7 @@ const AppRoutes = () => {
           ),
         },
         {
-          path: "patient/history/:id",
+          path: pathDefault.appointmentDetail,
           element: (
             <Suspense fallback={<FallbackLoad />}>
               <AppointmentDetail />
@@ -122,6 +144,8 @@ const AppRoutes = () => {
         },
       ],
     },
+
+    // --- AUTH ROUTES ---
     {
       path: pathDefault.login,
       element: (
@@ -220,38 +244,49 @@ const AppRoutes = () => {
             </Suspense>
           ),
         },
+        {
+          path: pathDefault.doctorAvailability,
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <ManageAvailability />
+            </Suspense>
+          ),
+        },
+        {
+          path: pathDefault.testModelDoctor,
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <TestAcneModel />
+            </Suspense>
+          ),
+        },
+        {
+          path: "patient-history",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <DoctorScanHistory />
+            </Suspense>
+          ),
+        },
+        {
+          path: "consultation-services",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <DoctorConsultationService />
+            </Suspense>
+          ),
+        },
       ],
     },
 
-    // --- BRAND ROUTES ---
-    // {
-    //   path: pathDefault.brand,
-    //   element: (
-    //     <Suspense fallback={<FallbackLoad />}>
-    //       <BrandLayout />
-    //     </Suspense>
-    //   ),
-    //   children: [
-    //     {
-    //       index: true,
-    //       element: <Navigate to={pathDefault.manageProductBrand} replace />,
-    //     },
-    //     {
-    //       path: pathDefault.manageProductBrand,
-    //       element: (
-    //         <Suspense fallback={<FallbackLoad />}>
-    //           <ManageProduct />
-    //         </Suspense>
-    //       ),
-    //     },
-    //   ],
-    // },
-
+    // --- 404 NOT FOUND ---
     {
       path: "*",
       element: (
         <div className="flex justify-center min-h-screen items-center">
-          <h1>404 - Not Found</h1>
+          <h1 className="text-2xl text-gray-500 font-bold">
+            404 - Không tìm thấy trang
+          </h1>
         </div>
       ),
     },
