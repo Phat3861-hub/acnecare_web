@@ -56,6 +56,8 @@ const PatientHistory = lazy(() => import("../pages/patient/PatientHistory"));
 const AppointmentDetail = lazy(
   () => import("../pages/patient/AppointmentDetail"),
 );
+const MyRoutines = lazy(() => import("../pages/patient/MyRoutines"));
+const RoutineBuilder = lazy(() => import("../pages/patient/RoutineBuilder"));
 
 // Admin
 const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard"));
@@ -139,6 +141,22 @@ const AppRoutes = () => {
           element: (
             <Suspense fallback={<FallbackLoad />}>
               <AppointmentDetail />
+            </Suspense>
+          ),
+        },
+        {
+          path: "routine-builder",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <RoutineBuilder />
+            </Suspense>
+          ),
+        },
+        {
+          path: "my-routines",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <MyRoutines />
             </Suspense>
           ),
         },
