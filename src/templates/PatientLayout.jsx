@@ -28,7 +28,8 @@ const PatientLayout = () => {
           >
             Lịch sử khám
           </Link>
-
+          <Link to="/routine-builder">Thiết kế Routine</Link>
+          <Link to="/my-routines">My Routines</Link>
           {user ? (
             <button
               onClick={() => {

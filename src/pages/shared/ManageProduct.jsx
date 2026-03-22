@@ -12,7 +12,11 @@ import {
   Tag,
   Avatar,
   Tabs,
+  Upload,
+  Descriptions, // Thêm component để hiển thị chi tiết đẹp hơn
+  Image, // Thêm component để xem ảnh phóng to
 } from "antd";
+import { UploadOutlined, EyeOutlined } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProducts } from "../../store/slice/ProductSlice";
 import { fetchCategories } from "../../store/slice/CategorySlice";
@@ -26,7 +30,7 @@ const ManageProduct = () => {
   const dispatch = useDispatch();
 
   // ================================================================
-  // 1. LẤY THÔNG TIN USER (KÈM BACKUP TỪ LOCALSTORAGE)
+  // 1. LẤY THÔNG TIN USER
   // ================================================================
   let currentUser = useSelector((state) => state.user?.userInfo);
 
@@ -47,17 +51,24 @@ const ManageProduct = () => {
   const isAdmin = currentUser?.role === "ADMIN";
 
   // ================================================================
-  // 2. STATE QUẢN LÝ DỮ LIỆU & TAB
+  // 2. STATE QUẢN LÝ DỮ LIỆU
   // ================================================================
   const { products, loading: prodLoading } = useSelector(
     (state) => state.product,
   );
   const { categories } = useSelector((state) => state.category);
 
-  const [activeTab, setActiveTab] = useState("ALL"); // State lưu Tab hiện tại
+  const [activeTab, setActiveTab] = useState("ALL");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [form] = Form.useForm();
+
+  // Thêm State cho Modal Xem Chi Tiết
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [detailProduct, setDetailProduct] = useState(null);
+
+  const [thumbnailFileList, setThumbnailFileList] = useState([]);
+  const [imageFileList, setImageFileList] = useState([]);
 
   useEffect(() => {
     dispatch(fetchProducts());
@@ -67,7 +78,7 @@ const ManageProduct = () => {
   }, [dispatch, categories.length]);
 
   // ================================================================
-  // 3. LOGIC LỌC DỮ LIỆU THEO TAB
+  // 3. LOGIC LỌC DỮ LIỆU
   // ================================================================
   const filteredProducts = products.filter((item) => {
     if (activeTab === "ALL") return true;
@@ -87,33 +98,113 @@ const ManageProduct = () => {
   ];
 
   // ================================================================
-  // 4. CÁC HÀM XỬ LÝ (MỞ MODAL, LƯU, XÓA)
+  // 4. CÁC HÀM XỬ LÝ
   // ================================================================
   const openModal = (record = null) => {
     setEditingProduct(record);
+
     if (record) {
+      // 1. Fill các thông tin text bình thường
       form.setFieldsValue({
         name: record.name,
         brand: record.brand,
         categoryId: record.category?.id,
         description: record.description,
-        thumbnailUrl: record.thumbnailUrl,
         ingredients: record.ingredients,
         affiliateUrl: record.affiliateUrl,
       });
+
+      // 2. Load ảnh Thumbnail (Ảnh chính)
+      if (record.thumbnailUrl) {
+        setThumbnailFileList([
+          {
+            uid: "-1", // ID ảo để Antd nhận diện
+            name: "thumbnail.png",
+            status: "done", // Trạng thái đã tải xong
+            url: record.thumbnailUrl, // Link ảnh từ server
+          },
+        ]);
+      } else {
+        setThumbnailFileList([]);
+      }
+
+      // 3. Load danh sách ảnh phụ (Cắt chuỗi bằng dấu phẩy)
+      if (record.imagesUrl) {
+        const urls = record.imagesUrl
+          .split(",")
+          .filter((url) => url.trim() !== "");
+        const formattedFiles = urls.map((url, index) => ({
+          uid: `-${index + 2}`,
+          name: `image-${index}.png`,
+          status: "done",
+          url: url.trim(),
+        }));
+        setImageFileList(formattedFiles);
+      } else {
+        setImageFileList([]);
+      }
     } else {
+      // Nếu là THÊM MỚI thì xóa trắng mọi thứ
       form.resetFields();
+      setThumbnailFileList([]);
+      setImageFileList([]);
     }
+
     setIsModalVisible(true);
+  };
+
+  // Hàm mở Modal Xem chi tiết
+  const openDetailModal = (record) => {
+    setDetailProduct(record);
+    setIsDetailModalVisible(true);
   };
 
   const handleSave = async (values) => {
     try {
+      const formData = new FormData();
+      formData.append("name", values.name);
+      formData.append("brand", values.brand);
+      formData.append("categoryId", values.categoryId);
+      formData.append("description", values.description);
+
+      if (values.ingredients)
+        formData.append("ingredients", values.ingredients);
+      if (values.affiliateUrl)
+        formData.append("affiliateUrl", values.affiliateUrl);
+
+      // --- 1. XỬ LÝ ẢNH CHÍNH (THUMBNAIL) ---
+      if (thumbnailFileList.length > 0) {
+        if (thumbnailFileList[0].originFileObj) {
+          // Có ảnh upload mới
+          formData.append("thumbnailFile", thumbnailFileList[0].originFileObj);
+        } else if (thumbnailFileList[0].url) {
+          // Giữ lại URL ảnh cũ
+          formData.append("thumbnailUrl", thumbnailFileList[0].url);
+        }
+      } else {
+        // Đã xóa ảnh chính
+        formData.append("thumbnailUrl", "");
+      }
+
+      // --- 2. XỬ LÝ ẢNH PHỤ (GIỮ CŨ + THÊM MỚI) ---
+      const retainedImages = [];
+      imageFileList.forEach((file) => {
+        if (file.originFileObj) {
+          // File tải lên mới
+          formData.append("imageFiles", file.originFileObj);
+        } else if (file.url) {
+          // File cũ giữ lại
+          retainedImages.push(file.url);
+        }
+      });
+      // Gửi mảng link ảnh cũ lên Backend
+      formData.append("imagesUrl", retainedImages.join(","));
+
       if (editingProduct) {
-        await productService.updateProduct(editingProduct.id, values);
+        await productService.updateProduct(editingProduct.id, formData);
         message.success("Cập nhật sản phẩm thành công!");
       } else {
-        await productService.createProduct(values);
+        await productService.createProduct(formData);
         message.success(
           "Thêm sản phẩm thành công! (Chờ duyệt nếu không phải Admin)",
         );
@@ -134,6 +225,22 @@ const ManageProduct = () => {
       message.error("Xóa thất bại!");
     }
   };
+  const handleUpdateStatus = async (id, status) => {
+    try {
+      await productService.updateApprovalStatus(id, status);
+      message.success(
+        status === "APPROVED" ? "Đã duyệt sản phẩm!" : "Đã hủy duyệt sản phẩm!",
+      );
+      dispatch(fetchProducts());
+    } catch (error) {
+      message.error("Lỗi khi cập nhật trạng thái!");
+    }
+  };
+
+  const normFile = (e) => {
+    if (Array.isArray(e)) return e;
+    return e?.fileList;
+  };
 
   // ================================================================
   // 5. CẤU HÌNH CỘT BẢNG
@@ -142,7 +249,13 @@ const ManageProduct = () => {
     {
       title: "Ảnh",
       dataIndex: "thumbnailUrl",
-      render: (url) => <Avatar shape="square" size={64} src={url} />,
+      render: (url) => (
+        <Avatar
+          shape="square"
+          size={64}
+          src={url || "https://via.placeholder.com/64"}
+        />
+      ),
     },
     { title: "Tên sản phẩm", dataIndex: "name", className: "font-medium" },
     { title: "Thương hiệu", dataIndex: "brand" },
@@ -162,26 +275,59 @@ const ManageProduct = () => {
         const isOwner = currentUser?.id === record.createdBy;
         const canEditOrDelete = isAdmin || isOwner;
 
-        if (!canEditOrDelete)
-          return <span className="text-gray-400 italic">Chỉ xem</span>;
-
         return (
-          <Space size="middle">
+          <Space size="middle" className="flex-wrap">
             <Button
               type="link"
-              onClick={() => openModal(record)}
-              className="px-0"
+              onClick={() => openDetailModal(record)}
+              className="px-0 text-green-600 font-medium"
+              icon={<EyeOutlined />}
             >
-              Sửa
+              Xem
             </Button>
-            <Popconfirm
-              title="Xóa sản phẩm này?"
-              onConfirm={() => handleDelete(record.id)}
-            >
-              <Button type="link" danger className="px-0">
-                Xóa
-              </Button>
-            </Popconfirm>
+
+            {/* NÚT DUYỆT / HỦY DUYỆT (CHỈ ADMIN MỚI THẤY) */}
+            {isAdmin && record.approvalStatus === "PENDING" && (
+              <Popconfirm
+                title="Bạn muốn duyệt sản phẩm này để hiển thị công khai?"
+                onConfirm={() => handleUpdateStatus(record.id, "APPROVED")}
+              >
+                <Button type="link" className="px-0 text-blue-600 font-bold">
+                  Duyệt
+                </Button>
+              </Popconfirm>
+            )}
+
+            {isAdmin && record.approvalStatus === "APPROVED" && (
+              <Popconfirm
+                title="Bạn muốn ẩn sản phẩm này đi (Hủy duyệt)?"
+                onConfirm={() => handleUpdateStatus(record.id, "PENDING")}
+              >
+                <Button type="link" className="px-0 text-orange-500 font-bold">
+                  Hủy duyệt
+                </Button>
+              </Popconfirm>
+            )}
+
+            {canEditOrDelete && (
+              <>
+                <Button
+                  type="link"
+                  onClick={() => openModal(record)}
+                  className="px-0"
+                >
+                  Sửa
+                </Button>
+                <Popconfirm
+                  title="Xóa sản phẩm này?"
+                  onConfirm={() => handleDelete(record.id)}
+                >
+                  <Button type="link" danger className="px-0">
+                    Xóa
+                  </Button>
+                </Popconfirm>
+              </>
+            )}
           </Space>
         );
       },
@@ -197,7 +343,6 @@ const ManageProduct = () => {
         </Button>
       </div>
 
-      {/* TÍCH HỢP TABS ĐỂ LỌC SẢN PHẨM */}
       <Tabs
         activeKey={activeTab}
         onChange={(key) => setActiveTab(key)}
@@ -205,7 +350,6 @@ const ManageProduct = () => {
         className="mb-4"
       />
 
-      {/* TRUYỀN DỮ LIỆU ĐÃ LỌC VÀO BẢNG */}
       <Table
         columns={columns}
         dataSource={filteredProducts}
@@ -213,7 +357,7 @@ const ManageProduct = () => {
         loading={prodLoading}
       />
 
-      {/* MODAL THÊM/SỬA */}
+      {/* MODAL THÊM/SỬA SẢN PHẨM */}
       <Modal
         title={
           <div className="text-lg font-bold">
@@ -247,6 +391,7 @@ const ManageProduct = () => {
               <Input />
             </Form.Item>
           </div>
+
           <Form.Item
             label="Danh mục"
             name="categoryId"
@@ -260,9 +405,45 @@ const ManageProduct = () => {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item label="Link ảnh Thumbnail" name="thumbnailUrl">
-            <Input placeholder="https://..." />
+
+          <Form.Item
+            label="Ảnh Thumbnail (Ảnh chính)"
+            valuePropName="fileList"
+            getValueFromEvent={normFile}
+            extra={editingProduct ? "Để trống nếu không muốn đổi ảnh cũ." : ""}
+          >
+            <Upload
+              listType="picture"
+              maxCount={1}
+              beforeUpload={() => false}
+              onChange={(info) => setThumbnailFileList(info.fileList)}
+              fileList={thumbnailFileList}
+            >
+              <Button icon={<UploadOutlined />}>Chọn ảnh chính</Button>
+            </Upload>
           </Form.Item>
+
+          <Form.Item
+            label="Các ảnh phụ (Mặt sau, chất kem...)"
+            valuePropName="fileList"
+            getValueFromEvent={normFile}
+            extra={
+              editingProduct
+                ? "Lưu ý: Nếu bạn tải ảnh mới lên, toàn bộ ảnh phụ cũ sẽ bị xóa."
+                : ""
+            }
+          >
+            <Upload
+              listType="picture"
+              multiple
+              beforeUpload={() => false}
+              onChange={(info) => setImageFileList(info.fileList)}
+              fileList={imageFileList}
+            >
+              <Button icon={<UploadOutlined />}>Chọn nhiều ảnh</Button>
+            </Upload>
+          </Form.Item>
+
           <Form.Item
             label="Mô tả"
             name="description"
@@ -270,12 +451,15 @@ const ManageProduct = () => {
           >
             <TextArea rows={4} />
           </Form.Item>
+
           <Form.Item label="Thành phần (Ingredients)" name="ingredients">
             <TextArea rows={2} />
           </Form.Item>
+
           <Form.Item label="Link mua hàng (Affiliate)" name="affiliateUrl">
             <Input placeholder="https://..." />
           </Form.Item>
+
           <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
             <Button onClick={() => setIsModalVisible(false)}>Hủy</Button>
             <Button type="primary" htmlType="submit">
@@ -283,6 +467,147 @@ const ManageProduct = () => {
             </Button>
           </div>
         </Form>
+      </Modal>
+
+      {/* MODAL XEM CHI TIẾT SẢN PHẨM */}
+      <Modal
+        title={
+          <div className="text-xl font-bold text-blue-800 border-b pb-2">
+            Chi tiết sản phẩm
+          </div>
+        }
+        open={isDetailModalVisible}
+        onCancel={() => setIsDetailModalVisible(false)}
+        footer={[
+          <Button
+            key="close"
+            type="primary"
+            onClick={() => setIsDetailModalVisible(false)}
+          >
+            Đóng
+          </Button>,
+        ]}
+        width={750}
+      >
+        {detailProduct && (
+          <div className="mt-4">
+            {/* Phần Header: Ảnh + Tên + Nhãn */}
+            <div className="flex flex-col md:flex-row gap-6 mb-6">
+              <div className="shrink-0 flex justify-center">
+                <Image
+                  width={180}
+                  height={180}
+                  src={
+                    detailProduct.thumbnailUrl ||
+                    "https://via.placeholder.com/180"
+                  }
+                  className="rounded-lg object-cover shadow-sm border border-gray-200"
+                  fallback="https://via.placeholder.com/180"
+                />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-2xl font-bold mb-1 text-gray-800">
+                  {detailProduct.name}
+                </h3>
+                <p className="text-md text-gray-500 font-medium mb-3 uppercase tracking-wider">
+                  {detailProduct.brand}
+                </p>
+                <div className="flex gap-2 mb-2">
+                  <Tag color="blue">{detailProduct.category?.name}</Tag>
+                  <Tag
+                    color={
+                      detailProduct.approvalStatus === "APPROVED"
+                        ? "success"
+                        : "warning"
+                    }
+                  >
+                    {detailProduct.approvalStatus === "APPROVED"
+                      ? "Đã duyệt"
+                      : "Chờ duyệt"}
+                  </Tag>
+                </div>
+              </div>
+            </div>
+
+            {/* Phần Body: Mô tả & Thành phần */}
+            <Descriptions
+              bordered
+              column={1}
+              size="middle"
+              className="bg-white"
+            >
+              <Descriptions.Item
+                label={
+                  <span className="font-semibold whitespace-nowrap">Mô tả</span>
+                }
+              >
+                <div className="whitespace-pre-wrap text-justify">
+                  {detailProduct.description}
+                </div>
+              </Descriptions.Item>
+
+              <Descriptions.Item
+                label={
+                  <span className="font-semibold whitespace-nowrap">
+                    Thành phần
+                  </span>
+                }
+              >
+                {detailProduct.ingredients ? (
+                  <div className="whitespace-pre-wrap text-gray-700">
+                    {detailProduct.ingredients}
+                  </div>
+                ) : (
+                  <span className="italic text-gray-400">
+                    Không có thông tin
+                  </span>
+                )}
+              </Descriptions.Item>
+
+              <Descriptions.Item
+                label={
+                  <span className="font-semibold whitespace-nowrap">
+                    Mua hàng
+                  </span>
+                }
+              >
+                {detailProduct.affiliateUrl ? (
+                  <a
+                    href={detailProduct.affiliateUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 font-medium hover:underline"
+                  >
+                    Nhấn vào đây để xem nơi mua
+                  </a>
+                ) : (
+                  <span className="italic text-gray-400">
+                    Chưa có liên kết mua hàng
+                  </span>
+                )}
+              </Descriptions.Item>
+            </Descriptions>
+
+            {/* Phần Hình ảnh phụ (Nếu có) */}
+            {detailProduct.imagesUrl && (
+              <div className="mt-6">
+                <h4 className="font-bold text-lg mb-3">Hình ảnh khác</h4>
+                <div className="flex flex-wrap gap-3">
+                  {detailProduct.imagesUrl.split(",").map((img, index) => (
+                    <Image
+                      key={index}
+                      width={100}
+                      height={100}
+                      src={img.trim()}
+                      className="rounded border object-cover shadow-sm"
+                      fallback="https://via.placeholder.com/100"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
     </div>
   );
