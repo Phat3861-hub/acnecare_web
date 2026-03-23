@@ -28,22 +28,36 @@ const PatientLayout = () => {
           >
             Lịch sử khám
           </Link>
-          <Link to="/routine-builder">Thiết kế Routine</Link>
-          <Link to="/my-routines">My Routines</Link>
+          <Link
+            to="/routine-builder"
+            className="text-gray-600 hover:text-blue-600"
+          >
+            Thiết kế Routine
+          </Link>
+          <Link to="/my-routines" className="text-gray-600 hover:text-blue-600">
+            My Routines
+          </Link>
+          {/* Thêm link dẫn tới trang Post ở đây */}
+          <Link
+            to="/posts"
+            className="text-gray-600 hover:text-blue-600 font-medium"
+          >
+            Bài viết
+          </Link>
           {user ? (
             <button
               onClick={() => {
-                dispatch(logout());
+                dispatch(logoutUser());
                 navigate("/auth/login");
               }}
-              className="text-red-500"
+              className="text-red-500 hover:text-red-700"
             >
               Đăng xuất ({user.username})
             </button>
           ) : (
             <Link
               to="/auth/login"
-              className="bg-blue-600 text-white px-4 py-1.5 rounded-md"
+              className="bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-700 transition-colors"
             >
               Đăng nhập
             </Link>
