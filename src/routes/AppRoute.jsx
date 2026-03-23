@@ -30,6 +30,10 @@ export const pathDefault = {
   appointmentSuccess: "/appointment-success",
   patientHistory: "/patient/history",
   appointmentDetail: "/patient/history/:id",
+
+  posts: "/posts",
+  postDetail: "/posts/:postId",
+  createPost: "/createpost", // ĐÃ SỬA: Đổi chữ editpost thành createPost
 };
 
 // ==========================================
@@ -80,6 +84,11 @@ const DoctorConsultationService = lazy(
 // Shared (Dùng chung)
 const ManageProduct = lazy(() => import("../pages/shared/ManageProduct"));
 const TestAcneModel = lazy(() => import("../pages/shared/TestAcneModel"));
+
+const PostPage = lazy(() => import("../pages/posts/Post"));
+const PostCommentPage = lazy(() => import("../pages/posts/PostComment"));
+const CreatePostPage = lazy(() => import("../pages/posts/CreatePost"));
+const EditPostPage = lazy(() => import("../pages/posts/EditPost"));
 
 // Hiệu ứng Loading khi chuyển trang
 const FallbackLoad = () => (
@@ -139,6 +148,39 @@ const AppRoutes = () => {
           element: (
             <Suspense fallback={<FallbackLoad />}>
               <AppointmentDetail />
+            </Suspense>
+          ),
+        },
+        // cái post này là dùng chung để tạm ở đây trước đã
+        {
+          path: pathDefault.posts,
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <PostPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: pathDefault.postDetail,
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <PostCommentPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: pathDefault.createPost, // ĐÃ SỬA: dùng đúng biến tạo ở phần 1
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <CreatePostPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: "/editpost/:postId",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <EditPostPage />
             </Suspense>
           ),
         },

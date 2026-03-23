@@ -29,10 +29,18 @@ const PatientLayout = () => {
             Lịch sử khám
           </Link>
 
+          {/* Thêm link dẫn tới trang Post ở đây */}
+          <Link
+            to="/posts"
+            className="text-gray-600 hover:text-blue-600 font-medium"
+          >
+            Bài viết
+          </Link>
+
           {user ? (
             <button
               onClick={() => {
-                dispatch(logout());
+                dispatch(logoutUser());
                 navigate("/auth/login");
               }}
               className="text-red-500"
