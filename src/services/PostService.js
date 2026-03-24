@@ -59,11 +59,12 @@ export const postService = {
   createComment: (postId, data) => http.post(`/posts/${postId}/comments`, data),
 
   // Cập nhật bình luận
-  updateComment: (commentId, data) =>
-    http.put(`/posts/comments/${commentId}`, data),
+  updateComment: (postId, commentId, data) =>
+    http.put(`/posts/${postId}/comments/${commentId}`, data),
 
   // Xóa bình luận
-  deleteComment: (commentId) => http.delete(`/posts/comments/${commentId}`),
+  deleteComment: (postId, commentId) =>
+    http.delete(`/posts/${postId}/comments/${commentId}`),
 
   // ==========================================
   // LIKES (Lượt thích) - Lấy từ LikeController
