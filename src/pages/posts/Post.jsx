@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { postService } from "../../services/PostService";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { jwtDecode } from "jwt-decode";
+import SockJS from "sockjs-client";
+import { Client } from "@stomp/stompjs";
 
 const Post = () => {
   const [message, setMessage] = useState("");
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const stompClientRef = useRef(null);
 
   const { user } = useSelector((state) => state.user);
 
@@ -32,6 +35,7 @@ const Post = () => {
   const [commentText, setCommentText] = useState("");
   const [isCommenting, setIsCommenting] = useState(false);
 
+  // 1. FETCH DỮ LIỆU BAN ĐẦU
   const handleGetAllPosts = async () => {
     try {
       setIsLoading(true);
@@ -53,12 +57,164 @@ const Post = () => {
     handleGetAllPosts();
   }, []);
 
+  const postIdsString = posts.map((p) => p.id).join(",");
+
+  // 2. KẾT NỐI WEBSOCKET
+  useEffect(() => {
+    if (!postIdsString) return;
+
+    const currentToken = localStorage.getItem("accessToken");
+
+    const client = new Client({
+      webSocketFactory: () => new SockJS("http://localhost:8080/api/ws"),
+      connectHeaders: {
+        Authorization: `Bearer ${currentToken}`,
+      },
+      debug: (str) => console.log(str),
+      reconnectDelay: 5000,
+      onConnect: () => {
+        console.log("Connected to WebSocket Feed");
+
+        // --- GLOBAL TOPICS (Không phụ thuộc vào postId) ---
+
+        // 1. Lắng nghe bài viết bị Xóa (toàn cục)
+        client.subscribe("/topic/posts/delete", (message) => {
+          const deletedPostId = message.body;
+          setPosts((prev) => prev.filter((post) => post.id !== deletedPostId));
+        });
+
+        // 2. Lắng nghe bài viết được Cập nhật (toàn cục)
+        client.subscribe("/topic/posts/update", (message) => {
+          const updatedPost = JSON.parse(message.body);
+          setPosts((prev) =>
+            prev.map((post) => {
+              // Tìm đúng bài viết đang được update
+              if (post.id === updatedPost.id) {
+                return {
+                  ...post, // GIỮ LẠI user, postsImage, comments, likesCount cũ
+                  postTitle: updatedPost.postTitle, // CHỈ ĐÈ text mới
+                  postContent: updatedPost.postContent,
+                  status: updatedPost.status,
+                  updatedAt: updatedPost.updatedAt,
+                };
+              }
+              return post;
+            }),
+          );
+        });
+
+        // --- SPECIFIC TOPICS (Phụ thuộc vào từng postId đang hiển thị) ---
+        const currentPostIds = postIdsString.split(",");
+
+        currentPostIds.forEach((postId) => {
+          // Lắng nghe Like
+          client.subscribe(`/topic/posts/${postId}/likes`, (message) => {
+            const isActionLike = JSON.parse(message.body);
+            setPosts((prev) =>
+              prev.map((p) => {
+                if (p.id === postId) {
+                  return {
+                    ...p,
+                    likesCount: isActionLike
+                      ? (p.likesCount || 0) + 1
+                      : Math.max(0, (p.likesCount || 0) - 1),
+                  };
+                }
+                return p;
+              }),
+            );
+          });
+
+          // Lắng nghe Thêm Bình luận
+          client.subscribe(`/topic/posts/${postId}/comments`, () => {
+            setPosts((prev) =>
+              prev.map((p) => {
+                if (p.id === postId) {
+                  return { ...p, commentsCount: (p.commentsCount || 0) + 1 };
+                }
+                return p;
+              }),
+            );
+          });
+
+          // Lắng nghe Xóa Bình luận
+          client.subscribe(`/topic/posts/${postId}/comments/delete`, () => {
+            setPosts((prev) =>
+              prev.map((p) => {
+                if (p.id === postId) {
+                  return {
+                    ...p,
+                    commentsCount: Math.max(0, (p.commentsCount || 0) - 1),
+                  };
+                }
+                return p;
+              }),
+            );
+          });
+
+          // Lắng nghe Thêm Ảnh Mới
+          client.subscribe(
+            `/topic/posts/${postId}/images/upload`,
+            (message) => {
+              const newImages = JSON.parse(message.body); // Mảng ảnh mới
+              setPosts((prev) =>
+                prev.map((p) => {
+                  if (p.id === postId) {
+                    return {
+                      ...p,
+                      postsImage: [...(p.postsImage || []), ...newImages],
+                    };
+                  }
+                  return p;
+                }),
+              );
+            },
+          );
+
+          // Lắng nghe Xóa Ảnh
+          client.subscribe(
+            `/topic/posts/${postId}/images/delete`,
+            (message) => {
+              const deletedImageId = message.body; // String ID
+              setPosts((prev) =>
+                prev.map((p) => {
+                  if (p.id === postId && p.postsImage) {
+                    return {
+                      ...p,
+                      postsImage: p.postsImage.filter(
+                        (img) =>
+                          img.id.toString() !== deletedImageId.toString(),
+                      ),
+                    };
+                  }
+                  return p;
+                }),
+              );
+            },
+          );
+        });
+      },
+      onStompError: (frame) => {
+        console.error("Broker reported error: " + frame.headers["message"]);
+      },
+    });
+
+    client.activate();
+    stompClientRef.current = client;
+
+    return () => {
+      if (stompClientRef.current) {
+        stompClientRef.current.deactivate();
+      }
+    };
+  }, [postIdsString]);
+
+  // 3. XỬ LÝ GIAO DIỆN
   const handleToggleLike = async (
     postId,
     currentIsLiked,
     currentLikesCount,
   ) => {
-    // 1. Cập nhật giao diện ngay lập tức
     setPosts((prevPosts) =>
       prevPosts.map((post) => {
         if (post.id === postId) {
@@ -66,20 +222,15 @@ const Post = () => {
             ...post,
             liked: !currentIsLiked,
             isLiked: !currentIsLiked,
-            likesCount: currentIsLiked
-              ? Math.max(0, post.likesCount - 1)
-              : post.likesCount + 1,
           };
         }
         return post;
       }),
     );
 
-    // 2. Gọi API xử lý dưới nền
     try {
       await postService.toggleLikePost(postId);
     } catch (error) {
-      // Hoàn tác nếu lỗi
       setPosts((prevPosts) =>
         prevPosts.map((post) => {
           if (post.id === postId) {
@@ -87,7 +238,6 @@ const Post = () => {
               ...post,
               liked: currentIsLiked,
               isLiked: currentIsLiked,
-              likesCount: currentLikesCount,
             };
           }
           return post;
@@ -97,6 +247,34 @@ const Post = () => {
         "Lỗi khi tương tác bài viết: " +
           (error.response?.data?.message || error.message),
       );
+    }
+  };
+
+  const handleCommentSubmit = async (postId) => {
+    if (!commentText.trim()) {
+      setMessage("Vui lòng nhập nội dung bình luận.");
+      return;
+    }
+    if (commentText.length > 100) {
+      setMessage("Bình luận không được vượt quá 100 ký tự.");
+      return;
+    }
+
+    try {
+      setIsCommenting(true);
+      const requestData = { commentContent: commentText.trim() };
+
+      await postService.createComment(postId, requestData);
+
+      setActiveCommentPostId(null);
+      setCommentText("");
+    } catch (error) {
+      setMessage(
+        "Lỗi khi bình luận: " +
+          (error.response?.data?.message || error.message),
+      );
+    } finally {
+      setIsCommenting(false);
     }
   };
 
@@ -119,7 +297,6 @@ const Post = () => {
 
       await postService.deletePost(currentUserId, postToDelete);
 
-      setPosts(posts.filter((post) => post.id !== postToDelete));
       setMessage("Đã xóa bài viết thành công.");
     } catch (error) {
       setMessage(
@@ -146,51 +323,6 @@ const Post = () => {
     } else {
       setActiveCommentPostId(postId);
       setCommentText("");
-    }
-  };
-
-  const handleCommentSubmit = async (postId) => {
-    if (!commentText.trim()) {
-      setMessage("Vui lòng nhập nội dung bình luận.");
-      return;
-    }
-
-    if (commentText.length > 100) {
-      setMessage("Bình luận không được vượt quá 100 ký tự.");
-      return;
-    }
-
-    try {
-      setIsCommenting(true);
-
-      const requestData = {
-        commentContent: commentText.trim(),
-      };
-
-      await postService.createComment(postId, requestData);
-
-      setPosts((prevPosts) =>
-        prevPosts.map((post) => {
-          if (post.id === postId) {
-            return {
-              ...post,
-              commentsCount: (post.commentsCount || 0) + 1,
-            };
-          }
-          return post;
-        }),
-      );
-
-      setMessage("Đã thêm bình luận thành công.");
-      setActiveCommentPostId(null);
-      setCommentText("");
-    } catch (error) {
-      setMessage(
-        "Lỗi khi bình luận: " +
-          (error.response?.data?.message || error.message),
-      );
-    } finally {
-      setIsCommenting(false);
     }
   };
 
@@ -231,7 +363,6 @@ const Post = () => {
       <div className="space-y-6">
         {posts.length > 0
           ? posts.map((post) => {
-              // XỬ LÝ ĐỌC TRẠNG THÁI LIKE TỪ BACKEND
               const hasLiked = post.liked === true || post.isLiked === true;
 
               return (

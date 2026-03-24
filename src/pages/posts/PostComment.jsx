@@ -1,23 +1,26 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { jwtDecode } from "jwt-decode";
 import { postService } from "../../services/PostService";
+import SockJS from "sockjs-client";
+import { Client } from "@stomp/stompjs";
 
 const PostComment = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
+  const stompClientRef = useRef(null);
 
   // Lấy ID người dùng hiện tại để kiểm tra quyền Sửa/Xóa
   const { user } = useSelector((state) => state.user);
   let currentUserId = user?.id;
-  if (!currentUserId) {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      try {
-        currentUserId = jwtDecode(token).sub;
-      } catch (err) {}
-    }
+
+  // Lấy token dùng chung cho cả việc lấy User ID và cấu hình Socket
+  const token = localStorage.getItem("accessToken");
+  if (!currentUserId && token) {
+    try {
+      currentUserId = jwtDecode(token).sub;
+    } catch (err) {}
   }
 
   const [post, setPost] = useState(null);
@@ -29,6 +32,7 @@ const PostComment = () => {
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editContent, setEditContent] = useState("");
 
+  // 1. TẢI DỮ LIỆU BÀI VIẾT BAN ĐẦU
   useEffect(() => {
     const fetchPostDetails = async () => {
       try {
@@ -48,6 +52,108 @@ const PostComment = () => {
     if (postId) {
       fetchPostDetails();
     }
+  }, [postId]);
+
+  // 2. THIẾT LẬP KẾT NỐI WEBSOCKET (REAL-TIME)
+  useEffect(() => {
+    if (!postId) return;
+
+    const currentToken = localStorage.getItem("accessToken");
+
+    const client = new Client({
+      webSocketFactory: () => new SockJS("http://localhost:8080/api/ws"),
+      connectHeaders: {
+        Authorization: `Bearer ${currentToken}`,
+      },
+      debug: (str) => console.log(str),
+      reconnectDelay: 5000,
+      onConnect: () => {
+        console.log("Connected to WebSocket");
+
+        // --- Lắng nghe Thêm Bình Luận ---
+        client.subscribe(`/topic/posts/${postId}/comments`, (message) => {
+          const newComment = JSON.parse(message.body);
+
+          setPost((prev) => {
+            if (!prev) return prev;
+            // Kiểm tra tránh thêm trùng lặp bình luận (nếu user tự gửi)
+            const exists = prev.comments?.some((c) => c.id === newComment.id);
+            if (exists) return prev;
+
+            return {
+              ...prev,
+              comments: [newComment, ...(prev.comments || [])],
+              commentsCount: (prev.commentsCount || 0) + 1,
+            };
+          });
+        });
+
+        // --- Lắng nghe Cập Nhật Bình Luận ---
+        client.subscribe(
+          `/topic/posts/${postId}/comments/update`,
+          (message) => {
+            const updatedComment = JSON.parse(message.body);
+
+            setPost((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                comments: prev.comments.map((c) =>
+                  c.id === updatedComment.id ? updatedComment : c,
+                ),
+              };
+            });
+          },
+        );
+
+        // --- Lắng nghe Xóa Bình Luận ---
+        client.subscribe(
+          `/topic/posts/${postId}/comments/delete`,
+          (message) => {
+            const deletedCommentId = message.body; // Bên Java bắn ra String commentId
+
+            setPost((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                comments: prev.comments.filter(
+                  (c) => c.id !== deletedCommentId,
+                ),
+                commentsCount: Math.max(0, (prev.commentsCount || 0) - 1),
+              };
+            });
+          },
+        );
+
+        // --- Lắng nghe Thay Đổi Lượt Thích ---
+        client.subscribe(`/topic/posts/${postId}/likes`, (message) => {
+          const isLiked = JSON.parse(message.body);
+
+          setPost((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              likesCount: isLiked
+                ? (prev.likesCount || 0) + 1
+                : Math.max(0, (prev.likesCount || 0) - 1),
+            };
+          });
+        });
+      },
+      onStompError: (frame) => {
+        console.error("Broker reported error: " + frame.headers["message"]);
+      },
+    });
+
+    client.activate();
+    stompClientRef.current = client;
+
+    // Cleanup: Ngắt kết nối socket khi rời khỏi component bài viết này
+    return () => {
+      if (stompClientRef.current) {
+        stompClientRef.current.deactivate();
+      }
+    };
   }, [postId]);
 
   const formatDate = (dateString) => {
@@ -70,14 +176,11 @@ const PostComment = () => {
 
     try {
       setIsProcessing(true);
-      await postService.deleteComment(commentId);
+      // Gọi API xóa theo đường dẫn mới có chứa postId
+      await postService.deleteComment(postId, commentId);
 
-      // Loại bỏ bình luận khỏi danh sách hiển thị
-      setPost((prev) => ({
-        ...prev,
-        comments: prev.comments.filter((c) => c.id !== commentId),
-        commentsCount: Math.max(0, prev.commentsCount - 1),
-      }));
+      // Ghi chú: Không cần setPost ở đây nữa vì WebSocket
+      // lắng nghe topic /delete sẽ tự động cập nhật UI cho bạn và mọi người
     } catch (error) {
       alert(
         "Lỗi khi xóa bình luận: " +
@@ -113,15 +216,12 @@ const PostComment = () => {
       setIsProcessing(true);
       const requestData = { commentContent: editContent.trim() };
 
-      await postService.updateComment(commentId, requestData);
+      // Gọi API sửa theo đường dẫn mới có chứa postId
+      await postService.updateComment(postId, commentId, requestData);
 
-      // Cập nhật lại nội dung trên giao diện
-      setPost((prev) => ({
-        ...prev,
-        comments: prev.comments.map((c) =>
-          c.id === commentId ? { ...c, commentContent: editContent.trim() } : c,
-        ),
-      }));
+      // Ghi chú: Không cần setPost ở đây nữa vì WebSocket
+      // lắng nghe topic /update sẽ tự động cập nhật UI cho bạn và mọi người
+
       setEditingCommentId(null);
     } catch (error) {
       alert(
@@ -220,8 +320,6 @@ const PostComment = () => {
             {post.comments.map((comment) => {
               const fullName = getFullName(comment.firstName, comment.lastName);
 
-              // Kiểm tra xem bình luận này có phải của User đang đăng nhập không
-              // Phụ thuộc vào Backend trả về ID ở dạng comment.userId hay comment.user.id
               const commentOwnerId = comment.userId || comment.user?.id;
               const isOwner = currentUserId && commentOwnerId === currentUserId;
 
@@ -230,7 +328,6 @@ const PostComment = () => {
                   key={comment.id}
                   className="bg-gray-50 p-3 rounded border flex gap-3"
                 >
-                  {/* Khối hiển thị Avatar */}
                   <div className="flex-shrink-0">
                     {comment.avatarUrl ? (
                       <img
@@ -245,20 +342,17 @@ const PostComment = () => {
                     )}
                   </div>
 
-                  {/* Khối hiển thị Nội dung bình luận */}
                   <div className="flex-grow">
                     <div className="flex justify-between items-start mb-1">
                       <span className="font-semibold text-gray-800">
                         {fullName}
                       </span>
 
-                      {/* Khu vực chứa Ngày tháng và nút Sửa/Xóa */}
                       <div className="flex items-center gap-3">
                         <span className="text-xs text-gray-500">
                           {formatDate(comment.createAt || comment.createdAt)}
                         </span>
 
-                        {/* Chỉ hiện nút khi bình luận là của người dùng */}
                         {isOwner && editingCommentId !== comment.id && (
                           <div className="flex gap-2">
                             <button
@@ -278,7 +372,6 @@ const PostComment = () => {
                       </div>
                     </div>
 
-                    {/* Kiểm tra nếu đang ở chế độ Sửa của bình luận này */}
                     {editingCommentId === comment.id ? (
                       <div className="mt-2">
                         <textarea
