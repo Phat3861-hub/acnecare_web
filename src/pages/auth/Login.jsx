@@ -15,10 +15,7 @@ const Login = () => {
   const dispatch = useDispatch();
 
   const formik = useFormik({
-    initialValues: {
-      email: "",
-      password: "",
-    },
+    initialValues: { email: "", password: "" },
     validationSchema: Yup.object({
       email: Yup.string()
         .email("Vui lòng nhập email hợp lệ!")
@@ -33,16 +30,10 @@ const Login = () => {
         const res = await authService.login(values);
 
         if (res.data.code === 1000) {
-          const token = res.data.result.accessToken;
-          const refreshToken = res.data.result.refreshToken || null;
-
-          localStorage.setItem("accessToken", token);
-          if (refreshToken) {
-            localStorage.setItem("refreshToken", refreshToken);
-          }
-
-          const decodedToken = jwtDecode(token);
-
+          // Token đã được Backend set vào Cookie.
+          // Ta mượn Token từ body để giải mã lấy Role, không lưu vào Storage!
+          const tokenBody = res.data.result.accessToken;
+          const decodedToken = jwtDecode(tokenBody);
           const tokenRoles = decodedToken.roles || "";
 
           let role = "PATIENT";
@@ -50,33 +41,27 @@ const Login = () => {
           else if (tokenRoles.includes("DOCTOR")) role = "DOCTOR";
           else if (tokenRoles.includes("BRAND")) role = "BRAND";
 
+          // Chỉ lưu UserInfo vào Redux
           dispatch(
             setCredentials({
               user: {
                 id: decodedToken.sub,
                 role: role,
               },
-              accessToken: token,
-              refreshToken: refreshToken,
             }),
           );
 
           message.success("Đăng nhập thành công!");
 
-          if (role === "ADMIN") {
-            navigate("/admin/dashboard");
-          } else if (role === "DOCTOR") {
-            navigate("/doctor/schedule");
-          } else {
-            navigate("/");
-          }
+          // Điều hướng
+          if (role === "ADMIN") navigate("/admin/dashboard");
+          else if (role === "DOCTOR") navigate("/doctor/schedule");
+          else navigate("/");
         }
       } catch (error) {
-        console.error("=== LỖI ===", error.response?.data);
-        const errorMsg =
-          error.response?.data?.message ||
-          "Sai email hoặc mật khẩu / Không có quyền truy cập!";
-        setBackendError(errorMsg);
+        setBackendError(
+          error.response?.data?.message || "Sai email hoặc mật khẩu!",
+        );
       } finally {
         setLoading(false);
       }
@@ -89,7 +74,6 @@ const Login = () => {
         <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">
           Đăng nhập
         </h2>
-
         {backendError && (
           <Alert
             description={backendError}
@@ -98,7 +82,6 @@ const Login = () => {
             className="mb-4"
           />
         )}
-
         <Form layout="vertical" onFinish={formik.handleSubmit}>
           <Form.Item
             label="Email"
@@ -109,7 +92,6 @@ const Login = () => {
           >
             <Input size="large" {...formik.getFieldProps("email")} />
           </Form.Item>
-
           <Form.Item
             label="Mật khẩu"
             validateStatus={
@@ -122,7 +104,6 @@ const Login = () => {
               {...formik.getFieldProps("password")}
             />
           </Form.Item>
-
           <Button
             type="primary"
             htmlType="submit"
