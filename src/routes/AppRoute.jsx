@@ -1,7 +1,7 @@
 import React, { Suspense, lazy } from "react";
 import { useRoutes, Navigate, Link } from "react-router-dom";
 import { Spin, Button, Result } from "antd";
-import { jwtDecode } from "jwt-decode"; // Thêm thư viện giải mã token
+import { jwtDecode } from "jwt-decode";
 
 // ==========================================
 // 1. ĐỊNH NGHĨA ĐƯỜNG DẪN
@@ -11,12 +11,22 @@ export const pathDefault = {
   login: "/auth/login",
   register: "/auth/register",
 
-  // Admin
+  // Patient (Có thêm Post)
+  posts: "/posts", // <--- Thêm đường dẫn cho Bài viết / Blog
+  postDetail: "/posts/:id",
+  createPost: "/createpost", // ĐÃ SỬA: Đổi chữ editpost thành createPost
+  bookAppointment: "/book-appointment/:doctorId",
+  appointmentSuccess: "/appointment-success",
+  patientHistory: "/patient/history",
+  appointmentDetail: "/patient/history/:id",
+
+  // Admin (Có thêm Manage Post)
   admin: "/admin",
   adminDashboard: "/admin/dashboard",
   manageUser: "/admin/manage-users",
   manageCategory: "/admin/manage-categories",
   manageProductAdmin: "/admin/manage-products",
+  // managePost: "/admin/manage-posts", // <--- Thêm quản lý Bài viết cho Admin
 
   // Doctor
   doctor: "/doctor",
@@ -26,54 +36,33 @@ export const pathDefault = {
   doctorAvailability: "/doctor/availability",
   doctorProfile: "/doctor/profile",
   testModelDoctor: "/doctor/test-model",
-
-  // Patient
-  bookAppointment: "/book-appointment/:doctorId",
-  appointmentSuccess: "/appointment-success",
-  patientHistory: "/patient/history",
-  appointmentDetail: "/patient/history/:id",
-
-  posts: "/posts",
-  postDetail: "/posts/:postId",
-  createPost: "/createpost", // ĐÃ SỬA: Đổi chữ editpost thành createPost
 };
 
 // ==========================================
 // 2. COMPONENT BẢO VỆ ROUTE (PROTECTED ROUTE)
 // ==========================================
 const ProtectedRoute = ({ allowedRoles, children }) => {
-  const token = localStorage.getItem("accessToken");
-  let userRole = null;
-  let homePath = pathDefault.home; // Mặc định là trang chủ Patient
+  // Đọc thông tin user từ LocalStorage (Đã được Redux lưu lại)
+  const userInfoStr = localStorage.getItem("userInfo");
+  const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
+  const userRole = userInfo ? userInfo.role : null;
 
-  if (token) {
-    try {
-      const decoded = jwtDecode(token);
-      const tokenRoles = decoded.roles || decoded.scope || "";
-      if (tokenRoles.includes("ADMIN")) {
-        userRole = "ADMIN";
-        homePath = pathDefault.adminDashboard;
-      } else if (tokenRoles.includes("DOCTOR")) {
-        userRole = "DOCTOR";
-        homePath = pathDefault.doctorSchedule;
-      } else if (tokenRoles.includes("BRAND")) {
-        userRole = "BRAND";
-        // homePath = "/brand/dashboard"; // Bổ sung nếu bạn có brand
-      } else {
-        userRole = "PATIENT";
-      }
-    } catch (error) {
-      console.error("Token không hợp lệ", error);
-    }
-  }
+  let homePath = pathDefault.home;
+
+  if (userRole === "ADMIN") homePath = pathDefault.adminDashboard;
+  else if (userRole === "DOCTOR") homePath = pathDefault.doctorSchedule;
 
   // 1. Chưa đăng nhập
-  if (!token) {
+  if (!userInfo) {
     return <Navigate to={pathDefault.login} replace />;
   }
 
   // 2. Không đủ quyền (Lỗi 403)
-  if (allowedRoles && !allowedRoles.includes(userRole)) {
+  if (
+    allowedRoles &&
+    allowedRoles.length > 0 &&
+    !allowedRoles.includes(userRole)
+  ) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Result
@@ -87,7 +76,7 @@ const ProtectedRoute = ({ allowedRoles, children }) => {
           extra={
             <Link to={homePath}>
               <Button type="primary" size="large" className="bg-blue-600">
-                Về Trang Bảng Điều Khiển
+                Về Bảng Điều Khiển
               </Button>
             </Link>
           }
@@ -98,25 +87,18 @@ const ProtectedRoute = ({ allowedRoles, children }) => {
 
   return children;
 };
+
 // ==========================================
 // COMPONENT 404 THÔNG MINH
 // ==========================================
 const NotFoundPage = () => {
-  const token = localStorage.getItem("accessToken");
-  let homePath = pathDefault.home;
+  const userInfoStr = localStorage.getItem("userInfo");
+  const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
+  const userRole = userInfo ? userInfo.role : null;
 
-  if (token) {
-    try {
-      const decoded = jwtDecode(token);
-      const tokenRoles = decoded.roles || decoded.scope || "";
-      if (tokenRoles.includes("ADMIN")) homePath = pathDefault.adminDashboard;
-      else if (tokenRoles.includes("DOCTOR"))
-        homePath = pathDefault.doctorSchedule;
-      // else if (tokenRoles.includes("BRAND")) homePath = "/brand/dashboard";
-    } catch (error) {
-      // Bỏ qua lỗi, dùng homePath mặc định
-    }
-  }
+  let homePath = pathDefault.home;
+  if (userRole === "ADMIN") homePath = pathDefault.adminDashboard;
+  else if (userRole === "DOCTOR") homePath = pathDefault.doctorSchedule;
 
   return (
     <div className="flex flex-col justify-center min-h-screen items-center bg-gray-50">
@@ -158,11 +140,15 @@ const AppointmentDetail = lazy(
 );
 const MyRoutines = lazy(() => import("../pages/patient/MyRoutines"));
 const RoutineBuilder = lazy(() => import("../pages/patient/RoutineBuilder"));
+// Khôi phục trang Post cho User (Bạn chỉnh lại đường dẫn import cho khớp nhé)
+// const PostList = lazy(() => import("../pages/t"));
 
 // Admin
 const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard"));
 const ManageUser = lazy(() => import("../pages/admin/ManageUser"));
 const ManageCategory = lazy(() => import("../pages/admin/ManageCategory"));
+// Khôi phục trang Manage Post cho Admin (Bạn chỉnh lại đường dẫn import cho khớp nhé)
+// const ManagePost = lazy(() => import("../pages/admin/ManagePost"));
 
 // Doctor
 const DoctorSchedule = lazy(() => import("../pages/doctor/DoctorSchedule"));
@@ -201,18 +187,16 @@ const FallbackLoad = () => (
 // ==========================================
 const AppRoutes = () => {
   const arrRoutes = [
-    // --- PATIENT ROUTES ---
+    // --- KHU VỰC CỦA NGƯỜI DÙNG (PUBLIC & PRIVATE) ---
     {
       path: pathDefault.home,
-      // Patient layout có thể yêu cầu đăng nhập với role PATIENT
       element: (
-        <ProtectedRoute allowedRoles={["PATIENT"]}>
-          <Suspense fallback={<FallbackLoad />}>
-            <PatientLayout />
-          </Suspense>
-        </ProtectedRoute>
+        <Suspense fallback={<FallbackLoad />}>
+          <PatientLayout />
+        </Suspense>
       ),
       children: [
+        // 🟢 CÁC TRANG PUBLIC (AI CŨNG VÀO ĐƯỢC)
         {
           index: true,
           element: (
@@ -221,44 +205,64 @@ const AppRoutes = () => {
             </Suspense>
           ),
         },
+        // {
+        //   path: pathDefault.posts, // /posts
+        //   element: (
+        //     <Suspense fallback={<FallbackLoad />}>
+        //       <PostList />
+        //     </Suspense>
+        //   ),
+        // },
+
+        // 🔴 CÁC TRANG BẮT BUỘC ĐĂNG NHẬP (PATIENT)
         {
           path: pathDefault.bookAppointment,
           element: (
-            <Suspense fallback={<FallbackLoad />}>
-              <BookAppointment />
-            </Suspense>
+            <ProtectedRoute allowedRoles={["PATIENT"]}>
+              <Suspense fallback={<FallbackLoad />}>
+                <BookAppointment />
+              </Suspense>
+            </ProtectedRoute>
           ),
         },
         {
           path: pathDefault.appointmentSuccess,
           element: (
-            <Suspense fallback={<FallbackLoad />}>
-              <AppointmentSuccess />
-            </Suspense>
+            <ProtectedRoute allowedRoles={["PATIENT"]}>
+              <Suspense fallback={<FallbackLoad />}>
+                <AppointmentSuccess />
+              </Suspense>
+            </ProtectedRoute>
           ),
         },
         {
           path: pathDefault.patientHistory,
           element: (
-            <Suspense fallback={<FallbackLoad />}>
-              <PatientHistory />
-            </Suspense>
+            <ProtectedRoute allowedRoles={["PATIENT"]}>
+              <Suspense fallback={<FallbackLoad />}>
+                <PatientHistory />
+              </Suspense>
+            </ProtectedRoute>
           ),
         },
         {
           path: pathDefault.appointmentDetail,
           element: (
-            <Suspense fallback={<FallbackLoad />}>
-              <AppointmentDetail />
-            </Suspense>
+            <ProtectedRoute allowedRoles={["PATIENT"]}>
+              <Suspense fallback={<FallbackLoad />}>
+                <AppointmentDetail />
+              </Suspense>
+            </ProtectedRoute>
           ),
         },
         {
           path: "routine-builder",
           element: (
-            <Suspense fallback={<FallbackLoad />}>
-              <RoutineBuilder />
-            </Suspense>
+            <ProtectedRoute allowedRoles={["PATIENT"]}>
+              <Suspense fallback={<FallbackLoad />}>
+                <RoutineBuilder />
+              </Suspense>
+            </ProtectedRoute>
           ),
         },
         // cái post này là dùng chung để tạm ở đây trước đã
@@ -273,9 +277,11 @@ const AppRoutes = () => {
         {
           path: "my-routines",
           element: (
-            <Suspense fallback={<FallbackLoad />}>
-              <MyRoutines />
-            </Suspense>
+            <ProtectedRoute allowedRoles={["PATIENT"]}>
+              <Suspense fallback={<FallbackLoad />}>
+                <MyRoutines />
+              </Suspense>
+            </ProtectedRoute>
           ),
         },
         {
@@ -305,7 +311,7 @@ const AppRoutes = () => {
       ],
     },
 
-    // --- AUTH ROUTES (Không cần bảo vệ) ---
+    // --- AUTH ROUTES (PUBLIC HOÀN TOÀN) ---
     {
       path: pathDefault.login,
       element: (
@@ -323,10 +329,9 @@ const AppRoutes = () => {
       ),
     },
 
-    // --- ADMIN ROUTES ---
+    // --- ADMIN ROUTES (KHÓA BẰNG ROLE ADMIN) ---
     {
       path: pathDefault.admin,
-      // Khóa toàn bộ route con bằng ADMIN role
       element: (
         <ProtectedRoute allowedRoles={["ADMIN"]}>
           <Suspense fallback={<FallbackLoad />}>
@@ -371,13 +376,20 @@ const AppRoutes = () => {
             </Suspense>
           ),
         },
+        // {
+        //   path: pathDefault.managePost, // /admin/manage-posts
+        //   element: (
+        //     <Suspense fallback={<FallbackLoad />}>
+        //       <ManagePost />
+        //     </Suspense>
+        //   ),
+        // },
       ],
     },
 
-    // --- DOCTOR ROUTES ---
+    // --- DOCTOR ROUTES (KHÓA BẰNG ROLE DOCTOR) ---
     {
       path: pathDefault.doctor,
-      // Khóa toàn bộ route con bằng DOCTOR role
       element: (
         <ProtectedRoute allowedRoles={["DOCTOR"]}>
           <Suspense fallback={<FallbackLoad />}>

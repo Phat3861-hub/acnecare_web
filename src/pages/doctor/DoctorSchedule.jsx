@@ -130,7 +130,7 @@ const DoctorSchedule = () => {
   };
 
   // ==============================================
-  // GIAO DIỆN WEEK VIEW (ĐÃ FIX RESPONSIVE)
+  // GIAO DIỆN WEEK VIEW (ĐÃ FIX LỖI LỆCH GRID)
   // ==============================================
   const renderWeekView = () => {
     const hours = Array.from({ length: 12 }, (_, i) => i + 7);
@@ -146,11 +146,14 @@ const DoctorSchedule = () => {
     ];
 
     return (
-      // Bọc toàn bộ vào overflow-x-auto để cuộn ngang trên mobile
       <div className="w-full overflow-x-auto bg-white custom-scrollbar">
-        {/* Ép chiều rộng tối thiểu 800px để các ô không bị méo */}
-        <div className="min-w-[800px] lg:min-w-full flex flex-col">
-          <div className="grid grid-cols-[70px_repeat(7,1fr)] md:grid-cols-[80px_repeat(7,1fr)] border-b border-gray-100 bg-white sticky top-0 z-20">
+        {/* SỬA LỖI LỆCH GRID: Chuyển height và overflow-y-auto lên thẻ bọc ngoài cùng này */}
+        <div
+          className="min-w-[800px] lg:min-w-full flex flex-col relative overflow-y-auto overflow-x-hidden custom-scrollbar"
+          style={{ height: "65vh", minHeight: "500px" }}
+        >
+          {/* HEADER - Tăng z-index lên 50 để đè lên các khối sự kiện, thêm shadow-sm để tạo hiệu ứng nổi khi cuộn */}
+          <div className="grid grid-cols-[70px_repeat(7,1fr)] md:grid-cols-[80px_repeat(7,1fr)] border-b border-gray-200 bg-white sticky top-0 z-50 shadow-sm">
             <div className="p-2 md:p-3 text-center text-[10px] md:text-xs text-blue-600 font-semibold flex items-center justify-center border-r border-gray-100">
               W{startOfWeek.week ? startOfWeek.week() : dayjs().week?.() || "2"}
             </div>
@@ -179,10 +182,8 @@ const DoctorSchedule = () => {
             })}
           </div>
 
-          <div
-            className="relative overflow-y-auto overflow-x-hidden"
-            style={{ height: "65vh", minHeight: "500px" }}
-          >
+          {/* BODY - Chứa đường kẻ ngang và các ca khám */}
+          <div className="relative flex-1">
             {now.hour() >= 7 && now.hour() <= 18 && (
               <div
                 className="absolute left-0 right-0 flex z-30 pointer-events-none"
@@ -203,6 +204,7 @@ const DoctorSchedule = () => {
             )}
 
             <div className="grid grid-cols-[70px_repeat(7,1fr)] md:grid-cols-[80px_repeat(7,1fr)]">
+              {/* CỘT HIỂN THỊ GIỜ */}
               <div className="border-r border-gray-100 bg-white z-10">
                 {hours.map((hour) => (
                   <div
@@ -236,6 +238,7 @@ const DoctorSchedule = () => {
                 ))}
               </div>
 
+              {/* CỘT CÁC NGÀY TRONG TUẦN */}
               {weekDays.map((day) => {
                 const dayApps =
                   doctorScheduleList?.filter((app) =>
@@ -258,6 +261,7 @@ const DoctorSchedule = () => {
                     className="relative border-r border-b border-gray-50 min-h-full group cursor-pointer"
                     onClick={() => onSelectDate(day)}
                   >
+                    {/* Vẽ đường line chia giờ trong các cột ngày */}
                     {hours.map((hour) => (
                       <div
                         key={hour}
@@ -269,6 +273,7 @@ const DoctorSchedule = () => {
                       </div>
                     ))}
 
+                    {/* Hiển thị các khối sự kiện (Ca khám) */}
                     {dayApps.map((app, idx) => {
                       const appTime = dayjs(app.appointmentTime);
                       const hour = appTime.hour();
@@ -300,7 +305,7 @@ const DoctorSchedule = () => {
                             height: `${height}px`,
                             left: `calc(${leftPercent}% + 2px)`,
                             width: `calc(${widthPercent}% - 4px)`,
-                            zIndex: 20 + appIndex,
+                            zIndex: 20 + appIndex, // Z-index ở đây luôn nhỏ hơn Header (50)
                           }}
                           onClick={(e) => {
                             e.stopPropagation();
