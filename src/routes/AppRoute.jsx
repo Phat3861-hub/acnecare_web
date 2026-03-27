@@ -1,9 +1,10 @@
 import React, { Suspense, lazy } from "react";
-import { useRoutes, Navigate } from "react-router-dom";
-import { Spin } from "antd";
+import { useRoutes, Navigate, Link } from "react-router-dom";
+import { Spin, Button, Result } from "antd";
+import { jwtDecode } from "jwt-decode"; // Thêm thư viện giải mã token
 
 // ==========================================
-// 1. ĐỊNH NGHĨA ĐƯỜNG DẪN (CHUẨN HÓA ABSOLUTE PATH)
+// 1. ĐỊNH NGHĨA ĐƯỜNG DẪN
 // ==========================================
 export const pathDefault = {
   home: "/",
@@ -23,7 +24,8 @@ export const pathDefault = {
   doctorAppointmentDetail: "/doctor/schedule/:id",
   manageProductDoctor: "/doctor/manage-products",
   doctorAvailability: "/doctor/availability",
-  testModelDoctor: "/doctor/test-model", // Đã bổ sung trang Test Model
+  doctorProfile: "/doctor/profile",
+  testModelDoctor: "/doctor/test-model",
 
   // Patient
   bookAppointment: "/book-appointment/:doctorId",
@@ -37,15 +39,109 @@ export const pathDefault = {
 };
 
 // ==========================================
-// 2. LAZY LOAD LAYOUTS
+// 2. COMPONENT BẢO VỆ ROUTE (PROTECTED ROUTE)
+// ==========================================
+const ProtectedRoute = ({ allowedRoles, children }) => {
+  const token = localStorage.getItem("accessToken");
+  let userRole = null;
+  let homePath = pathDefault.home; // Mặc định là trang chủ Patient
+
+  if (token) {
+    try {
+      const decoded = jwtDecode(token);
+      const tokenRoles = decoded.roles || decoded.scope || "";
+      if (tokenRoles.includes("ADMIN")) {
+        userRole = "ADMIN";
+        homePath = pathDefault.adminDashboard;
+      } else if (tokenRoles.includes("DOCTOR")) {
+        userRole = "DOCTOR";
+        homePath = pathDefault.doctorSchedule;
+      } else if (tokenRoles.includes("BRAND")) {
+        userRole = "BRAND";
+        // homePath = "/brand/dashboard"; // Bổ sung nếu bạn có brand
+      } else {
+        userRole = "PATIENT";
+      }
+    } catch (error) {
+      console.error("Token không hợp lệ", error);
+    }
+  }
+
+  // 1. Chưa đăng nhập
+  if (!token) {
+    return <Navigate to={pathDefault.login} replace />;
+  }
+
+  // 2. Không đủ quyền (Lỗi 403)
+  if (allowedRoles && !allowedRoles.includes(userRole)) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Result
+          status="403"
+          title={<span className="text-4xl font-black text-gray-800">403</span>}
+          subTitle={
+            <span className="text-lg text-gray-500">
+              Xin lỗi, bạn không có quyền truy cập vào khu vực này!
+            </span>
+          }
+          extra={
+            <Link to={homePath}>
+              <Button type="primary" size="large" className="bg-blue-600">
+                Về Trang Bảng Điều Khiển
+              </Button>
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
+
+  return children;
+};
+// ==========================================
+// COMPONENT 404 THÔNG MINH
+// ==========================================
+const NotFoundPage = () => {
+  const token = localStorage.getItem("accessToken");
+  let homePath = pathDefault.home;
+
+  if (token) {
+    try {
+      const decoded = jwtDecode(token);
+      const tokenRoles = decoded.roles || decoded.scope || "";
+      if (tokenRoles.includes("ADMIN")) homePath = pathDefault.adminDashboard;
+      else if (tokenRoles.includes("DOCTOR"))
+        homePath = pathDefault.doctorSchedule;
+      // else if (tokenRoles.includes("BRAND")) homePath = "/brand/dashboard";
+    } catch (error) {
+      // Bỏ qua lỗi, dùng homePath mặc định
+    }
+  }
+
+  return (
+    <div className="flex flex-col justify-center min-h-screen items-center bg-gray-50">
+      <Result
+        status="404"
+        title="404"
+        subTitle="Trang bạn tìm kiếm không tồn tại hoặc đã bị xóa."
+        extra={
+          <Link to={homePath}>
+            <Button type="primary" size="large" className="bg-blue-600">
+              Quay lại Bảng Điều Khiển
+            </Button>
+          </Link>
+        }
+      />
+    </div>
+  );
+};
+// ==========================================
+// 3. LAZY LOAD LAYOUTS & PAGES
 // ==========================================
 const PatientLayout = lazy(() => import("../templates/PatientLayout"));
 const AdminLayout = lazy(() => import("../templates/AdminLayout"));
 const DoctorLayout = lazy(() => import("../templates/DoctorLayout"));
 
-// ==========================================
-// 3. LAZY LOAD PAGES (CHỈ DÙNG LAZY, KHÔNG IMPORT TĨNH)
-// ==========================================
 // Auth
 const Login = lazy(() => import("../pages/auth/Login"));
 const Register = lazy(() => import("../pages/auth/Register"));
@@ -82,10 +178,12 @@ const DoctorScanHistory = lazy(
 const DoctorConsultationService = lazy(
   () => import("../pages/doctor/DoctorConsultationService")
 );
+const DoctorProfile = lazy(() => import("../pages/doctor/DoctorProfile"));
 
-// Shared (Dùng chung)
+// Shared
 const ManageProduct = lazy(() => import("../pages/shared/ManageProduct"));
 const TestAcneModel = lazy(() => import("../pages/shared/TestAcneModel"));
+
 
 const PostPage = lazy(() => import("../pages/posts/Post"));
 const PostCommentPage = lazy(() => import("../pages/posts/PostComment"));
@@ -107,10 +205,13 @@ const AppRoutes = () => {
     // --- PATIENT ROUTES ---
     {
       path: pathDefault.home,
+      // Patient layout có thể yêu cầu đăng nhập với role PATIENT
       element: (
-        <Suspense fallback={<FallbackLoad />}>
-          <PatientLayout />
-        </Suspense>
+        <ProtectedRoute allowedRoles={["PATIENT"]}>
+          <Suspense fallback={<FallbackLoad />}>
+            <PatientLayout />
+          </Suspense>
+        </ProtectedRoute>
       ),
       children: [
         {
@@ -205,7 +306,7 @@ const AppRoutes = () => {
       ],
     },
 
-    // --- AUTH ROUTES ---
+    // --- AUTH ROUTES (Không cần bảo vệ) ---
     {
       path: pathDefault.login,
       element: (
@@ -226,10 +327,13 @@ const AppRoutes = () => {
     // --- ADMIN ROUTES ---
     {
       path: pathDefault.admin,
+      // Khóa toàn bộ route con bằng ADMIN role
       element: (
-        <Suspense fallback={<FallbackLoad />}>
-          <AdminLayout />
-        </Suspense>
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <Suspense fallback={<FallbackLoad />}>
+            <AdminLayout />
+          </Suspense>
+        </ProtectedRoute>
       ),
       children: [
         {
@@ -274,10 +378,13 @@ const AppRoutes = () => {
     // --- DOCTOR ROUTES ---
     {
       path: pathDefault.doctor,
+      // Khóa toàn bộ route con bằng DOCTOR role
       element: (
-        <Suspense fallback={<FallbackLoad />}>
-          <DoctorLayout />
-        </Suspense>
+        <ProtectedRoute allowedRoles={["DOCTOR"]}>
+          <Suspense fallback={<FallbackLoad />}>
+            <DoctorLayout />
+          </Suspense>
+        </ProtectedRoute>
       ),
       children: [
         {
@@ -336,19 +443,21 @@ const AppRoutes = () => {
             </Suspense>
           ),
         },
+        {
+          path: "profile",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <DoctorProfile />
+            </Suspense>
+          ),
+        },
       ],
     },
 
     // --- 404 NOT FOUND ---
     {
       path: "*",
-      element: (
-        <div className="flex justify-center min-h-screen items-center">
-          <h1 className="text-2xl text-gray-500 font-bold">
-            404 - Không tìm thấy trang
-          </h1>
-        </div>
-      ),
+      element: <NotFoundPage />,
     },
   ];
 
