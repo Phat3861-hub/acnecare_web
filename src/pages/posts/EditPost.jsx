@@ -1,28 +1,50 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { jwtDecode } from "jwt-decode";
 import { postService } from "../../services/PostService";
 
+import {
+  Layout,
+  Card,
+  Form,
+  Input,
+  Button,
+  Select,
+  Typography,
+  Space,
+  Upload,
+  Image,
+  Divider,
+  Modal,
+  message as antdMessage,
+  Spin,
+  Tag,
+} from "antd";
+
+import {
+  updatePostThunk,
+  deletePostImageThunk,
+  uploadPostImagesThunk,
+} from "../../store/slice/PostSlice";
+
+const { Content } = Layout;
+const { Title, Text } = Typography;
+const { TextArea } = Input;
+
 const EditPost = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { postId } = useParams();
+  const [form] = Form.useForm();
 
   const { user } = useSelector((state) => state.user);
 
-  const [postTitle, setPostTitle] = useState("");
-  const [postContent, setPostContent] = useState("");
-  const [status, setStatus] = useState("ACTIVE");
-
-  // State cho ảnh cũ (lưu dạng object {id, imageUrl} để có ID đem đi xóa)
+  // States
   const [existingImages, setExistingImages] = useState([]);
-
-  // State cho ảnh mới tải thêm
   const [selectedImages, setSelectedImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
-
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState("");
 
   // 1. TẢI DỮ LIỆU BÀI VIẾT CŨ
   useEffect(() => {
@@ -34,12 +56,13 @@ const EditPost = () => {
           const postData = res.data?.result || res.result;
 
           if (postData) {
-            setPostTitle(postData.postTitle);
-            setPostContent(postData.postContent);
-            setStatus(postData.status);
+            form.setFieldsValue({
+              postTitle: postData.postTitle,
+              postContent: postData.postContent,
+              status: postData.status,
+            });
 
-            // Lưu cả ID ảnh và URL ảnh
-            if (postData.postsImage && postData.postsImage.length > 0) {
+            if (postData.postsImage) {
               setExistingImages(
                 postData.postsImage.map((img) => ({
                   id: img.id,
@@ -49,68 +72,60 @@ const EditPost = () => {
             }
           }
         } catch (error) {
-          setMessage(
-            "Lỗi tải thông tin bài viết: " +
-              (error.response?.data?.message || error.message),
-          );
+          antdMessage.error("Lỗi tải bài viết: " + error.message);
         } finally {
           setIsLoading(false);
         }
       };
       fetchPostDetails();
     }
-  }, [postId]);
+  }, [postId, form]);
 
-  // 2. HÀM XÓA ẢNH CŨ (Gọi API xóa trực tiếp)
-  const handleDeleteOldImage = async (imageId) => {
-    const isConfirm = window.confirm(
-      "Bạn có chắc chắn muốn xóa bức ảnh này khỏi bài viết không?",
-    );
-    if (!isConfirm) return;
-
-    try {
-      setIsLoading(true);
-      setMessage("Đang xóa ảnh...");
-
-      // Gọi API xóa ảnh
-      await postService.deletePostImage(postId, imageId);
-
-      // Cập nhật lại state giao diện (loại bỏ ảnh vừa xóa)
-      setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
-      setMessage("Xóa ảnh thành công!");
-    } catch (error) {
-      setMessage(
-        "Lỗi khi xóa ảnh: " + (error.response?.data?.message || error.message),
-      );
-    } finally {
-      setIsLoading(false);
-    }
+  // 2. HÀM XÓA ẢNH CŨ
+  const handleDeleteOldImage = (imageId) => {
+    Modal.confirm({
+      title: "Xác nhận xóa ảnh",
+      content: "Bạn có chắc chắn muốn xóa bức ảnh này khỏi bài viết không?",
+      okText: "Xóa ngay",
+      okType: "danger",
+      cancelText: "Hủy",
+      centered: true,
+      onOk: async () => {
+        try {
+          setIsLoading(true);
+          await dispatch(deletePostImageThunk({ postId, imageId })).unwrap();
+          setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
+          antdMessage.success("Đã xóa ảnh cũ thành công");
+        } catch (error) {
+          antdMessage.error("Lỗi khi xóa ảnh: " + error);
+        } finally {
+          setIsLoading(false);
+        }
+      },
+    });
   };
 
-  // 3. CÁC HÀM XỬ LÝ ẢNH MỚI
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
+  // 3. XỬ LÝ ẢNH MỚI
+  const handleImageChange = ({ fileList }) => {
+    const files = fileList.map((f) => f.originFileObj).filter(Boolean);
+    setSelectedImages(files);
 
-    setSelectedImages((prev) => [...prev, ...files]);
     const previews = files.map((file) => URL.createObjectURL(file));
-    setImagePreviews((prev) => [...prev, ...previews]);
-    e.target.value = null; // Reset input file
+    setImagePreviews(previews);
   };
 
   const handleRemoveNewImage = (indexToRemove) => {
-    setSelectedImages((prev) =>
-      prev.filter((_, index) => index !== indexToRemove),
+    const newSelected = selectedImages.filter(
+      (_, index) => index !== indexToRemove,
     );
-    setImagePreviews((prev) =>
-      prev.filter((_, index) => index !== indexToRemove),
+    setSelectedImages(newSelected);
+    setImagePreviews(
+      imagePreviews.filter((_, index) => index !== indexToRemove),
     );
   };
 
   // 4. HÀM CẬP NHẬT BÀI VIẾT
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
+  const onFinish = async (values) => {
     let currentUserId = user?.id;
     if (!currentUserId) {
       const token = localStorage.getItem("accessToken");
@@ -122,192 +137,220 @@ const EditPost = () => {
     }
 
     if (!currentUserId) {
-      setMessage(
-        "Lỗi: Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.",
-      );
-      return;
-    }
-
-    if (!postTitle.trim() || !postContent.trim()) {
-      setMessage("Vui lòng nhập đầy đủ tiêu đề và nội dung bài viết.");
+      antdMessage.error("Vui lòng đăng nhập lại để thực hiện.");
       return;
     }
 
     try {
       setIsLoading(true);
-      setMessage("Đang cập nhật bài viết...");
 
-      const requestData = {
-        postTitle: postTitle,
-        postContent: postContent,
-        status: status,
-      };
+      // Cập nhật text
+      await dispatch(
+        updatePostThunk({ userId: currentUserId, postId, data: values }),
+      ).unwrap();
 
-      // Gọi API CẬP NHẬT text
-      await postService.updatePost(currentUserId, postId, requestData);
-
-      // Nếu có chọn ảnh mới, gọi API tải thêm ảnh lên
+      // Tải ảnh mới nếu có
       if (selectedImages.length > 0) {
-        setMessage("Đang tải ảnh mới lên...");
-        await postService.uploadPostImages(postId, selectedImages);
+        await dispatch(
+          uploadPostImagesThunk({ postId, files: selectedImages }),
+        ).unwrap();
       }
 
-      // Xong xuôi thì về trang chủ
+      antdMessage.success("Cập nhật bài viết thành công!");
       navigate("/posts");
     } catch (error) {
-      setMessage(
-        "Lỗi cập nhật bài: " + (error.response?.data?.message || error.message),
-      );
+      antdMessage.error("Lỗi cập nhật: " + error);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-4 bg-gray-50 min-h-screen">
-      <div className="bg-white p-6 rounded-lg shadow-sm border mt-6">
-        <h1 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-3">
-          Chỉnh sửa bài viết
-        </h1>
-
-        {message && (
-          <div className="mb-4 p-3 bg-blue-100 text-blue-800 rounded text-sm font-medium">
-            {message}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-gray-700 font-medium mb-2">
-              Tiêu đề (Tối đa 100 ký tự)
-            </label>
-            <input
-              type="text"
-              value={postTitle}
-              onChange={(e) => setPostTitle(e.target.value)}
-              placeholder="Nhập tiêu đề bài viết..."
-              className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
-              maxLength={100}
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-gray-700 font-medium mb-2">
-              Nội dung (Tối đa 100 ký tự)
-            </label>
-            <textarea
-              value={postContent}
-              onChange={(e) => setPostContent(e.target.value)}
-              placeholder="Bạn đang nghĩ gì?"
-              className="w-full p-3 border border-gray-300 rounded h-32 resize-y focus:outline-none focus:border-blue-500"
-              maxLength={100}
-            />
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-gray-700 font-medium mb-2">
-              Trạng thái bài viết
-            </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500 bg-white"
+    <Layout className="min-h-screen bg-slate-50 py-8 px-4">
+      <Content className="max-w-3xl mx-auto w-full">
+        <Card
+          bordered={false}
+          className="shadow-md rounded-2xl overflow-hidden"
+          title={
+            <Space direction="vertical" size={0} className="py-2">
+              <Title level={3} className="m-0 text-blue-700">
+                Chỉnh sửa bài viết
+              </Title>
+              <Text type="secondary">
+                Cập nhật nội dung và hình ảnh cho bài viết của bạn
+              </Text>
+            </Space>
+          }
+        >
+          <Spin spinning={isLoading} tip="Đang xử lý...">
+            <Form
+              form={form}
+              layout="vertical"
+              onFinish={onFinish}
+              requiredMark={false}
+              className="mt-2"
             >
-              <option value="ACTIVE">Hoạt động (ACTIVE)</option>
-              <option value="BLOCK">Khóa (BLOCK)</option>
-            </select>
-          </div>
-
-          {/* PHẦN QUẢN LÝ HÌNH ẢNH */}
-          <div className="mb-6 border-t pt-4">
-            <div className="flex justify-between items-center mb-4">
-              <label className="block text-gray-700 font-medium">
-                Hình ảnh đính kèm
-              </label>
-              <label className="cursor-pointer bg-gray-100 border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded hover:bg-gray-200 transition-colors">
-                Thêm Ảnh Mới
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
+              <Form.Item
+                label={<Text strong>Tiêu đề bài viết</Text>}
+                name="postTitle"
+                rules={[{ required: true, message: "Vui lòng nhập tiêu đề!" }]}
+              >
+                <Input
+                  placeholder="Nhập tiêu đề hấp dẫn..."
+                  maxLength={100}
+                  showCount
+                  className="rounded-lg h-11"
                 />
-              </label>
-            </div>
+              </Form.Item>
 
-            {(existingImages.length > 0 || imagePreviews.length > 0) && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-gray-50 border rounded-md">
-                {/* HIỂN THỊ ẢNH CŨ KÈM NÚT XÓA */}
-                {existingImages.map((img, index) => (
-                  <div key={`old-${index}`} className="relative group">
-                    <img
-                      src={img.imageUrl}
-                      alt={`Cũ ${index}`}
-                      className="w-full h-32 object-cover rounded-md border shadow-sm"
-                    />
-                    <div className="absolute top-1 left-1 bg-black bg-opacity-60 text-white text-xs font-bold px-2 py-1 rounded">
-                      Ảnh cũ
-                    </div>
-                    {/* Nút Xóa ảnh cũ */}
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteOldImage(img.id)}
-                      className="absolute top-1 right-1 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded shadow hover:bg-red-700 transition-colors"
-                    >
-                      Xóa
-                    </button>
-                  </div>
-                ))}
+              <Form.Item
+                label={<Text strong>Nội dung</Text>}
+                name="postContent"
+                rules={[{ required: true, message: "Vui lòng nhập nội dung!" }]}
+              >
+                <TextArea
+                  placeholder="Bạn đang nghĩ gì?"
+                  maxLength={100}
+                  showCount
+                  rows={5}
+                  className="rounded-lg"
+                />
+              </Form.Item>
 
-                {/* HIỂN THỊ ẢNH MỚI (CHƯA LƯU VÀO DB) KÈM NÚT XÓA */}
-                {imagePreviews.map((previewUrl, index) => (
-                  <div key={`new-${index}`} className="relative group">
-                    <img
-                      src={previewUrl}
-                      alt={`Mới ${index}`}
-                      className="w-full h-32 object-cover rounded-md border shadow-sm border-blue-400"
-                    />
-                    <div className="absolute top-1 left-1 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded">
-                      Mới
-                    </div>
-                    {/* Nút Hủy ảnh mới */}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveNewImage(index)}
-                      className="absolute top-1 right-1 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded shadow hover:bg-red-600 transition-colors"
+              <Form.Item
+                label={<Text strong>Trạng thái bài viết</Text>}
+                name="status"
+              >
+                <Select className="h-11 rounded-lg">
+                  <Select.Option value="ACTIVE">
+                    <Tag
+                      color="processing"
+                      className="border-none px-3 py-0.5 rounded-full"
                     >
-                      Hủy
-                    </button>
-                  </div>
-                ))}
+                      Hoạt động (ACTIVE)
+                    </Tag>
+                  </Select.Option>
+                  <Select.Option value="BLOCK">
+                    <Tag
+                      color="default"
+                      className="border-none px-3 py-0.5 rounded-full"
+                    >
+                      Khóa (BLOCK)
+                    </Tag>
+                  </Select.Option>
+                </Select>
+              </Form.Item>
+
+              <Divider orientation="left">
+                <Text type="secondary">Quản lý hình ảnh</Text>
+              </Divider>
+
+              <div className="mb-6">
+                <Space direction="vertical" className="w-full" size={16}>
+                  <Upload
+                    multiple
+                    beforeUpload={() => false}
+                    onChange={handleImageChange}
+                    showUploadList={false}
+                    accept="image/*"
+                  >
+                    <Button
+                      block
+                      className="h-12 border-dashed border-blue-300 text-blue-600 font-medium rounded-lg"
+                    >
+                      Tải lên ảnh mới
+                    </Button>
+                  </Upload>
+
+                  {(existingImages.length > 0 || imagePreviews.length > 0) && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                      {/* Ảnh cũ */}
+                      {existingImages.map((img) => (
+                        <div
+                          key={img.id}
+                          className="relative group aspect-square"
+                        >
+                          <Image
+                            src={img.imageUrl}
+                            className="w-full h-full object-cover rounded-lg border shadow-sm"
+                            preview={false}
+                          />
+                          <Tag
+                            color="blue"
+                            className="absolute top-2 left-2 m-0 border-none shadow-sm opacity-90"
+                          >
+                            Cũ
+                          </Tag>
+                          <Button
+                            type="primary"
+                            danger
+                            size="small"
+                            className="absolute top-2 right-2 shadow-md"
+                            onClick={() => handleDeleteOldImage(img.id)}
+                          >
+                            Xóa
+                          </Button>
+                        </div>
+                      ))}
+
+                      {/* Ảnh mới */}
+                      {imagePreviews.map((url, index) => (
+                        <div
+                          key={`new-${index}`}
+                          className="relative group aspect-square"
+                        >
+                          <Image
+                            src={url}
+                            className="w-full h-full object-cover rounded-lg border border-blue-300 shadow-sm"
+                            preview={false}
+                          />
+                          <Tag
+                            color="green"
+                            className="absolute top-2 left-2 m-0 border-none shadow-sm opacity-90"
+                          >
+                            Mới
+                          </Tag>
+                          <Button
+                            type="default"
+                            danger
+                            size="small"
+                            className="absolute top-2 right-2 shadow-md"
+                            onClick={() => handleRemoveNewImage(index)}
+                          >
+                            Hủy
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Space>
               </div>
-            )}
-          </div>
 
-          <div className="flex justify-end gap-3 border-t pt-4">
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="px-5 py-2 bg-gray-200 text-gray-700 font-medium rounded hover:bg-gray-300 transition-colors"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className={`px-5 py-2 font-bold text-white rounded transition-colors ${
-                isLoading
-                  ? "bg-blue-400 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              {isLoading ? "Đang xử lý..." : "Cập nhật bài"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+              <Divider className="my-6" />
+
+              <div className="flex justify-end gap-3">
+                <Button
+                  size="large"
+                  className="rounded-lg px-8 border-none bg-slate-100 hover:bg-slate-200"
+                  onClick={() => navigate(-1)}
+                >
+                  Hủy bỏ
+                </Button>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  size="large"
+                  loading={isLoading}
+                  className="rounded-lg px-8 bg-blue-600 hover:bg-blue-700 font-bold"
+                >
+                  Cập nhật bài viết
+                </Button>
+              </div>
+            </Form>
+          </Spin>
+        </Card>
+      </Content>
+    </Layout>
   );
 };
 

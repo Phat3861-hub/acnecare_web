@@ -7,6 +7,7 @@ import doctorReducer from "./slice/DoctorSlice";
 import appointmentReducer from "./slice/AppointmentSlice";
 import consultationReducer from "./slice/ConsultationSlice";
 import doctorProfileReducer from "./slice/DoctorProfileSlice";
+import postReducer from "./slice/PostSlice";
 
 export const store = configureStore({
   reducer: {
@@ -17,5 +18,6 @@ export const store = configureStore({
     appointment: appointmentReducer,
     consultation: consultationReducer,
     doctorProfile: doctorProfileReducer,
+    post: postReducer,
   },
 });

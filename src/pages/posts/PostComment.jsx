@@ -1,21 +1,47 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { jwtDecode } from "jwt-decode";
 import { postService } from "../../services/PostService";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 
+// Import Ant Design components
+import {
+  Layout,
+  Card,
+  Button,
+  Typography,
+  Space,
+  Avatar,
+  Divider,
+  Input,
+  Image,
+  Modal,
+  message as antdMessage,
+  Spin,
+  Empty,
+} from "antd";
+
+// Import các thunk từ PostSlice
+import {
+  updateCommentThunk,
+  deleteCommentThunk,
+} from "../../store/slice/PostSlice";
+
+const { Content } = Layout;
+const { Title, Text, Paragraph } = Typography;
+const { TextArea } = Input;
+
 const PostComment = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const stompClientRef = useRef(null);
 
-  // Lấy ID người dùng hiện tại để kiểm tra quyền Sửa/Xóa
   const { user } = useSelector((state) => state.user);
   let currentUserId = user?.id;
 
-  // Lấy token dùng chung cho cả việc lấy User ID và cấu hình Socket
   const token = localStorage.getItem("accessToken");
   if (!currentUserId && token) {
     try {
@@ -26,9 +52,8 @@ const PostComment = () => {
   const [post, setPost] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [message, setMessage] = useState("");
+  const [pageError, setPageError] = useState("");
 
-  // States dành cho việc Sửa bình luận
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editContent, setEditContent] = useState("");
 
@@ -40,7 +65,7 @@ const PostComment = () => {
         const res = await postService.getPostById(postId);
         setPost(res.data?.result || res.result);
       } catch (error) {
-        setMessage(
+        setPageError(
           "Lỗi tải chi tiết bài viết: " +
             (error.response?.data?.message || error.message),
         );
@@ -54,7 +79,7 @@ const PostComment = () => {
     }
   }, [postId]);
 
-  // 2. THIẾT LẬP KẾT NỐI WEBSOCKET (REAL-TIME)
+  // 2. THIẾT LẬP KẾT NỐI WEBSOCKET
   useEffect(() => {
     if (!postId) return;
 
@@ -62,24 +87,14 @@ const PostComment = () => {
 
     const client = new Client({
       webSocketFactory: () => new SockJS("http://localhost:8080/api/ws"),
-      connectHeaders: {
-        Authorization: `Bearer ${currentToken}`,
-      },
-      debug: (str) => console.log(str),
+      connectHeaders: { Authorization: `Bearer ${currentToken}` },
       reconnectDelay: 5000,
       onConnect: () => {
-        console.log("Connected to WebSocket");
-
-        // --- Lắng nghe Thêm Bình Luận ---
-        client.subscribe(`/topic/posts/${postId}/comments`, (message) => {
-          const newComment = JSON.parse(message.body);
-
+        client.subscribe(`/topic/posts/${postId}/comments`, (msg) => {
+          const newComment = JSON.parse(msg.body);
           setPost((prev) => {
             if (!prev) return prev;
-            // Kiểm tra tránh thêm trùng lặp bình luận (nếu user tự gửi)
-            const exists = prev.comments?.some((c) => c.id === newComment.id);
-            if (exists) return prev;
-
+            if (prev.comments?.some((c) => c.id === newComment.id)) return prev;
             return {
               ...prev,
               comments: [newComment, ...(prev.comments || [])],
@@ -88,47 +103,33 @@ const PostComment = () => {
           });
         });
 
-        // --- Lắng nghe Cập Nhật Bình Luận ---
-        client.subscribe(
-          `/topic/posts/${postId}/comments/update`,
-          (message) => {
-            const updatedComment = JSON.parse(message.body);
+        client.subscribe(`/topic/posts/${postId}/comments/update`, (msg) => {
+          const updatedComment = JSON.parse(msg.body);
+          setPost((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              comments: prev.comments.map((c) =>
+                c.id === updatedComment.id ? updatedComment : c,
+              ),
+            };
+          });
+        });
 
-            setPost((prev) => {
-              if (!prev) return prev;
-              return {
-                ...prev,
-                comments: prev.comments.map((c) =>
-                  c.id === updatedComment.id ? updatedComment : c,
-                ),
-              };
-            });
-          },
-        );
+        client.subscribe(`/topic/posts/${postId}/comments/delete`, (msg) => {
+          const deletedCommentId = msg.body;
+          setPost((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              comments: prev.comments.filter((c) => c.id !== deletedCommentId),
+              commentsCount: Math.max(0, (prev.commentsCount || 0) - 1),
+            };
+          });
+        });
 
-        // --- Lắng nghe Xóa Bình Luận ---
-        client.subscribe(
-          `/topic/posts/${postId}/comments/delete`,
-          (message) => {
-            const deletedCommentId = message.body; // Bên Java bắn ra String commentId
-
-            setPost((prev) => {
-              if (!prev) return prev;
-              return {
-                ...prev,
-                comments: prev.comments.filter(
-                  (c) => c.id !== deletedCommentId,
-                ),
-                commentsCount: Math.max(0, (prev.commentsCount || 0) - 1),
-              };
-            });
-          },
-        );
-
-        // --- Lắng nghe Thay Đổi Lượt Thích ---
-        client.subscribe(`/topic/posts/${postId}/likes`, (message) => {
-          const isLiked = JSON.parse(message.body);
-
+        client.subscribe(`/topic/posts/${postId}/likes`, (msg) => {
+          const isLiked = JSON.parse(msg.body);
           setPost((prev) => {
             if (!prev) return prev;
             return {
@@ -140,26 +141,17 @@ const PostComment = () => {
           });
         });
       },
-      onStompError: (frame) => {
-        console.error("Broker reported error: " + frame.headers["message"]);
-      },
     });
 
     client.activate();
     stompClientRef.current = client;
 
-    // Cleanup: Ngắt kết nối socket khi rời khỏi component bài viết này
-    return () => {
-      if (stompClientRef.current) {
-        stompClientRef.current.deactivate();
-      }
-    };
+    return () => stompClientRef.current?.deactivate();
   }, [postId]);
 
   const formatDate = (dateString) => {
     if (!dateString) return "Không rõ thời gian";
-    const date = new Date(dateString);
-    return date.toLocaleString("vi-VN");
+    return new Date(dateString).toLocaleString("vi-VN");
   };
 
   const getFullName = (firstName, lastName) => {
@@ -167,31 +159,35 @@ const PostComment = () => {
     return `${firstName || ""} ${lastName || ""}`.trim();
   };
 
-  // --- XỬ LÝ XÓA BÌNH LUẬN ---
-  const handleDeleteComment = async (commentId) => {
-    const confirmDelete = window.confirm(
-      "Bạn có chắc chắn muốn xóa bình luận này không?",
-    );
-    if (!confirmDelete) return;
-
-    try {
-      setIsProcessing(true);
-      // Gọi API xóa theo đường dẫn mới có chứa postId
-      await postService.deleteComment(postId, commentId);
-
-      // Ghi chú: Không cần setPost ở đây nữa vì WebSocket
-      // lắng nghe topic /delete sẽ tự động cập nhật UI cho bạn và mọi người
-    } catch (error) {
-      alert(
-        "Lỗi khi xóa bình luận: " +
-          (error.response?.data?.message || error.message),
-      );
-    } finally {
-      setIsProcessing(false);
-    }
+  // 3. XÓA BÌNH LUẬN
+  const handleDeleteComment = (commentId) => {
+    Modal.confirm({
+      title: (
+        <Text strong className="text-lg">
+          Xác nhận xóa
+        </Text>
+      ),
+      content: "Bạn có chắc chắn muốn xóa bình luận này không?",
+      okText: "Xóa bình luận",
+      cancelText: "Hủy",
+      okType: "danger",
+      icon: null, // Đã chặn icon mặc định của Antd Modal
+      centered: true,
+      onOk: async () => {
+        try {
+          setIsProcessing(true);
+          await dispatch(deleteCommentThunk({ postId, commentId })).unwrap();
+          antdMessage.success("Đã xóa bình luận.");
+        } catch (error) {
+          antdMessage.error("Lỗi khi xóa bình luận: " + error);
+        } finally {
+          setIsProcessing(false);
+        }
+      },
+    });
   };
 
-  // --- XỬ LÝ SỬA BÌNH LUẬN ---
+  // 4. SỬA BÌNH LUẬN
   const handleStartEdit = (comment) => {
     setEditingCommentId(comment.id);
     setEditContent(comment.commentContent);
@@ -204,30 +200,28 @@ const PostComment = () => {
 
   const handleSaveEdit = async (commentId) => {
     if (!editContent.trim()) {
-      alert("Nội dung bình luận không được để trống.");
+      antdMessage.warning("Nội dung không được để trống.");
       return;
     }
     if (editContent.length > 100) {
-      alert("Bình luận không được vượt quá 100 ký tự.");
+      antdMessage.warning("Bình luận không được vượt quá 100 ký tự.");
       return;
     }
 
     try {
       setIsProcessing(true);
-      const requestData = { commentContent: editContent.trim() };
-
-      // Gọi API sửa theo đường dẫn mới có chứa postId
-      await postService.updateComment(postId, commentId, requestData);
-
-      // Ghi chú: Không cần setPost ở đây nữa vì WebSocket
-      // lắng nghe topic /update sẽ tự động cập nhật UI cho bạn và mọi người
+      await dispatch(
+        updateCommentThunk({
+          postId,
+          commentId,
+          data: { commentContent: editContent.trim() },
+        }),
+      ).unwrap();
 
       setEditingCommentId(null);
+      antdMessage.success("Cập nhật thành công.");
     } catch (error) {
-      alert(
-        "Lỗi khi cập nhật bình luận: " +
-          (error.response?.data?.message || error.message),
-      );
+      antdMessage.error("Lỗi khi cập nhật: " + error);
     } finally {
       setIsProcessing(false);
     }
@@ -235,190 +229,229 @@ const PostComment = () => {
 
   if (isLoading) {
     return (
-      <div className="text-center mt-20 font-medium text-gray-600">
-        Đang tải dữ liệu...
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
+        <Spin size="large" tip="Đang tải dữ liệu..." />
       </div>
     );
   }
 
-  if (message || !post) {
+  if (pageError || !post) {
     return (
-      <div className="text-center mt-20 text-red-500">
-        {message || "Không tìm thấy bài viết."}
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full text-center rounded-2xl shadow-sm border-slate-200 p-6">
+          <Text type="danger" strong className="text-lg block mb-4">
+            {pageError || "Không tìm thấy bài viết."}
+          </Text>
+          <Button
+            onClick={() => navigate("/posts")}
+            className="bg-blue-600 text-white border-none font-bold px-6"
+          >
+            Quay lại bảng tin
+          </Button>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-4 bg-gray-100 min-h-screen relative">
-      {/* Khóa màn hình nếu đang gửi API sửa/xóa để tránh double-click */}
-      {isProcessing && (
-        <div className="absolute inset-0 bg-white bg-opacity-50 z-10 flex items-center justify-center">
-          <span className="font-bold text-gray-600">Đang xử lý...</span>
-        </div>
-      )}
-
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-4 px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 font-medium transition-colors"
-      >
-        Quay lại bảng tin
-      </button>
-
-      {/* Phần chi tiết bài viết */}
-      <div className="bg-white p-5 rounded-lg shadow border mb-6">
-        <div className="border-b pb-3 mb-3">
-          <h2 className="text-xl font-bold text-gray-800">{post.postTitle}</h2>
-          <div className="text-sm text-gray-500 mt-1">
-            Đăng bởi:{" "}
-            <span className="font-semibold text-gray-700">
-              {post.user?.name || post.user?.username || "Người dùng ẩn danh"}
-            </span>
-            <span className="mx-2">-</span>
-            <span>{formatDate(post.createdAt)}</span>
-          </div>
-        </div>
-
-        <div className="mb-4 text-gray-700 whitespace-pre-wrap">
-          {post.postContent}
-        </div>
-
-        {post.postsImage && post.postsImage.length > 0 && (
-          <div
-            className={`grid gap-2 mb-4 ${post.postsImage.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
-          >
-            {post.postsImage.map((img, index) => (
-              <img
-                key={index}
-                src={img.imageUrl}
-                alt="Post content"
-                className="w-full h-auto object-cover rounded max-h-80 border"
-              />
-            ))}
+    <Layout className="min-h-screen bg-slate-50 py-6 px-4">
+      <Content className="max-w-3xl mx-auto w-full flex flex-col gap-6 relative">
+        {/* Lớp phủ ngăn thao tác khi đang gọi API sửa/xóa */}
+        {isProcessing && (
+          <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-50 rounded-2xl flex items-center justify-center">
+            <Spin tip="Đang xử lý..." />
           </div>
         )}
 
-        <div className="flex justify-between items-center text-gray-600 text-sm border-t pt-3 mt-2">
-          <div>
-            <span className="font-semibold">{post.likesCount}</span> Lượt thích
-          </div>
-          <div>
-            <span className="font-semibold">{post.commentsCount}</span> Bình
-            luận
-          </div>
+        {/* Nút quay lại */}
+        <div>
+          <Button
+            onClick={() => navigate(-1)}
+            className="bg-white border-slate-200 text-slate-600 font-medium rounded-lg hover:text-blue-600 hover:border-blue-400"
+          >
+            Quay lại bảng tin
+          </Button>
         </div>
-      </div>
 
-      {/* Phần danh sách bình luận */}
-      <div className="bg-white p-5 rounded-lg shadow border">
-        <h3 className="text-lg font-bold border-b pb-2 mb-4 text-blue-600">
-          Tất cả bình luận ({post.comments?.length || 0})
-        </h3>
+        {/* CHI TIẾT BÀI VIẾT */}
+        <Card
+          className="rounded-2xl shadow-sm border-slate-200"
+          bodyStyle={{ padding: "24px" }}
+        >
+          <Title level={4} className="m-0 text-slate-800">
+            {post.postTitle}
+          </Title>
+          <div className="text-sm text-slate-500 mt-2 mb-4">
+            Đăng bởi:{" "}
+            <Text strong className="text-slate-700">
+              {post.user?.name || post.user?.username || "Người dùng ẩn danh"}
+            </Text>
+            <span className="mx-2">•</span>
+            {formatDate(post.createdAt)}
+          </div>
 
-        {post.comments && post.comments.length > 0 ? (
-          <div className="space-y-4">
-            {post.comments.map((comment) => {
-              const fullName = getFullName(comment.firstName, comment.lastName);
+          <Paragraph className="text-slate-700 text-base leading-relaxed whitespace-pre-wrap">
+            {post.postContent}
+          </Paragraph>
 
-              const commentOwnerId = comment.userId || comment.user?.id;
-              const isOwner = currentUserId && commentOwnerId === currentUserId;
+          {post.postsImage?.length > 0 && (
+            <div
+              className={`mt-4 grid gap-2 rounded-xl overflow-hidden border border-slate-100 ${post.postsImage.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
+            >
+              <Image.PreviewGroup>
+                {post.postsImage.map((img, index) => (
+                  <Image
+                    key={index}
+                    src={img.imageUrl}
+                    alt="Post media"
+                    className="w-full h-64 object-cover"
+                  />
+                ))}
+              </Image.PreviewGroup>
+            </div>
+          )}
 
-              return (
-                <div
-                  key={comment.id}
-                  className="bg-gray-50 p-3 rounded border flex gap-3"
-                >
-                  <div className="flex-shrink-0">
-                    {comment.avatarUrl ? (
-                      <img
-                        src={comment.avatarUrl}
-                        alt="avatar"
-                        className="w-10 h-10 rounded-full object-cover border border-gray-300"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200">
-                        {fullName.charAt(0).toUpperCase()}
+          <Divider className="my-4" />
+
+          <div className="flex justify-between items-center text-slate-600 text-sm font-medium">
+            <div>
+              <Text strong className="text-blue-600 text-base">
+                {post.likesCount}
+              </Text>{" "}
+              Lượt thích
+            </div>
+            <div>
+              <Text strong className="text-blue-600 text-base">
+                {post.commentsCount}
+              </Text>{" "}
+              Bình luận
+            </div>
+          </div>
+        </Card>
+
+        {/* DANH SÁCH BÌNH LUẬN */}
+        <Card
+          className="rounded-2xl shadow-sm border-slate-200"
+          bodyStyle={{ padding: "24px" }}
+        >
+          <Title
+            level={5}
+            className="m-0 mb-6 text-blue-700 pb-3 border-b border-slate-100"
+          >
+            Tất cả bình luận ({post.comments?.length || 0})
+          </Title>
+
+          {post.comments && post.comments.length > 0 ? (
+            <div className="flex flex-col gap-5">
+              {post.comments.map((comment) => {
+                const fullName = getFullName(
+                  comment.firstName,
+                  comment.lastName,
+                );
+                const commentOwnerId = comment.userId || comment.user?.id;
+                const isOwner =
+                  currentUserId && commentOwnerId === currentUserId;
+                const isEditing = editingCommentId === comment.id;
+
+                return (
+                  <div
+                    key={comment.id}
+                    className="flex gap-3 items-start bg-white"
+                  >
+                    <Avatar
+                      src={comment.avatarUrl}
+                      className="bg-blue-100 text-blue-600 font-bold border-none shrink-0"
+                      size={40}
+                    >
+                      {!comment.avatarUrl && fullName.charAt(0).toUpperCase()}
+                    </Avatar>
+
+                    <div className="flex-1 bg-slate-50 p-3.5 rounded-2xl rounded-tl-none border border-slate-100">
+                      <div className="flex justify-between items-start mb-1.5">
+                        <Text strong className="text-slate-800">
+                          {fullName}
+                        </Text>
+
+                        <Space size={16} className="ml-2">
+                          <Text className="text-xs text-slate-400">
+                            {formatDate(comment.createAt || comment.createdAt)}
+                          </Text>
+                          {isOwner && !isEditing && (
+                            <Space size={8}>
+                              <Button
+                                type="text"
+                                size="small"
+                                onClick={() => handleStartEdit(comment)}
+                                className="text-blue-600 font-medium px-1 h-auto text-xs"
+                              >
+                                Sửa
+                              </Button>
+                              <Button
+                                type="text"
+                                size="small"
+                                danger
+                                onClick={() => handleDeleteComment(comment.id)}
+                                className="font-medium px-1 h-auto text-xs"
+                              >
+                                Xóa
+                              </Button>
+                            </Space>
+                          )}
+                        </Space>
                       </div>
-                    )}
-                  </div>
 
-                  <div className="flex-grow">
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="font-semibold text-gray-800">
-                        {fullName}
-                      </span>
-
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-gray-500">
-                          {formatDate(comment.createAt || comment.createdAt)}
-                        </span>
-
-                        {isOwner && editingCommentId !== comment.id && (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleStartEdit(comment)}
-                              className="text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
-                            >
-                              Sửa
-                            </button>
-                            <button
-                              onClick={() => handleDeleteComment(comment.id)}
-                              className="text-xs font-medium text-red-600 hover:text-red-800 transition-colors"
-                            >
-                              Xóa
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {editingCommentId === comment.id ? (
-                      <div className="mt-2">
-                        <textarea
-                          value={editContent}
-                          onChange={(e) => setEditContent(e.target.value)}
-                          maxLength={100}
-                          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500 text-sm resize-y"
-                          rows="2"
-                        />
-                        <div className="flex justify-between items-center mt-1">
-                          <span className="text-xs text-gray-400">
-                            {editContent.length}/100
-                          </span>
-                          <div className="flex gap-2">
-                            <button
+                      {isEditing ? (
+                        <div className="mt-2">
+                          <TextArea
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            maxLength={100}
+                            showCount
+                            autoSize={{ minRows: 2, maxRows: 4 }}
+                            className="rounded-lg text-sm bg-white"
+                          />
+                          <div className="flex justify-end gap-2 mt-3">
+                            <Button
+                              size="small"
                               onClick={handleCancelEdit}
-                              className="px-3 py-1 text-xs font-medium bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                              className="text-slate-600 font-medium border-none bg-slate-200 hover:bg-slate-300 rounded"
                             >
-                              Hủy
-                            </button>
-                            <button
+                              Hủy bỏ
+                            </Button>
+                            <Button
+                              size="small"
+                              type="primary"
                               onClick={() => handleSaveEdit(comment.id)}
                               disabled={!editContent.trim()}
-                              className="px-3 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400"
+                              className="bg-blue-600 font-bold rounded"
                             >
-                              Lưu
-                            </button>
+                              Lưu thay đổi
+                            </Button>
                           </div>
                         </div>
-                      </div>
-                    ) : (
-                      <p className="text-gray-700 text-sm mt-1">
-                        {comment.commentContent}
-                      </p>
-                    )}
+                      ) : (
+                        <Paragraph className="m-0 text-slate-700 text-[14px]">
+                          {comment.commentContent}
+                        </Paragraph>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-gray-500 text-center py-6 bg-gray-50 rounded border border-dashed">
-            Chưa có bình luận nào. Hãy là người đầu tiên bình luận!
-          </div>
-        )}
-      </div>
-    </div>
+                );
+              })}
+            </div>
+          ) : (
+            <Empty
+              description={
+                <Text className="text-slate-400 font-medium">
+                  Chưa có bình luận nào. Hãy là người đầu tiên thảo luận!
+                </Text>
+              }
+              className="my-8"
+            />
+          )}
+        </Card>
+      </Content>
+    </Layout>
   );
 };
 
