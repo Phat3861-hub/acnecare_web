@@ -32,6 +32,10 @@ export const pathDefault = {
   appointmentSuccess: "/appointment-success",
   patientHistory: "/patient/history",
   appointmentDetail: "/patient/history/:id",
+
+  posts: "/posts",
+  postDetail: "/posts/:postId",
+  createPost: "/createpost", // ĐÃ SỬA: Đổi chữ editpost thành createPost
 };
 
 // ==========================================
@@ -146,11 +150,11 @@ const Register = lazy(() => import("../pages/auth/Register"));
 const Home = lazy(() => import("../pages/patient/Home"));
 const BookAppointment = lazy(() => import("../pages/patient/BookAppointment"));
 const AppointmentSuccess = lazy(
-  () => import("../pages/patient/AppointmentSuccess"),
+  () => import("../pages/patient/AppointmentSuccess")
 );
 const PatientHistory = lazy(() => import("../pages/patient/PatientHistory"));
 const AppointmentDetail = lazy(
-  () => import("../pages/patient/AppointmentDetail"),
+  () => import("../pages/patient/AppointmentDetail")
 );
 const MyRoutines = lazy(() => import("../pages/patient/MyRoutines"));
 const RoutineBuilder = lazy(() => import("../pages/patient/RoutineBuilder"));
@@ -163,16 +167,16 @@ const ManageCategory = lazy(() => import("../pages/admin/ManageCategory"));
 // Doctor
 const DoctorSchedule = lazy(() => import("../pages/doctor/DoctorSchedule"));
 const DoctorAppointmentDetail = lazy(
-  () => import("../pages/doctor/DoctorAppointmentDetail"),
+  () => import("../pages/doctor/DoctorAppointmentDetail")
 );
 const ManageAvailability = lazy(
-  () => import("../pages/doctor/ManageAvailability"),
+  () => import("../pages/doctor/ManageAvailability")
 );
 const DoctorScanHistory = lazy(
-  () => import("../pages/doctor/DoctorScanHistory"),
+  () => import("../pages/doctor/DoctorScanHistory")
 );
 const DoctorConsultationService = lazy(
-  () => import("../pages/doctor/DoctorConsultationService"),
+  () => import("../pages/doctor/DoctorConsultationService")
 );
 const DoctorProfile = lazy(() => import("../pages/doctor/DoctorProfile"));
 
@@ -180,7 +184,13 @@ const DoctorProfile = lazy(() => import("../pages/doctor/DoctorProfile"));
 const ManageProduct = lazy(() => import("../pages/shared/ManageProduct"));
 const TestAcneModel = lazy(() => import("../pages/shared/TestAcneModel"));
 
-// Loading
+
+const PostPage = lazy(() => import("../pages/posts/Post"));
+const PostCommentPage = lazy(() => import("../pages/posts/PostComment"));
+const CreatePostPage = lazy(() => import("../pages/posts/CreatePost"));
+const EditPostPage = lazy(() => import("../pages/posts/EditPost"));
+
+// Hiệu ứng Loading khi chuyển trang
 const FallbackLoad = () => (
   <div className="flex justify-center items-center min-h-screen">
     <Spin size="large" />
@@ -252,11 +262,44 @@ const AppRoutes = () => {
             </Suspense>
           ),
         },
+        // cái post này là dùng chung để tạm ở đây trước đã
+        {
+          path: pathDefault.posts,
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <PostPage />
+            </Suspense>
+          ),
+        },
         {
           path: "my-routines",
           element: (
             <Suspense fallback={<FallbackLoad />}>
               <MyRoutines />
+            </Suspense>
+          ),
+        },
+        {
+          path: pathDefault.postDetail,
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <PostCommentPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: pathDefault.createPost, // ĐÃ SỬA: dùng đúng biến tạo ở phần 1
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <CreatePostPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: "/editpost/:postId",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <EditPostPage />
             </Suspense>
           ),
         },
