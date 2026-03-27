@@ -150,11 +150,11 @@ const Register = lazy(() => import("../pages/auth/Register"));
 const Home = lazy(() => import("../pages/patient/Home"));
 const BookAppointment = lazy(() => import("../pages/patient/BookAppointment"));
 const AppointmentSuccess = lazy(
-  () => import("../pages/patient/AppointmentSuccess")
+  () => import("../pages/patient/AppointmentSuccess"),
 );
 const PatientHistory = lazy(() => import("../pages/patient/PatientHistory"));
 const AppointmentDetail = lazy(
-  () => import("../pages/patient/AppointmentDetail")
+  () => import("../pages/patient/AppointmentDetail"),
 );
 const MyRoutines = lazy(() => import("../pages/patient/MyRoutines"));
 const RoutineBuilder = lazy(() => import("../pages/patient/RoutineBuilder"));
@@ -167,23 +167,22 @@ const ManageCategory = lazy(() => import("../pages/admin/ManageCategory"));
 // Doctor
 const DoctorSchedule = lazy(() => import("../pages/doctor/DoctorSchedule"));
 const DoctorAppointmentDetail = lazy(
-  () => import("../pages/doctor/DoctorAppointmentDetail")
+  () => import("../pages/doctor/DoctorAppointmentDetail"),
 );
 const ManageAvailability = lazy(
-  () => import("../pages/doctor/ManageAvailability")
+  () => import("../pages/doctor/ManageAvailability"),
 );
 const DoctorScanHistory = lazy(
-  () => import("../pages/doctor/DoctorScanHistory")
+  () => import("../pages/doctor/DoctorScanHistory"),
 );
 const DoctorConsultationService = lazy(
-  () => import("../pages/doctor/DoctorConsultationService")
+  () => import("../pages/doctor/DoctorConsultationService"),
 );
 const DoctorProfile = lazy(() => import("../pages/doctor/DoctorProfile"));
 
 // Shared
 const ManageProduct = lazy(() => import("../pages/shared/ManageProduct"));
 const TestAcneModel = lazy(() => import("../pages/shared/TestAcneModel"));
-
 
 const PostPage = lazy(() => import("../pages/posts/Post"));
 const PostCommentPage = lazy(() => import("../pages/posts/PostComment"));
