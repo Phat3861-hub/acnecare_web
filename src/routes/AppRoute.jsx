@@ -1,7 +1,7 @@
 import React, { Suspense, lazy } from "react";
 import { useRoutes, Navigate, Link } from "react-router-dom";
 import { Spin, Button, Result } from "antd";
-import { jwtDecode } from "jwt-decode";
+import ScrollToTop from "../components/ui/ScrollToTop"; // Đảm bảo bạn đã tạo file ScrollToTop như turn trước
 
 // ==========================================
 // 1. ĐỊNH NGHĨA ĐƯỜNG DẪN
@@ -11,22 +11,24 @@ export const pathDefault = {
   login: "/auth/login",
   register: "/auth/register",
 
-  // Patient (Có thêm Post)
-  posts: "/posts", // <--- Thêm đường dẫn cho Bài viết / Blog
+  // Patient
+  posts: "/posts",
   postDetail: "/posts/:id",
-  createPost: "/createpost", // ĐÃ SỬA: Đổi chữ editpost thành createPost
-  bookAppointment: "/book-appointment/:doctorId",
+  createPost: "/createpost",
+  bookAppointment: "/book-appointment", // Trang danh sách bác sĩ
+  bookAppointmentDetail: "/book-appointment/:doctorId", // Form điền giờ đặt lịch
   appointmentSuccess: "/appointment-success",
   patientHistory: "/patient/history",
   appointmentDetail: "/patient/history/:id",
+  products: "/products",
+  productDetail: "/products/:id",
 
-  // Admin (Có thêm Manage Post)
+  // Admin
   admin: "/admin",
   adminDashboard: "/admin/dashboard",
   manageUser: "/admin/manage-users",
   manageCategory: "/admin/manage-categories",
   manageProductAdmin: "/admin/manage-products",
-  // managePost: "/admin/manage-posts", // <--- Thêm quản lý Bài viết cho Admin
 
   // Doctor
   doctor: "/doctor",
@@ -42,22 +44,18 @@ export const pathDefault = {
 // 2. COMPONENT BẢO VỆ ROUTE (PROTECTED ROUTE)
 // ==========================================
 const ProtectedRoute = ({ allowedRoles, children }) => {
-  // Đọc thông tin user từ LocalStorage (Đã được Redux lưu lại)
   const userInfoStr = localStorage.getItem("userInfo");
   const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
   const userRole = userInfo ? userInfo.role : null;
 
   let homePath = pathDefault.home;
-
   if (userRole === "ADMIN") homePath = pathDefault.adminDashboard;
   else if (userRole === "DOCTOR") homePath = pathDefault.doctorSchedule;
 
-  // 1. Chưa đăng nhập
   if (!userInfo) {
     return <Navigate to={pathDefault.login} replace />;
   }
 
-  // 2. Không đủ quyền (Lỗi 403)
   if (
     allowedRoles &&
     allowedRoles.length > 0 &&
@@ -117,6 +115,7 @@ const NotFoundPage = () => {
     </div>
   );
 };
+
 // ==========================================
 // 3. LAZY LOAD LAYOUTS & PAGES
 // ==========================================
@@ -130,7 +129,8 @@ const Register = lazy(() => import("../pages/auth/Register"));
 
 // Patient
 const Home = lazy(() => import("../pages/patient/Home"));
-const BookAppointment = lazy(() => import("../pages/patient/BookAppointment"));
+const DoctorList = lazy(() => import("../pages/patient/DoctorList")); // Component Danh sách Bác sĩ
+const BookAppointment = lazy(() => import("../pages/patient/BookAppointment")); // Form đặt lịch
 const AppointmentSuccess = lazy(
   () => import("../pages/patient/AppointmentSuccess"),
 );
@@ -140,15 +140,19 @@ const AppointmentDetail = lazy(
 );
 const MyRoutines = lazy(() => import("../pages/patient/MyRoutines"));
 const RoutineBuilder = lazy(() => import("../pages/patient/RoutineBuilder"));
-// Khôi phục trang Post cho User (Bạn chỉnh lại đường dẫn import cho khớp nhé)
-// const PostList = lazy(() => import("../pages/t"));
+const ProductList = lazy(() => import("../pages/patient/ProductList"));
+const ProductDetail = lazy(() => import("../pages/patient/ProductDetail"));
+
+// Posts
+const PostPage = lazy(() => import("../pages/posts/Post"));
+const PostCommentPage = lazy(() => import("../pages/posts/PostComment"));
+const CreatePostPage = lazy(() => import("../pages/posts/CreatePost"));
+const EditPostPage = lazy(() => import("../pages/posts/EditPost"));
 
 // Admin
 const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard"));
 const ManageUser = lazy(() => import("../pages/admin/ManageUser"));
 const ManageCategory = lazy(() => import("../pages/admin/ManageCategory"));
-// Khôi phục trang Manage Post cho Admin (Bạn chỉnh lại đường dẫn import cho khớp nhé)
-// const ManagePost = lazy(() => import("../pages/admin/ManagePost"));
 
 // Doctor
 const DoctorSchedule = lazy(() => import("../pages/doctor/DoctorSchedule"));
@@ -170,12 +174,6 @@ const DoctorProfile = lazy(() => import("../pages/doctor/DoctorProfile"));
 const ManageProduct = lazy(() => import("../pages/shared/ManageProduct"));
 const TestAcneModel = lazy(() => import("../pages/shared/TestAcneModel"));
 
-const PostPage = lazy(() => import("../pages/posts/Post"));
-const PostCommentPage = lazy(() => import("../pages/posts/PostComment"));
-const CreatePostPage = lazy(() => import("../pages/posts/CreatePost"));
-const EditPostPage = lazy(() => import("../pages/posts/EditPost"));
-
-// Hiệu ứng Loading khi chuyển trang
 const FallbackLoad = () => (
   <div className="flex justify-center items-center min-h-screen">
     <Spin size="large" />
@@ -187,7 +185,6 @@ const FallbackLoad = () => (
 // ==========================================
 const AppRoutes = () => {
   const arrRoutes = [
-    // --- KHU VỰC CỦA NGƯỜI DÙNG (PUBLIC & PRIVATE) ---
     {
       path: pathDefault.home,
       element: (
@@ -196,7 +193,7 @@ const AppRoutes = () => {
         </Suspense>
       ),
       children: [
-        // 🟢 CÁC TRANG PUBLIC (AI CŨNG VÀO ĐƯỢC)
+        // 🟢 CÁC TRANG PUBLIC
         {
           index: true,
           element: (
@@ -205,18 +202,52 @@ const AppRoutes = () => {
             </Suspense>
           ),
         },
-        // {
-        //   path: pathDefault.posts, // /posts
-        //   element: (
-        //     <Suspense fallback={<FallbackLoad />}>
-        //       <PostList />
-        //     </Suspense>
-        //   ),
-        // },
+        {
+          path: pathDefault.posts,
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <PostPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: pathDefault.postDetail,
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <PostCommentPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: pathDefault.products,
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <ProductList />
+            </Suspense>
+          ),
+        },
+        {
+          path: pathDefault.productDetail,
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <ProductDetail />
+            </Suspense>
+          ),
+        },
 
         // 🔴 CÁC TRANG BẮT BUỘC ĐĂNG NHẬP (PATIENT)
         {
-          path: pathDefault.bookAppointment,
+          path: pathDefault.bookAppointment, // Trỏ đến trang Danh sách bác sĩ
+          element: (
+            <ProtectedRoute allowedRoles={["PATIENT"]}>
+              <Suspense fallback={<FallbackLoad />}>
+                <DoctorList />
+              </Suspense>
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: pathDefault.bookAppointmentDetail, // Trỏ đến Form đặt lịch chi tiết của 1 bác sĩ
           element: (
             <ProtectedRoute allowedRoles={["PATIENT"]}>
               <Suspense fallback={<FallbackLoad />}>
@@ -265,15 +296,6 @@ const AppRoutes = () => {
             </ProtectedRoute>
           ),
         },
-        // cái post này là dùng chung để tạm ở đây trước đã
-        {
-          path: pathDefault.posts,
-          element: (
-            <Suspense fallback={<FallbackLoad />}>
-              <PostPage />
-            </Suspense>
-          ),
-        },
         {
           path: "my-routines",
           element: (
@@ -285,33 +307,29 @@ const AppRoutes = () => {
           ),
         },
         {
-          path: pathDefault.postDetail,
+          path: pathDefault.createPost,
           element: (
-            <Suspense fallback={<FallbackLoad />}>
-              <PostCommentPage />
-            </Suspense>
-          ),
-        },
-        {
-          path: pathDefault.createPost, // ĐÃ SỬA: dùng đúng biến tạo ở phần 1
-          element: (
-            <Suspense fallback={<FallbackLoad />}>
-              <CreatePostPage />
-            </Suspense>
+            <ProtectedRoute allowedRoles={["PATIENT", "DOCTOR", "ADMIN"]}>
+              <Suspense fallback={<FallbackLoad />}>
+                <CreatePostPage />
+              </Suspense>
+            </ProtectedRoute>
           ),
         },
         {
           path: "/editpost/:postId",
           element: (
-            <Suspense fallback={<FallbackLoad />}>
-              <EditPostPage />
-            </Suspense>
+            <ProtectedRoute allowedRoles={["PATIENT", "DOCTOR", "ADMIN"]}>
+              <Suspense fallback={<FallbackLoad />}>
+                <EditPostPage />
+              </Suspense>
+            </ProtectedRoute>
           ),
         },
       ],
     },
 
-    // --- AUTH ROUTES (PUBLIC HOÀN TOÀN) ---
+    // --- AUTH ROUTES ---
     {
       path: pathDefault.login,
       element: (
@@ -329,7 +347,7 @@ const AppRoutes = () => {
       ),
     },
 
-    // --- ADMIN ROUTES (KHÓA BẰNG ROLE ADMIN) ---
+    // --- ADMIN ROUTES ---
     {
       path: pathDefault.admin,
       element: (
@@ -376,18 +394,10 @@ const AppRoutes = () => {
             </Suspense>
           ),
         },
-        // {
-        //   path: pathDefault.managePost, // /admin/manage-posts
-        //   element: (
-        //     <Suspense fallback={<FallbackLoad />}>
-        //       <ManagePost />
-        //     </Suspense>
-        //   ),
-        // },
       ],
     },
 
-    // --- DOCTOR ROUTES (KHÓA BẰNG ROLE DOCTOR) ---
+    // --- DOCTOR ROUTES ---
     {
       path: pathDefault.doctor,
       element: (
@@ -472,7 +482,14 @@ const AppRoutes = () => {
     },
   ];
 
-  return useRoutes(arrRoutes);
+  const routing = useRoutes(arrRoutes);
+
+  return (
+    <>
+      <ScrollToTop />
+      {routing}
+    </>
+  );
 };
 
 export default AppRoutes;

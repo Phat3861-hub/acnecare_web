@@ -19,4 +19,8 @@ export const userService = {
   getUserById: (id) => {
     return http.get(`/users/${id}`);
   },
+  changeDoctorProfileStatus: (id, data) => {
+    return http.put(`/doctors/profile/${id}/status`, data);
+  },
+  getActiveDoctors: () => http.get("/users/doctors/active"),
 };

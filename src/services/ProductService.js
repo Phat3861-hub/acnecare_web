@@ -15,4 +15,5 @@ export const productService = {
   deleteProduct: (id) => http.delete(`/products/${id}`),
   updateApprovalStatus: (id, status) =>
     http.patch(`/products/${id}/approval-status?status=${status}`),
+  getProductById: (id) => http.get(`/products/${id}`),
 };

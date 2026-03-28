@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { jwtDecode } from "jwt-decode";
 import { postService } from "../../services/PostService";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
@@ -34,7 +33,8 @@ const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
 const PostComment = () => {
-  const { postId } = useParams();
+  // SỬA LỖI 1: Lấy đúng tên tham số 'id' từ URL và gán vào biến 'postId'
+  const { id: postId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const stompClientRef = useRef(null);
@@ -42,11 +42,16 @@ const PostComment = () => {
   const { user } = useSelector((state) => state.user);
   let currentUserId = user?.id;
 
-  const token = localStorage.getItem("accessToken");
-  if (!currentUserId && token) {
-    try {
-      currentUserId = jwtDecode(token).sub;
-    } catch (err) {}
+  // SỬA LỖI 2: Lấy currentUserId từ userInfo thay vì giải mã token từ localStorage
+  if (!currentUserId) {
+    const userInfoStr = localStorage.getItem("userInfo");
+    if (userInfoStr) {
+      try {
+        currentUserId = JSON.parse(userInfoStr).id;
+      } catch (err) {
+        console.error("Lỗi parse userInfo:", err);
+      }
+    }
   }
 
   const [post, setPost] = useState(null);
@@ -79,15 +84,16 @@ const PostComment = () => {
     }
   }, [postId]);
 
-  // 2. THIẾT LẬP KẾT NỐI WEBSOCKET
+  // 2. THIẾT LẬP KẾT NỐI WEBSOCKET (Đã cấu hình dùng Cookie)
   useEffect(() => {
     if (!postId) return;
 
-    const currentToken = localStorage.getItem("accessToken");
-
     const client = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:8080/api/ws"),
-      connectHeaders: { Authorization: `Bearer ${currentToken}` },
+      // SỬA LỖI 3: Thêm { withCredentials: true } để tự động gửi HttpOnly Cookie và bỏ header Authorization
+      webSocketFactory: () =>
+        new SockJS("http://localhost:8080/api/ws", null, {
+          withCredentials: true,
+        }),
       reconnectDelay: 5000,
       onConnect: () => {
         client.subscribe(`/topic/posts/${postId}/comments`, (msg) => {
@@ -171,7 +177,7 @@ const PostComment = () => {
       okText: "Xóa bình luận",
       cancelText: "Hủy",
       okType: "danger",
-      icon: null, // Đã chặn icon mặc định của Antd Modal
+      icon: null,
       centered: true,
       onOk: async () => {
         try {
