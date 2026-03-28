@@ -1,7 +1,6 @@
-// src/pages/patient/components/ListDoctor.jsx
 import React, { useEffect } from "react";
-import { Card, Button, Avatar, Spin, Row, Col } from "antd";
-import { UserOutlined } from "@ant-design/icons";
+import { Button, Spin, Row, Col, message } from "antd"; // Import thêm message từ antd
+import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchActiveDoctors } from "../../../store/slice/DoctorSlice";
 import { useNavigate } from "react-router-dom";
@@ -9,58 +8,73 @@ import { useNavigate } from "react-router-dom";
 const ListDoctor = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
   const { activeDoctors, loading } = useSelector((state) => state.doctor);
+  // Lấy thêm state user từ Redux để kiểm tra đăng nhập
+  const { user } = useSelector((state) => state.user);
 
   useEffect(() => {
-    // Gọi API lấy danh sách bác sĩ khi component mount
     dispatch(fetchActiveDoctors());
   }, [dispatch]);
 
-  // Xử lý khi bấm nút "Đặt lịch khám"
+  // LOGIC XỬ LÝ CLICK ĐẶT LỊCH
   const handleBookAppointment = (doctorId) => {
-    // Chuyển hướng sang trang đặt lịch, truyền ID bác sĩ qua URL parameters
+    // 1. Kiểm tra xem có user trong Redux hoặc localStorage không
+    const isLogged = user || localStorage.getItem("userInfo");
+
+    // 2. Nếu chưa đăng nhập
+    if (!isLogged) {
+      message.warning("Vui lòng đăng nhập để tiến hành đặt lịch khám!");
+      navigate("/auth/login");
+      return;
+    }
+
+    // 3. Nếu đã đăng nhập, chuyển sang trang đặt lịch
     navigate(`/book-appointment/${doctorId}`);
   };
 
   if (loading)
     return (
-      <div className="text-center p-10">
+      <div className="text-center p-20 bg-white">
         <Spin size="large" />
       </div>
     );
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      <h2 className="text-3xl font-bold text-center mb-8 text-indigo-900">
-        Đội Ngũ Bác Sĩ Chuyên Môn Cao
-      </h2>
-      <Row gutter={[24, 24]} justify="center">
-        {activeDoctors.map((doc) => (
-          <Col xs={24} sm={12} md={8} lg={6} key={doc.id}>
-            <Card className="rounded-xl shadow-md hover:shadow-lg transition-shadow border-none overflow-hidden text-center">
-              <div className="bg-indigo-50 h-24 absolute top-0 left-0 w-full z-0 rounded-b-[50%] scale-x-150"></div>
-              <div className="relative z-10 pt-6">
-                <Avatar
-                  size={100}
-                  src={doc.avatarUrl}
-                  icon={<UserOutlined />}
-                  className="border-4 border-white shadow-sm"
+    <div className="py-16 px-4 md:px-12 lg:px-24 bg-white">
+      <div className="text-center max-w-2xl mx-auto mb-12">
+        <h2 className="text-3xl md:text-4xl font-black text-[#1e255e] mb-4">
+          Bảng xếp hạng bác sĩ da liễu xuất sắc
+        </h2>
+        <p className="text-gray-500 text-sm md:text-base">
+          Điểm qua các bác sĩ da liễu được đánh giá cao dựa trên hiệu quả điều
+          trị và phản hồi tích cực từ bệnh nhân, giúp bạn dễ dàng lựa chọn bác
+          sĩ phù hợp.
+        </p>
+      </div>
+
+      <Row gutter={[24, 40]} justify="center">
+        {activeDoctors.slice(0, 4).map((doc) => (
+          <Col xs={24} sm={12} md={6} key={doc.id}>
+            <div
+              className="flex flex-col items-center group cursor-pointer"
+              onClick={() => handleBookAppointment(doc.id)} // Gắn sự kiện click vào đây
+            >
+              {/* Ảnh bác sĩ */}
+              <div className="w-full aspect-[3/4] overflow-hidden bg-[#e0f0ff] rounded-sm mb-4">
+                <img
+                  src={doc.avatarUrl || "https://i.pravatar.cc/300"}
+                  alt={`Dr. ${doc.lastName}`}
+                  className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
                 />
-                <h3 className="mt-4 text-lg font-bold">
-                  Bác sĩ {doc.firstName} {doc.lastName}
-                </h3>
-                <p className="text-gray-500 text-sm mb-6">
-                  Chuyên da liễu / 4 năm kinh nghiệm
-                </p>
-                <Button
-                  type="primary"
-                  className="bg-indigo-800 hover:bg-indigo-700 w-full rounded-full font-medium h-10"
-                  onClick={() => handleBookAppointment(doc.id)}
-                >
-                  Đặt lịch khám
-                </Button>
               </div>
-            </Card>
+              <h3 className="text-lg font-bold text-[#1e255e] m-0">
+                Dr. {doc.firstName} {doc.lastName}
+              </h3>
+              <p className="text-gray-500 text-sm mt-1 m-0">
+                HUTECH University
+              </p>
+            </div>
           </Col>
         ))}
         {activeDoctors.length === 0 && !loading && (
@@ -69,6 +83,22 @@ const ListDoctor = () => {
           </div>
         )}
       </Row>
+
+      {/* Nút điều hướng Carousel */}
+      <div className="flex justify-center gap-4 mt-12">
+        <Button
+          shape="circle"
+          size="large"
+          icon={<LeftOutlined />}
+          className="border-gray-400 text-gray-600"
+        />
+        <Button
+          shape="circle"
+          size="large"
+          icon={<RightOutlined />}
+          className="border-gray-400 text-gray-600"
+        />
+      </div>
     </div>
   );
 };

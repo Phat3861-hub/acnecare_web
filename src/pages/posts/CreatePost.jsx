@@ -104,20 +104,17 @@ const Createpost = () => {
   // 3. XỬ LÝ SUBMIT
   const onFinish = async (values) => {
     let currentUserId = user?.id;
-    if (!currentUserId) {
-      const token = localStorage.getItem("accessToken");
-      if (token) {
-        try {
-          currentUserId = jwtDecode(token).sub;
-        } catch (err) {}
-      }
-    }
 
     if (!currentUserId) {
-      antdMessage.error(
-        "Lỗi: Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.",
-      );
-      return;
+      const userInfoStr = localStorage.getItem("userInfo"); // Vẫn giữ thông tin public ở đây
+      if (userInfoStr) {
+        try {
+          const userInfo = JSON.parse(userInfoStr);
+          currentUserId = userInfo.id;
+        } catch (err) {
+          console.error("Lỗi parse userInfo", err);
+        }
+      }
     }
 
     try {

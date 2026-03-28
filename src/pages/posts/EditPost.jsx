@@ -127,18 +127,17 @@ const EditPost = () => {
   // 4. HÀM CẬP NHẬT BÀI VIẾT
   const onFinish = async (values) => {
     let currentUserId = user?.id;
-    if (!currentUserId) {
-      const token = localStorage.getItem("accessToken");
-      if (token) {
-        try {
-          currentUserId = jwtDecode(token).sub;
-        } catch (err) {}
-      }
-    }
 
     if (!currentUserId) {
-      antdMessage.error("Vui lòng đăng nhập lại để thực hiện.");
-      return;
+      const userInfoStr = localStorage.getItem("userInfo"); // Vẫn giữ thông tin public ở đây
+      if (userInfoStr) {
+        try {
+          const userInfo = JSON.parse(userInfoStr);
+          currentUserId = userInfo.id;
+        } catch (err) {
+          console.error("Lỗi parse userInfo", err);
+        }
+      }
     }
 
     try {
