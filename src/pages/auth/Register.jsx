@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Form,
   Input,
   Button,
   Select,
@@ -14,15 +13,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { authService } from "../../services/AuthService";
-// Giả sử bạn có 1 service upload file (Dùng lại của phần chat/sản phẩm)
-// import { fileService } from '../../services/FileService';
 
 const { Option } = Select;
 
 const Register = () => {
   const [loading, setLoading] = useState(false);
   const [backendError, setBackendError] = useState("");
-  const [avatarFile, setAvatarFile] = useState(null); // State lưu trữ file ảnh
+  const [avatarFile, setAvatarFile] = useState(null);
   const navigate = useNavigate();
 
   const formik = useFormik({
@@ -55,21 +52,14 @@ const Register = () => {
       setBackendError("");
 
       try {
-        // 1. XỬ LÝ UPLOAD ẢNH TRƯỚC (NẾU CÓ)
-        let finalAvatarUrl = `https://ui-avatars.com/api/?name=${values.firstName}+${values.lastName}`; // Ảnh mặc định
+        let finalAvatarUrl = `https://ui-avatars.com/api/?name=${values.firstName}+${values.lastName}`;
 
         if (avatarFile) {
           const formData = new FormData();
-          formData.append("file", avatarFile); // "file" là tên biến mà Backend của bạn chờ nhận
-
-          // TODO: Bỏ comment 2 dòng dưới khi bạn đã có API upload file
-          // const uploadRes = await fileService.uploadImage(formData);
-          // finalAvatarUrl = uploadRes.data.url; // Lấy link ảnh từ backend trả về
-
+          formData.append("file", avatarFile);
           console.log("Đã lấy được file ảnh để upload:", avatarFile.name);
         }
 
-        // 2. TẠO PAYLOAD JSON VÀ GỌI API REGISTER
         const payload = {
           firstName: values.firstName,
           lastName: values.lastName,
@@ -77,7 +67,7 @@ const Register = () => {
           phone: values.phone,
           password: values.password,
           dob: values.dob ? values.dob.format("YYYY-MM-DD") : null,
-          avatarUrl: finalAvatarUrl, // Gắn link ảnh (hoặc link mặc định) vào đây
+          avatarUrl: finalAvatarUrl,
           roles: [values.role],
         };
 
@@ -98,158 +88,233 @@ const Register = () => {
   });
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50 py-10">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-lg">
-        <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">
-          Tạo tài khoản mới
-        </h2>
-
-        {backendError && (
-          <Alert
-            description={backendError}
-            type="error"
-            showIcon
-            className="mb-4"
+    <div className="flex min-h-screen bg-background">
+      <div className="hidden w-1/2 items-center justify-center gradient-primary lg:flex">
+        <div className="max-w-md px-12 text-white animate-fade-in">
+          <img
+            src="/acnecare_logo.png"
+            alt="AcneCare Logo"
+            className="h-14 w-14 object-contain"
           />
-        )}
 
-        <Form layout="vertical" onFinish={formik.handleSubmit}>
-          {/* Avatar Upload */}
-          <Form.Item label="Ảnh đại diện (Không bắt buộc)">
-            <Upload
-              listType="picture"
-              maxCount={1}
-              beforeUpload={(file) => {
-                setAvatarFile(file); // Lưu file vào state thay vì tự động upload
-                return false; // Trả về false để ngăn Ant Design tự gọi API
-              }}
-              onRemove={() => setAvatarFile(null)} // Xóa file khỏi state nếu user bấm nút xóa
-            >
-              <Button icon={<UploadOutlined />}>Chọn ảnh đại diện</Button>
-            </Upload>
-          </Form.Item>
+          <h2 className="text-4xl font-black leading-tight text-balance">
+            Cùng AcneCare
+            <br />
+            chăm sóc làn da
+            <br />
+            mỗi ngày
+          </h2>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Form.Item
-              label="Họ"
-              validateStatus={
-                formik.touched.firstName && formik.errors.firstName
-                  ? "error"
-                  : ""
-              }
-              help={formik.touched.firstName && formik.errors.firstName}
-            >
-              <Input
-                size="large"
-                {...formik.getFieldProps("firstName")}
-                placeholder="VD: Nguyễn"
-              />
-            </Form.Item>
-            <Form.Item
-              label="Tên"
-              validateStatus={
-                formik.touched.lastName && formik.errors.lastName ? "error" : ""
-              }
-              help={formik.touched.lastName && formik.errors.lastName}
-            >
-              <Input
-                size="large"
-                {...formik.getFieldProps("lastName")}
-                placeholder="VD: Văn A"
-              />
-            </Form.Item>
-          </div>
+          <p className="mt-5 text-lg leading-8 text-white/85">
+            Tạo tài khoản để bắt đầu hành trình chăm sóc da thông minh và kết
+            nối với hệ sinh thái dịch vụ phù hợp cho bạn.
+          </p>
+        </div>
+      </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Form.Item
-              label="Email"
-              validateStatus={
-                formik.touched.email && formik.errors.email ? "error" : ""
-              }
-              help={formik.touched.email && formik.errors.email}
-            >
-              <Input
-                size="large"
-                {...formik.getFieldProps("email")}
-                placeholder="email@gmail.com"
-              />
-            </Form.Item>
-            <Form.Item
-              label="Số điện thoại"
-              validateStatus={
-                formik.touched.phone && formik.errors.phone ? "error" : ""
-              }
-              help={formik.touched.phone && formik.errors.phone}
-            >
-              <Input
-                size="large"
-                {...formik.getFieldProps("phone")}
-                placeholder="0901234567"
-              />
-            </Form.Item>
-          </div>
+      <div className="flex flex-1 items-center justify-center px-4 py-12 md:px-8">
+        <div className="w-full max-w-2xl animate-fade-up">
+          <Link to="/" className="mb-8 flex items-center gap-3 lg:hidden">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-auth text-base font-extrabold text-white">
+              A
+            </div>
+            <span className="text-xl font-bold text-auth">AcneCare</span>
+          </Link>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Form.Item
-              label="Ngày sinh"
-              validateStatus={
-                formik.touched.dob && formik.errors.dob ? "error" : ""
-              }
-              help={formik.touched.dob && formik.errors.dob}
-            >
-              <DatePicker
-                size="large"
-                className="w-full"
-                format="YYYY-MM-DD"
-                placeholder="Chọn ngày sinh"
-                onChange={(date) => formik.setFieldValue("dob", date)}
-                onBlur={() => formik.setFieldTouched("dob", true)}
+          <div className="rounded-2xl border border-auth bg-card p-8 shadow-auth md:p-10">
+            <h1 className="text-3xl font-black text-foreground">
+              Tạo tài khoản
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Bắt đầu hành trình chăm sóc da của bạn
+            </p>
+
+            {backendError && (
+              <Alert
+                description={backendError}
+                type="error"
+                showIcon
+                className="mt-5"
               />
-            </Form.Item>
-            <Form.Item
-              label="Vai trò"
-              validateStatus={
-                formik.touched.role && formik.errors.role ? "error" : ""
-              }
-              help={formik.touched.role && formik.errors.role}
-            >
-              <Select
+            )}
+
+            <form className="mt-6 space-y-5" onSubmit={formik.handleSubmit}>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-foreground">
+                  Ảnh đại diện
+                </label>
+                <Upload
+                  listType="picture"
+                  maxCount={1}
+                  beforeUpload={(file) => {
+                    setAvatarFile(file);
+                    return false;
+                  }}
+                  onRemove={() => setAvatarFile(null)}
+                >
+                  <Button
+                    icon={<UploadOutlined />}
+                    className="!h-11 !rounded-xl !border-auth"
+                  >
+                    Chọn ảnh đại diện
+                  </Button>
+                </Upload>
+              </div>
+
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-foreground">
+                    Họ
+                  </label>
+                  <Input
+                    size="large"
+                    {...formik.getFieldProps("firstName")}
+                    placeholder="VD: Nguyễn"
+                    className="!rounded-xl !py-2"
+                  />
+                  {formik.touched.firstName && formik.errors.firstName && (
+                    <div className="mt-1.5 text-sm text-red-500">
+                      {formik.errors.firstName}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-foreground">
+                    Tên
+                  </label>
+                  <Input
+                    size="large"
+                    {...formik.getFieldProps("lastName")}
+                    placeholder="VD: Văn A"
+                    className="!rounded-xl !py-2"
+                  />
+                  {formik.touched.lastName && formik.errors.lastName && (
+                    <div className="mt-1.5 text-sm text-red-500">
+                      {formik.errors.lastName}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-foreground">
+                    Email
+                  </label>
+                  <Input
+                    size="large"
+                    {...formik.getFieldProps("email")}
+                    placeholder="email@gmail.com"
+                    className="!rounded-xl !py-2"
+                  />
+                  {formik.touched.email && formik.errors.email && (
+                    <div className="mt-1.5 text-sm text-red-500">
+                      {formik.errors.email}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-foreground">
+                    Số điện thoại
+                  </label>
+                  <Input
+                    size="large"
+                    {...formik.getFieldProps("phone")}
+                    placeholder="0901234567"
+                    className="!rounded-xl !py-2"
+                  />
+                  {formik.touched.phone && formik.errors.phone && (
+                    <div className="mt-1.5 text-sm text-red-500">
+                      {formik.errors.phone}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-foreground">
+                    Ngày sinh
+                  </label>
+                  <DatePicker
+                    size="large"
+                    className="!h-11 !w-full !rounded-xl"
+                    format="YYYY-MM-DD"
+                    placeholder="Chọn ngày sinh"
+                    onChange={(date) => formik.setFieldValue("dob", date)}
+                    onBlur={() => formik.setFieldTouched("dob", true)}
+                  />
+                  {formik.touched.dob && formik.errors.dob && (
+                    <div className="mt-1.5 text-sm text-red-500">
+                      {formik.errors.dob}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-foreground">
+                    Vai trò
+                  </label>
+                  <Select
+                    size="large"
+                    value={formik.values.role}
+                    onChange={(value) => formik.setFieldValue("role", value)}
+                    className="w-full"
+                  >
+                    <Option value="PATIENT">Người dùng</Option>
+                    <Option value="DOCTOR">Bác sĩ</Option>
+                    <Option value="BRAND">Thương hiệu</Option>
+                  </Select>
+                  {formik.touched.role && formik.errors.role && (
+                    <div className="mt-1.5 text-sm text-red-500">
+                      {formik.errors.role}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-foreground">
+                  Mật khẩu
+                </label>
+                <Input.Password
+                  size="large"
+                  {...formik.getFieldProps("password")}
+                  placeholder="Nhập mật khẩu"
+                  className="!rounded-xl !py-2"
+                />
+                {formik.touched.password && formik.errors.password && (
+                  <div className="mt-1.5 text-sm text-red-500">
+                    {formik.errors.password}
+                  </div>
+                )}
+              </div>
+
+              <Button
+                type="primary"
+                htmlType="submit"
                 size="large"
-                value={formik.values.role}
-                onChange={(value) => formik.setFieldValue("role", value)}
+                block
+                loading={loading}
+                className="!mt-2 !h-12 !rounded-xl !border-none !bg-[#1e255e] !font-semibold hover:!bg-[#2a3175]"
               >
-                <Option value="PATIENT">Người dùng</Option>
-                <Option value="DOCTOR">Bác sĩ</Option>
-                <Option value="BRAND">Thương hiệu</Option>
-              </Select>
-            </Form.Item>
+                Đăng ký
+              </Button>
+            </form>
+
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              Đã có tài khoản?{" "}
+              <Link
+                to="/auth/login"
+                className="font-semibold text-auth hover:underline"
+              >
+                Đăng nhập
+              </Link>
+            </p>
           </div>
-
-          <Form.Item
-            label="Mật khẩu"
-            validateStatus={
-              formik.touched.password && formik.errors.password ? "error" : ""
-            }
-            help={formik.touched.password && formik.errors.password}
-          >
-            <Input.Password
-              size="large"
-              {...formik.getFieldProps("password")}
-              placeholder="Nhập mật khẩu"
-            />
-          </Form.Item>
-
-          <Button
-            type="primary"
-            htmlType="submit"
-            size="large"
-            block
-            loading={loading}
-            className="bg-blue-600 mt-2"
-          >
-            Đăng ký
-          </Button>
-        </Form>
+        </div>
       </div>
     </div>
   );
