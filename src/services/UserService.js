@@ -23,4 +23,6 @@ export const userService = {
     return http.put(`/doctors/profile/${id}/status`, data);
   },
   getActiveDoctors: () => http.get("/users/doctors/active"),
+  changeBrandProfileStatus: (id, payload) =>
+    http.put(`/brands/profile/${id}`, payload),
 };

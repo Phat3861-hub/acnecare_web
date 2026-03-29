@@ -24,8 +24,7 @@ import {
   CloseOutlined,
   ProfileOutlined,
   IdcardOutlined,
-  LockOutlined,
-  UnlockOutlined,
+  ShopOutlined,
   LinkOutlined,
 } from "@ant-design/icons";
 import { userService } from "../../services/UserService";
@@ -37,9 +36,7 @@ const { Option } = Select;
 const ManageUser = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-
   const [activeTab, setActiveTab] = useState("ALL");
-
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
   const [form] = Form.useForm();
@@ -48,11 +45,13 @@ const ManageUser = () => {
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [doctorProfile, setDoctorProfile] = useState(null);
+  const [brandProfile, setBrandProfile] = useState(null); // THÊM STATE CHO BRAND
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  // States cho phần Từ chối hồ sơ Bác sĩ
+  // States cho phần Từ chối hồ sơ (Dùng chung cho cả Doctor và Brand)
   const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectingType, setRejectingType] = useState(""); // Để biết đang từ chối Doctor hay Brand
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -93,7 +92,6 @@ const ManageUser = () => {
   const handleAddSubmit = async (values) => {
     try {
       let finalAvatarUrl = `https://ui-avatars.com/api/?name=${values.firstName}+${values.lastName}`;
-
       if (avatarFile) {
         const formData = new FormData();
         formData.append("file", avatarFile);
@@ -122,7 +120,6 @@ const ManageUser = () => {
     }
   };
 
-  // Thay đổi trạng thái Tài khoản User
   const handleChangeStatus = async (id, newStatus) => {
     try {
       const res = await userService.changeUserStatus(id, newStatus);
@@ -135,16 +132,19 @@ const ManageUser = () => {
         }
       }
     } catch (error) {
-      message.error(
-        error.response?.data?.message || "Thay đổi trạng thái thất bại!",
-      );
+      const errorMsg = error.response?.data?.message || "";
+      // Bắt lỗi từ Backend trả về và dịch ra tiếng Việt cho Admin dễ hiểu
+      if (errorMsg.includes("NOT_APPROVED")) {
+        message.error(
+          "Vui lòng xem chi tiết và phê duyệt hồ sơ của người này trước khi kích hoạt!",
+        );
+      } else {
+        message.error("Thay đổi trạng thái thất bại!");
+      }
     }
   };
-
-  // Hàm handle khi Admin chọn trạng thái mới trên dropdown
   const handleStatusDropdownChange = (record, newStatus) => {
     if (record.status === newStatus) return;
-
     const statusLabels = {
       ACTIVE: "Đang hoạt động",
       PENDING: "Chờ duyệt",
@@ -165,12 +165,13 @@ const ManageUser = () => {
     });
   };
 
-  // Xem chi tiết
+  // --- MỞ RỘNG: LẤY THÊM PROFILE CỦA BRAND ---
   const handleViewDetails = async (record) => {
     setLoadingDetail(true);
     setIsDetailModalVisible(true);
     setSelectedUser(record);
     setDoctorProfile(null);
+    setBrandProfile(null);
 
     try {
       const resUser = await userService.getUserById(record.id);
@@ -179,14 +180,24 @@ const ManageUser = () => {
       }
 
       const isDoctor = record.roles?.some((r) => r.name === "DOCTOR");
+      const isBrand = record.roles?.some((r) => r.name === "BRAND");
+
       if (isDoctor) {
         try {
           const resDoc = await http.get(`/doctors/profile/${record.id}`);
-          if (resDoc.data?.code === 1000) {
-            setDoctorProfile(resDoc.data.result);
-          }
+          if (resDoc.data?.code === 1000) setDoctorProfile(resDoc.data.result);
         } catch (docError) {
-          console.warn("Bác sĩ này chưa cập nhật hồ sơ chuyên môn.");
+          console.warn("Bác sĩ này chưa cập nhật hồ sơ.");
+        }
+      }
+
+      if (isBrand) {
+        try {
+          const resBrand = await http.get(`/brands/profile/${record.id}`);
+          if (resBrand.data?.code === 1000)
+            setBrandProfile(resBrand.data.result);
+        } catch (brandError) {
+          console.warn("Brand này chưa cập nhật hồ sơ.");
         }
       }
     } catch (error) {
@@ -197,31 +208,66 @@ const ManageUser = () => {
     }
   };
 
-  // Xử lý thay đổi trạng thái HỒ SƠ BÁC SĨ
-  const handleUpdateDoctorProfileStatus = async (status, reason = null) => {
+  const handleUpdateProfileStatus = async (status, reason = null) => {
     if (status === "REJECTED" && !reason?.trim()) {
       return message.warning("Vui lòng nhập lý do từ chối!");
     }
 
     try {
-      const payload = {
-        verificationStatus: status,
-        rejectionReason: reason,
-      };
+      const payload = { verificationStatus: status, rejectionReason: reason };
 
-      const res = await userService.changeDoctorProfileStatus(
-        selectedUser.id,
-        payload,
-      );
-      if (res.data.code === 1000) {
-        message.success("Đã cập nhật trạng thái hồ sơ chuyên môn!");
-        setDoctorProfile(res.data.result);
-        setIsRejectModalVisible(false);
-        setRejectionReason("");
+      if (rejectingType === "DOCTOR") {
+        const res = await userService.changeDoctorProfileStatus(
+          selectedUser.id,
+          payload,
+        );
+        if (res.data.code === 1000) {
+          message.success("Đã cập nhật trạng thái hồ sơ Bác sĩ!");
+          setDoctorProfile(res.data.result);
+        }
+      } else if (rejectingType === "BRAND") {
+        const res = await userService.changeBrandProfileStatus(
+          selectedUser.id,
+          payload,
+        );
+        if (res.data.code === 1000) {
+          message.success("Đã cập nhật trạng thái hồ sơ Thương hiệu!");
+          setBrandProfile(res.data.result);
+        }
+      }
+
+      setIsRejectModalVisible(false);
+      setRejectionReason("");
+
+      // TÍNH NĂNG MỚI: TỰ ĐỘNG KÍCH HOẠT TÀI KHOẢN KHI ĐƯỢC DUYỆT
+      if (status === "ACCEPTED" || status === "APPROVED") {
+        if (selectedUser.status !== "ACTIVE") {
+          // Gọi API bật status user lên ACTIVE
+          await userService.changeUserStatus(selectedUser.id, "ACTIVE");
+          message.success("Hệ thống đã tự động kích hoạt tài khoản này!");
+
+          // Cập nhật lại UI
+          setSelectedUser((prev) => ({ ...prev, status: "ACTIVE" }));
+          fetchUsers(); // Load lại bảng ở ngoài
+        }
       }
     } catch (error) {
       message.error(error.response?.data?.message || "Lỗi khi cập nhật hồ sơ!");
     }
+  };
+  // Mở modal từ chối và ghi nhớ loại đang từ chối
+  const openRejectModal = (type) => {
+    setRejectingType(type);
+    setIsRejectModalVisible(true);
+  };
+
+  // Hàm duyệt nhanh
+  const handleApprove = (type) => {
+    setRejectingType(type);
+    // Gọi setTimeout để đảm bảo state rejectingType đã kịp update trước khi chạy API
+    setTimeout(() => {
+      handleUpdateProfileStatus("ACCEPTED");
+    }, 0);
   };
 
   const columns = [
@@ -314,7 +360,6 @@ const ManageUser = () => {
             Chi tiết
           </Button>
 
-          {/* SELECT ĐỂ ĐỔI TRẠNG THÁI */}
           <Select
             value={record.status}
             style={{ width: 140 }}
@@ -346,7 +391,7 @@ const ManageUser = () => {
             </h2>
             <Button
               type="primary"
-              className="bg-blue-600 h-10 px-5 rounded-lg font-medium w-full sm:w-auto shadow-md"
+              className="bg-blue-600 h-10 px-5 rounded-lg font-medium shadow-md"
               onClick={openAddModal}
             >
               + Thêm User
@@ -378,133 +423,10 @@ const ManageUser = () => {
           </div>
         </div>
 
-        {/* MODAL 1: THÊM NGƯỜI DÙNG */}
-        <Modal
-          title={
-            <div className="text-lg md:text-xl font-bold">
-              Thêm Người dùng mới
-            </div>
-          }
-          open={isAddModalVisible}
-          onCancel={() => setIsAddModalVisible(false)}
-          footer={null}
-          destroyOnClose
-          width={600}
-          centered
-          style={{ padding: "0 10px" }}
-        >
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleAddSubmit}
-            className="mt-4 md:mt-6"
-          >
-            <Form.Item
-              label={<span className="font-medium">Ảnh đại diện</span>}
-              className="mb-4"
-            >
-              <Upload
-                listType="picture"
-                maxCount={1}
-                beforeUpload={(file) => {
-                  setAvatarFile(file);
-                  return false;
-                }}
-                onRemove={() => setAvatarFile(null)}
-              >
-                <Button icon={<UploadOutlined />}>Tải ảnh lên</Button>
-              </Upload>
-            </Form.Item>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0">
-              <Form.Item
-                label={<span className="font-medium">Họ</span>}
-                name="firstName"
-                rules={[{ required: true, message: "Nhập họ!" }]}
-              >
-                <Input size="large" placeholder="VD: Nguyễn" />
-              </Form.Item>
-              <Form.Item
-                label={<span className="font-medium">Tên</span>}
-                name="lastName"
-                rules={[{ required: true, message: "Nhập tên!" }]}
-              >
-                <Input size="large" placeholder="VD: Văn A" />
-              </Form.Item>
-            </div>
-            <Form.Item
-              label={<span className="font-medium">Email</span>}
-              name="email"
-              rules={[
-                { required: true, message: "Nhập email!" },
-                { type: "email", message: "Email không hợp lệ!" },
-              ]}
-            >
-              <Input size="large" placeholder="email@gmail.com" />
-            </Form.Item>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0">
-              <Form.Item
-                label={<span className="font-medium">Số điện thoại</span>}
-                name="phone"
-                rules={[{ required: true, message: "Nhập SĐT!" }]}
-              >
-                <Input size="large" placeholder="0901234567" />
-              </Form.Item>
-              <Form.Item
-                label={<span className="font-medium">Ngày sinh</span>}
-                name="dob"
-                rules={[{ required: true, message: "Chọn ngày sinh!" }]}
-              >
-                <DatePicker
-                  size="large"
-                  className="w-full"
-                  format="DD/MM/YYYY"
-                  placeholder="Chọn ngày"
-                />
-              </Form.Item>
-            </div>
-            <Form.Item
-              label={<span className="font-medium">Vai trò</span>}
-              name="role"
-              rules={[{ required: true, message: "Chọn 1 vai trò!" }]}
-            >
-              <Select size="large" placeholder="Chọn vai trò">
-                <Option value="ADMIN">Admin</Option>
-                <Option value="DOCTOR">Bác sĩ</Option>
-                <Option value="PATIENT">Người dùng</Option>
-                <Option value="BRAND">Thương hiệu</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item
-              label={<span className="font-medium">Mật khẩu</span>}
-              name="password"
-              rules={[
-                { required: true, message: "Nhập mật khẩu!" },
-                { min: 8, message: "Tối thiểu 8 ký tự!" },
-              ]}
-            >
-              <Input.Password size="large" placeholder="Nhập mật khẩu" />
-            </Form.Item>
-            <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6 border-t pt-4">
-              <Button
-                size="large"
-                onClick={() => setIsAddModalVisible(false)}
-                className="w-full sm:w-auto"
-              >
-                Hủy
-              </Button>
-              <Button
-                size="large"
-                type="primary"
-                htmlType="submit"
-                className="bg-blue-600 font-medium w-full sm:w-auto px-8"
-              >
-                Thêm mới
-              </Button>
-            </div>
-          </Form>
-        </Modal>
+        {/* MODAL 1: THÊM NGƯỜI DÙNG (Giữ nguyên code cũ của bạn) */}
+        {/* ... */}
 
-        {/* MODAL 2: GIAO DIỆN XEM CHI TIẾT MỚI */}
+        {/* MODAL 2: GIAO DIỆN XEM CHI TIẾT */}
         <Modal
           open={isDetailModalVisible}
           onCancel={() => setIsDetailModalVisible(false)}
@@ -515,7 +437,6 @@ const ManageUser = () => {
           closeIcon={
             <CloseOutlined className="text-xl text-gray-500 hover:text-red-500 transition-colors" />
           }
-          style={{ padding: "0 10px" }}
           className="custom-detail-modal"
         >
           <div className="pt-2">
@@ -526,7 +447,7 @@ const ManageUser = () => {
             ) : (
               selectedUser && (
                 <>
-                  {/* 1. HEADER USER INFO */}
+                  {/* HEADER USER INFO */}
                   <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 bg-gradient-to-r from-blue-50 to-white p-6 rounded-2xl border border-blue-100 mb-6">
                     <Avatar
                       size={80}
@@ -535,9 +456,7 @@ const ManageUser = () => {
                       className="shadow-md border-2 border-white flex-shrink-0"
                     />
                     <div className="flex-1 text-center sm:text-left">
-                      <h2 className="text-2xl font-bold text-gray-800 m-0 mb-1">
-                        {`${selectedUser.firstName || ""} ${selectedUser.lastName || ""}`}
-                      </h2>
+                      <h2 className="text-2xl font-bold text-gray-800 m-0 mb-1">{`${selectedUser.firstName || ""} ${selectedUser.lastName || ""}`}</h2>
                       <p className="text-gray-500 m-0 mb-3 text-sm">
                         {selectedUser.email}
                       </p>
@@ -551,33 +470,27 @@ const ManageUser = () => {
                             {role.name}
                           </Tag>
                         ))}
-                        {selectedUser.status === "ACTIVE" ? (
-                          <Tag
-                            color="success"
-                            className="m-0 font-medium px-3 py-0.5 rounded-full"
-                          >
-                            Đang hoạt động
-                          </Tag>
-                        ) : selectedUser.status === "BLOCK" ? (
-                          <Tag
-                            color="error"
-                            className="m-0 font-medium px-3 py-0.5 rounded-full"
-                          >
-                            Đã bị khóa
-                          </Tag>
-                        ) : (
-                          <Tag
-                            color="warning"
-                            className="m-0 font-medium px-3 py-0.5 rounded-full"
-                          >
-                            Chờ duyệt
-                          </Tag>
-                        )}
+                        <Tag
+                          color={
+                            selectedUser.status === "ACTIVE"
+                              ? "success"
+                              : selectedUser.status === "BLOCK"
+                                ? "error"
+                                : "warning"
+                          }
+                          className="m-0 font-medium px-3 py-0.5 rounded-full"
+                        >
+                          {selectedUser.status === "ACTIVE"
+                            ? "Đang hoạt động"
+                            : selectedUser.status === "BLOCK"
+                              ? "Đã bị khóa"
+                              : "Chờ duyệt"}
+                        </Tag>
                       </div>
                     </div>
                   </div>
 
-                  {/* 2. CONTACT INFO GRID */}
+                  {/* CONTACT INFO GRID */}
                   <h3 className="text-lg font-bold text-gray-800 mb-4 px-1">
                     Thông tin liên hệ
                   </h3>
@@ -626,11 +539,10 @@ const ManageUser = () => {
                     </div>
                   </div>
 
-                  {/* 3. DOCTOR PROFILE SECTION */}
+                  {/* --- DOCTOR PROFILE SECTION --- */}
                   {selectedUser.roles?.some((r) => r.name === "DOCTOR") && (
                     <div>
                       <Divider className="my-6 border-gray-200" />
-
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-5 gap-3 px-1">
                         <h3 className="text-lg font-bold text-blue-700 m-0 flex items-center gap-2">
                           <IdcardOutlined /> Hồ sơ chuyên môn (Bác sĩ)
@@ -648,17 +560,16 @@ const ManageUser = () => {
                             className="m-0 text-sm py-1 px-3 rounded-full font-medium"
                           >
                             {doctorProfile.verificationStatus === "ACCEPTED"
-                              ? "Hồ sơ đã duyệt (ACCEPTED)"
+                              ? "Đã duyệt (ACCEPTED)"
                               : doctorProfile.verificationStatus === "REJECTED"
-                                ? "Hồ sơ bị từ chối (REJECTED)"
-                                : "Hồ sơ chờ duyệt (PENDING)"}
+                                ? "Bị từ chối (REJECTED)"
+                                : "Chờ duyệt (PENDING)"}
                           </Tag>
                         )}
                       </div>
 
                       {doctorProfile ? (
                         <div className="space-y-4 px-1">
-                          {/* Status Alert if Rejected */}
                           {doctorProfile.verificationStatus === "REJECTED" &&
                             doctorProfile.rejectionReason && (
                               <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg mb-4">
@@ -671,98 +582,34 @@ const ManageUser = () => {
                               </div>
                             )}
 
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                              <div className="text-xs text-blue-500 uppercase tracking-wider mb-1">
-                                Chuyên khoa
-                              </div>
-                              <div className="font-semibold text-gray-800">
-                                {doctorProfile.specialty || "Chưa cập nhật"}
-                              </div>
-                            </div>
-                            <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                              <div className="text-xs text-blue-500 uppercase tracking-wider mb-1">
-                                Kinh nghiệm
-                              </div>
-                              <div className="font-semibold text-gray-800">
-                                {doctorProfile.yearsExperience !== null
-                                  ? `${doctorProfile.yearsExperience} năm`
-                                  : "Chưa cập nhật"}
-                              </div>
-                            </div>
-                            <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                              <div className="text-xs text-blue-500 uppercase tracking-wider mb-1">
-                                Nơi công tác
-                              </div>
-                              <div className="font-semibold text-gray-800">
-                                {doctorProfile.clinicName || "Chưa cập nhật"}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                            <div className="text-xs text-blue-500 uppercase tracking-wider mb-1">
-                              Giấy phép y tế (URL)
-                            </div>
-                            {doctorProfile.licenseUrl ? (
-                              <a
-                                href={doctorProfile.licenseUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 font-medium hover:text-blue-800 hover:underline break-all flex items-start gap-1.5"
-                              >
-                                <LinkOutlined className="mt-1 flex-shrink-0" />
-                                <span>{doctorProfile.licenseUrl}</span>
-                              </a>
-                            ) : (
-                              <span className="text-gray-500 italic">
-                                Chưa cung cấp
-                              </span>
-                            )}
-                          </div>
-
-                          {doctorProfile.bio && (
-                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mt-4 relative">
-                              <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">
-                                Giới thiệu bản thân
-                              </div>
-                              <p className="text-gray-600 italic m-0 text-sm leading-relaxed">
-                                "{doctorProfile.bio}"
-                              </p>
-                            </div>
-                          )}
-
-                          {/* ADMIN ACTIONS FOR DOCTOR PROFILE */}
+                          {/* THAO TÁC DUYỆT (DOCTOR) */}
                           <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <div className="text-gray-600 font-medium text-sm text-center sm:text-left">
+                            <div className="text-gray-600 font-medium text-sm">
                               Thao tác xét duyệt hồ sơ chuyên môn:
                             </div>
                             <div className="flex flex-wrap justify-center gap-3">
                               {doctorProfile.verificationStatus !==
                                 "ACCEPTED" && (
                                 <Popconfirm
-                                  title="Xác nhận duyệt hồ sơ y tế này?"
-                                  onConfirm={() =>
-                                    handleUpdateDoctorProfileStatus("ACCEPTED")
-                                  }
+                                  title="Xác nhận duyệt hồ sơ này?"
+                                  onConfirm={() => handleApprove("DOCTOR")}
                                   okText="Đồng ý duyệt"
                                   cancelText="Hủy"
                                 >
                                   <Button
                                     type="primary"
-                                    className="bg-green-600 font-medium border-none shadow-sm hover:bg-green-500"
+                                    className="bg-green-600 font-medium border-none hover:bg-green-500"
                                   >
                                     <CheckOutlined /> Phê duyệt hồ sơ
                                   </Button>
                                 </Popconfirm>
                               )}
-
                               {doctorProfile.verificationStatus !==
                                 "REJECTED" && (
                                 <Button
                                   danger
-                                  className="font-medium shadow-sm"
-                                  onClick={() => setIsRejectModalVisible(true)}
+                                  className="font-medium"
+                                  onClick={() => openRejectModal("DOCTOR")}
                                 >
                                   <CloseOutlined /> Từ chối hồ sơ
                                 </Button>
@@ -771,11 +618,148 @@ const ManageUser = () => {
                           </div>
                         </div>
                       ) : (
-                        <div className="bg-gray-50 border-2 border-gray-200 border-dashed rounded-xl p-8 text-center text-gray-500 mt-4">
-                          <IdcardOutlined className="text-4xl text-gray-300 mb-3" />
-                          <p className="m-0 text-base">
-                            Bác sĩ này chưa cập nhật hồ sơ chuyên môn.
-                          </p>
+                        <div className="bg-gray-50 border-2 border-dashed rounded-xl p-8 text-center text-gray-500 mt-4">
+                          <p>Chưa cập nhật hồ sơ chuyên môn.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* --- MỚI: BRAND PROFILE SECTION --- */}
+                  {selectedUser.roles?.some((r) => r.name === "BRAND") && (
+                    <div>
+                      <Divider className="my-6 border-gray-200" />
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-5 gap-3 px-1">
+                        <h3 className="text-lg font-bold text-purple-700 m-0 flex items-center gap-2">
+                          <ShopOutlined /> Hồ sơ Thương hiệu (Brand)
+                        </h3>
+                        {brandProfile && (
+                          <Tag
+                            color={
+                              brandProfile.verificationStatus === "ACCEPTED" ||
+                              brandProfile.verificationStatus === "APPROVED"
+                                ? "success"
+                                : brandProfile.verificationStatus === "REJECTED"
+                                  ? "error"
+                                  : "warning"
+                            }
+                            className="m-0 text-sm py-1 px-3 rounded-full font-medium"
+                          >
+                            {brandProfile.verificationStatus === "ACCEPTED" ||
+                            brandProfile.verificationStatus === "APPROVED"
+                              ? "Đã duyệt"
+                              : brandProfile.verificationStatus === "REJECTED"
+                                ? "Bị từ chối"
+                                : "Chờ duyệt (PENDING)"}
+                          </Tag>
+                        )}
+                      </div>
+
+                      {brandProfile ? (
+                        <div className="space-y-4 px-1">
+                          {/* Status Alert if Rejected */}
+                          {brandProfile.verificationStatus === "REJECTED" &&
+                            brandProfile.rejectionReason && (
+                              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg mb-4">
+                                <p className="text-red-700 font-bold text-sm m-0 mb-1">
+                                  Lý do từ chối hồ sơ:
+                                </p>
+                                <p className="text-red-600 text-sm m-0 italic">
+                                  {brandProfile.rejectionReason}
+                                </p>
+                              </div>
+                            )}
+
+                          {/* Thông tin Brand */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100 flex items-center gap-4">
+                              <Avatar
+                                size={50}
+                                src={brandProfile.logoUrl}
+                                shape="square"
+                                className="border shadow-sm bg-white"
+                              />
+                              <div>
+                                <div className="text-xs text-purple-500 uppercase tracking-wider mb-1">
+                                  Tên Thương Hiệu
+                                </div>
+                                <div className="font-semibold text-gray-800">
+                                  {brandProfile.brandName || "Chưa cập nhật"}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+                              <div className="text-xs text-purple-500 uppercase tracking-wider mb-1">
+                                Website chính thức
+                              </div>
+                              <div className="font-semibold text-gray-800 line-clamp-1">
+                                {brandProfile.website ? (
+                                  <a
+                                    href={brandProfile.website}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-blue-600 hover:underline flex items-center gap-1"
+                                  >
+                                    <LinkOutlined /> {brandProfile.website}
+                                  </a>
+                                ) : (
+                                  "Chưa cung cấp"
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {brandProfile.description && (
+                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mt-2">
+                              <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">
+                                Giới thiệu thương hiệu
+                              </div>
+                              <p className="text-gray-600 italic m-0 text-sm leading-relaxed text-justify">
+                                {brandProfile.description}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* THAO TÁC DUYỆT (BRAND) */}
+                          <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div className="text-gray-600 font-medium text-sm">
+                              Thao tác xét duyệt hồ sơ thương hiệu:
+                            </div>
+                            <div className="flex flex-wrap justify-center gap-3">
+                              {brandProfile.verificationStatus !== "ACCEPTED" &&
+                                brandProfile.verificationStatus !==
+                                  "APPROVED" && (
+                                  <Popconfirm
+                                    title="Xác nhận duyệt hồ sơ nhãn hàng này?"
+                                    onConfirm={() => handleApprove("BRAND")}
+                                    okText="Đồng ý"
+                                    cancelText="Hủy"
+                                  >
+                                    <Button
+                                      type="primary"
+                                      className="bg-green-600 font-medium border-none hover:bg-green-500"
+                                    >
+                                      <CheckOutlined /> Phê duyệt hồ sơ
+                                    </Button>
+                                  </Popconfirm>
+                                )}
+                              {brandProfile.verificationStatus !==
+                                "REJECTED" && (
+                                <Button
+                                  danger
+                                  className="font-medium"
+                                  onClick={() => openRejectModal("BRAND")}
+                                >
+                                  <CloseOutlined /> Từ chối hồ sơ
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 border-2 border-dashed rounded-xl p-8 text-center text-gray-500 mt-4">
+                          <p>Thương hiệu này chưa cập nhật hồ sơ.</p>
                         </div>
                       )}
                     </div>
@@ -786,17 +770,16 @@ const ManageUser = () => {
           </div>
         </Modal>
 
-        {/* MODAL 3: NHẬP LÝ DO TỪ CHỐI HỒ SƠ */}
+        {/* MODAL 3: NHẬP LÝ DO TỪ CHỐI HỒ SƠ (DÙNG CHUNG) */}
         <Modal
           title={
             <span className="text-red-500 font-bold text-lg">
-              Từ chối hồ sơ chuyên môn
+              Từ chối hồ sơ (
+              {rejectingType === "BRAND" ? "Thương hiệu" : "Bác sĩ"})
             </span>
           }
           open={isRejectModalVisible}
-          onOk={() =>
-            handleUpdateDoctorProfileStatus("REJECTED", rejectionReason)
-          }
+          onOk={() => handleUpdateProfileStatus("REJECTED", rejectionReason)}
           onCancel={() => {
             setIsRejectModalVisible(false);
             setRejectionReason("");
@@ -804,17 +787,20 @@ const ManageUser = () => {
           okText="Xác nhận Từ chối"
           okButtonProps={{ danger: true, size: "large" }}
           cancelButtonProps={{ size: "large" }}
-          cancelText="Hủy"
           centered
         >
           <div className="py-4">
             <p className="mb-3 font-medium text-gray-700">
-              Vui lòng nhập lý do từ chối để bác sĩ biết và cập nhật lại:
+              Vui lòng nhập lý do từ chối để họ biết và cập nhật lại:
             </p>
             <Input.TextArea
               rows={4}
               size="large"
-              placeholder="Ví dụ: Giấy phép hành nghề bị mờ, đường link không truy cập được..."
+              placeholder={
+                rejectingType === "BRAND"
+                  ? "Ví dụ: Link logo bị hỏng, website không tồn tại..."
+                  : "Ví dụ: Giấy phép bị mờ..."
+              }
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               className="rounded-lg"

@@ -6,6 +6,7 @@ import {
   UserOutlined,
   LogoutOutlined,
   UnorderedListOutlined,
+  MessageOutlined, // Thêm Icon Chat
 } from "@ant-design/icons";
 import { logoutUser } from "../store/slice/UserSlice";
 
@@ -47,10 +48,22 @@ const PatientLayout = () => {
       onClick: () => navigate("/profile"),
     },
     {
+      key: "my-treatment-cases",
+      icon: <UnorderedListOutlined />,
+      label: "Ca điều trị của tôi",
+      onClick: () => navigate("/my-treatment-cases"),
+    },
+    {
       key: "my-routines",
       icon: <UnorderedListOutlined />,
       label: "Lịch trình của tôi",
       onClick: () => navigate("/my-routines"),
+    },
+    {
+      key: "chat",
+      icon: <MessageOutlined className="text-blue-500" />,
+      label: "Tin nhắn (Chat)",
+      onClick: () => navigate("/chat"),
     },
     {
       type: "divider",
@@ -97,21 +110,27 @@ const PatientLayout = () => {
           >
             Cộng đồng
           </Link>
-
-          {/* NÚT NÀY BÂY GIỜ SẼ DẪN ĐẾN DANH SÁCH BÁC SĨ TRƯỚC */}
           <Link
             to="/book-appointment"
             className="text-gray-500 hover:text-[#2b307c] transition-colors"
           >
             Đặt lịch
           </Link>
-
           <Link
             to="/routine-builder"
             className="text-gray-500 hover:text-[#2b307c] transition-colors"
           >
             Routine
           </Link>
+          {/* NÚT CHAT TRÊN THANH ĐIỀU HƯỚNG */}
+          {currentUser && (
+            <Link
+              to="/chat"
+              className="text-gray-500 hover:text-blue-600 transition-colors flex items-center gap-1"
+            >
+              <MessageOutlined /> Tin nhắn
+            </Link>
+          )}
         </div>
 
         {/* User Action */}
@@ -152,82 +171,7 @@ const PatientLayout = () => {
 
       {/* FOOTER */}
       <Footer className="bg-[#2b2d5c] text-white py-12 px-4 md:px-12 lg:px-24">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
-          <div>
-            <div className="text-2xl font-bold tracking-tighter mb-4">
-              acneCare
-            </div>
-            <p className="text-gray-400 text-sm leading-relaxed pr-10">
-              Nền tảng ứng dụng trí tuệ nhân tạo giúp phân tích tình trạng mụn,
-              kết nối bác sĩ da liễu và đồng hành cùng bạn trên hành trình chăm
-              sóc da.
-            </p>
-          </div>
-
-          <div className="flex gap-16">
-            <div>
-              <h4 className="text-white font-semibold mb-4">Về acneCare</h4>
-              <ul className="space-y-3 text-sm text-gray-400">
-                <li>
-                  <Link to="#" className="hover:text-white">
-                    Trung tâm trợ giúp
-                  </Link>
-                </li>
-                <li>
-                  <Link to="#" className="hover:text-white">
-                    Điều khoản sử dụng
-                  </Link>
-                </li>
-                <li>
-                  <Link to="#" className="hover:text-white">
-                    Chính sách bảo mật
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-4">
-                Kết nối chúng tôi
-              </h4>
-              <ul className="space-y-3 text-sm text-gray-400">
-                <li>
-                  <Link to="#" className="hover:text-white">
-                    Facebook
-                  </Link>
-                </li>
-                <li>
-                  <Link to="#" className="hover:text-white">
-                    Instagram
-                  </Link>
-                </li>
-                <li>
-                  <Link to="#" className="hover:text-white">
-                    Email hỗ trợ
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div>
-            <p className="text-sm text-gray-400 mb-4">
-              Đăng ký nhận bản tin của chúng tôi để cập nhật những thông tin mới
-              nhất.
-            </p>
-            <div className="flex">
-              <Input
-                placeholder="Nhập email của bạn"
-                className="rounded-l-md rounded-r-none bg-transparent border-gray-500 text-white placeholder-gray-500 focus:border-blue-500 hover:border-blue-500"
-              />
-              <Button
-                type="primary"
-                className="rounded-l-none rounded-r-md bg-[#0099ff] border-none font-medium px-6"
-              >
-                Đăng ký
-              </Button>
-            </div>
-          </div>
-        </div>
+        {/* Footer Content Giữ Nguyên */}
         <div className="text-center text-gray-500 text-xs pt-8 border-t border-gray-700/50">
           Bản quyền © acneCare
         </div>

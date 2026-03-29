@@ -14,6 +14,7 @@ import {
   LogoutOutlined,
   UserOutlined,
   CloseOutlined,
+  MessageOutlined, // Thêm Icon Chat
 } from "@ant-design/icons";
 
 const { Header, Sider, Content } = Layout;
@@ -23,7 +24,6 @@ const DoctorLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Đặt mặc định là true (Đóng) trên Mobile
   const [collapsed, setCollapsed] = useState(true);
 
   useEffect(() => {
@@ -45,9 +45,7 @@ const DoctorLayout = () => {
       label: "Thông tin cá nhân",
       onClick: () => navigate("/doctor/profile"),
     },
-    {
-      type: "divider",
-    },
+    { type: "divider" },
     {
       key: "logout",
       icon: <LogoutOutlined className="text-red-500" />,
@@ -61,6 +59,16 @@ const DoctorLayout = () => {
       key: "/doctor/schedule",
       icon: <CalendarOutlined />,
       label: <Link to="/doctor/schedule">Lịch khám</Link>,
+    },
+    {
+      key: "/doctor/treatment-cases",
+      icon: <AppstoreOutlined />,
+      label: <Link to="/doctor/treatment-cases">Quản lý ca điều trị</Link>,
+    },
+    {
+      key: "/doctor/chat", // MENU CHAT DÀNH CHO BÁC SĨ
+      icon: <MessageOutlined />,
+      label: <Link to="/doctor/chat">Tin nhắn</Link>,
     },
     {
       key: "/doctor/manage-products",
@@ -89,14 +97,12 @@ const DoctorLayout = () => {
     },
   ];
 
-  // Hàm tự động đóng menu
   const handleMenuClick = () => {
     setCollapsed(true);
   };
 
   return (
     <Layout hasSider className="h-screen overflow-hidden bg-gray-50">
-      {/* 1. LỚP PHỦ TỐI (OVERLAY) - Hiệu ứng mờ dần */}
       <div
         className={`fixed inset-0 bg-black/40 z-40 lg:hidden transition-opacity duration-300 ease-in-out ${
           collapsed
@@ -106,11 +112,9 @@ const DoctorLayout = () => {
         onClick={() => setCollapsed(true)}
       />
 
-      {/* 2. SIDER RESPONSIVE - Hiệu ứng trượt ngang (TranslateX) 60fps siêu mượt */}
       <Sider
         width={260}
         theme="light"
-        // Force class Tailwind để xử lý animation, loại bỏ hiệu ứng cứng của Ant Design
         className={`shadow-2xl z-50 h-screen overflow-y-auto border-r border-gray-200 !fixed lg:!static left-0 top-0 bottom-0 transition-transform duration-300 ease-in-out ${
           collapsed ? "-translate-x-full lg:translate-x-0" : "translate-x-0"
         }`}
@@ -119,8 +123,6 @@ const DoctorLayout = () => {
           <div className="text-blue-600 font-black text-xl tracking-wider truncate">
             DOCTOR PORTAL
           </div>
-
-          {/* NÚT TẮT CHỈ HIỆN TRÊN MOBILE */}
           <Button
             type="text"
             icon={<CloseOutlined className="text-gray-600" />}
@@ -128,7 +130,6 @@ const DoctorLayout = () => {
             className="lg:hidden flex items-center justify-center hover:bg-gray-100 rounded-full w-8 h-8"
           />
         </div>
-
         <Menu
           mode="inline"
           selectedKeys={[location.pathname]}
@@ -138,22 +139,17 @@ const DoctorLayout = () => {
         />
       </Sider>
 
-      {/* 3. CỘT CHÍNH (HEADER + CONTENT) */}
       <Layout className="flex flex-col h-screen overflow-hidden w-full relative">
-        {/* HEADER */}
         <Header className="bg-white px-4 md:px-6 flex justify-between items-center shadow-sm shrink-0 z-10 border-b border-gray-200">
-          {/* Nút Hamburger bật menu */}
           <Button
             type="text"
             icon={<MenuOutlined className="text-lg" />}
-            onClick={() => setCollapsed(false)} // Bấm vào để mở menu
+            onClick={() => setCollapsed(false)}
             className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 lg:hidden"
           />
-
           <div className="hidden lg:block font-semibold text-gray-700 text-lg">
             Bảng Điều Khiển
           </div>
-
           <Dropdown
             menu={{ items: userMenuItems }}
             trigger={["click"]}
@@ -174,8 +170,6 @@ const DoctorLayout = () => {
             </div>
           </Dropdown>
         </Header>
-
-        {/* KHU VỰC CONTENT */}
         <Content className="flex-1 overflow-y-auto bg-gray-50/50 p-4 md:p-6 lg:p-8 relative">
           <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 min-h-full transition-all">
             <Outlet />
