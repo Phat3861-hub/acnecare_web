@@ -56,6 +56,7 @@ const Login = () => {
           // Điều hướng
           if (role === "ADMIN") navigate("/admin/dashboard");
           else if (role === "DOCTOR") navigate("/doctor/schedule");
+          else if (role === "BRAND") navigate("/brand/");
           else navigate("/");
         }
       } catch (error) {

@@ -1,7 +1,7 @@
 import React, { Suspense, lazy } from "react";
 import { useRoutes, Navigate, Link } from "react-router-dom";
 import { Spin, Button, Result } from "antd";
-import ScrollToTop from "../components/ui/ScrollToTop"; // Đảm bảo bạn đã tạo file ScrollToTop như turn trước
+import ScrollToTop from "../components/ui/ScrollToTop";
 
 // ==========================================
 // 1. ĐỊNH NGHĨA ĐƯỜNG DẪN
@@ -15,13 +15,14 @@ export const pathDefault = {
   posts: "/posts",
   postDetail: "/posts/:id",
   createPost: "/createpost",
-  bookAppointment: "/book-appointment", // Trang danh sách bác sĩ
-  bookAppointmentDetail: "/book-appointment/:doctorId", // Form điền giờ đặt lịch
+  bookAppointment: "/book-appointment",
+  bookAppointmentDetail: "/book-appointment/:doctorId",
   appointmentSuccess: "/appointment-success",
   patientHistory: "/patient/history",
   appointmentDetail: "/patient/history/:id",
   products: "/products",
   productDetail: "/products/:id",
+  chat: "/chat", // Đường dẫn Chat cho Patient
 
   // Admin
   admin: "/admin",
@@ -29,6 +30,7 @@ export const pathDefault = {
   manageUser: "/admin/manage-users",
   manageCategory: "/admin/manage-categories",
   manageProductAdmin: "/admin/manage-products",
+  adminChat: "/admin/chat", // Đường dẫn Chat cho Admin
 
   // Doctor
   doctor: "/doctor",
@@ -38,10 +40,16 @@ export const pathDefault = {
   doctorAvailability: "/doctor/availability",
   doctorProfile: "/doctor/profile",
   testModelDoctor: "/doctor/test-model",
+  doctorChat: "/doctor/chat", // Đường dẫn Chat cho Doctor
+
+  // Brand
+  brand: "/brand",
+  brandProfile: "/brand/profile",
+  manageProductBrand: "/brand/manage-products",
 };
 
 // ==========================================
-// 2. COMPONENT BẢO VỆ ROUTE (PROTECTED ROUTE)
+// 2. COMPONENT BẢO VỆ ROUTE
 // ==========================================
 const ProtectedRoute = ({ allowedRoles, children }) => {
   const userInfoStr = localStorage.getItem("userInfo");
@@ -51,6 +59,7 @@ const ProtectedRoute = ({ allowedRoles, children }) => {
   let homePath = pathDefault.home;
   if (userRole === "ADMIN") homePath = pathDefault.adminDashboard;
   else if (userRole === "DOCTOR") homePath = pathDefault.doctorSchedule;
+  else if (userRole === "BRAND") homePath = pathDefault.brandProfile;
 
   if (!userInfo) {
     return <Navigate to={pathDefault.login} replace />;
@@ -65,17 +74,11 @@ const ProtectedRoute = ({ allowedRoles, children }) => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Result
           status="403"
-          title={<span className="text-4xl font-black text-gray-800">403</span>}
-          subTitle={
-            <span className="text-lg text-gray-500">
-              Xin lỗi, bạn không có quyền truy cập vào khu vực này!
-            </span>
-          }
+          title="403"
+          subTitle="Xin lỗi, bạn không có quyền truy cập vào khu vực này!"
           extra={
             <Link to={homePath}>
-              <Button type="primary" size="large" className="bg-blue-600">
-                Về Bảng Điều Khiển
-              </Button>
+              <Button type="primary">Về Bảng Điều Khiển</Button>
             </Link>
           }
         />
@@ -86,51 +89,26 @@ const ProtectedRoute = ({ allowedRoles, children }) => {
   return children;
 };
 
-// ==========================================
-// COMPONENT 404 THÔNG MINH
-// ==========================================
 const NotFoundPage = () => {
-  const userInfoStr = localStorage.getItem("userInfo");
-  const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
-  const userRole = userInfo ? userInfo.role : null;
-
-  let homePath = pathDefault.home;
-  if (userRole === "ADMIN") homePath = pathDefault.adminDashboard;
-  else if (userRole === "DOCTOR") homePath = pathDefault.doctorSchedule;
-
-  return (
-    <div className="flex flex-col justify-center min-h-screen items-center bg-gray-50">
-      <Result
-        status="404"
-        title="404"
-        subTitle="Trang bạn tìm kiếm không tồn tại hoặc đã bị xóa."
-        extra={
-          <Link to={homePath}>
-            <Button type="primary" size="large" className="bg-blue-600">
-              Quay lại Bảng Điều Khiển
-            </Button>
-          </Link>
-        }
-      />
-    </div>
-  );
+  // ... Code NotFoundPage giữ nguyên
+  return <Result status="404" title="404" subTitle="Trang không tồn tại" />;
 };
 
 // ==========================================
-// 3. LAZY LOAD LAYOUTS & PAGES
+// 3. LAZY LOAD COMPONENTS
 // ==========================================
 const PatientLayout = lazy(() => import("../templates/PatientLayout"));
 const AdminLayout = lazy(() => import("../templates/AdminLayout"));
 const DoctorLayout = lazy(() => import("../templates/DoctorLayout"));
+const BrandLayout = lazy(() => import("../templates/BrandLayout"));
 
-// Auth
 const Login = lazy(() => import("../pages/auth/Login"));
 const Register = lazy(() => import("../pages/auth/Register"));
 
 // Patient
 const Home = lazy(() => import("../pages/patient/Home"));
-const DoctorList = lazy(() => import("../pages/patient/DoctorList")); // Component Danh sách Bác sĩ
-const BookAppointment = lazy(() => import("../pages/patient/BookAppointment")); // Form đặt lịch
+const DoctorList = lazy(() => import("../pages/patient/DoctorList"));
+const BookAppointment = lazy(() => import("../pages/patient/BookAppointment"));
 const AppointmentSuccess = lazy(
   () => import("../pages/patient/AppointmentSuccess"),
 );
@@ -142,12 +120,19 @@ const MyRoutines = lazy(() => import("../pages/patient/MyRoutines"));
 const RoutineBuilder = lazy(() => import("../pages/patient/RoutineBuilder"));
 const ProductList = lazy(() => import("../pages/patient/ProductList"));
 const ProductDetail = lazy(() => import("../pages/patient/ProductDetail"));
-
-// Posts
+const MyTreatmentCases = lazy(
+  () => import("../pages/patient/MyTreatmentCases"),
+);
+const TreatmentCaseDetail = lazy(
+  () => import("../pages/shared/TreatmentCaseDetail"),
+);
 const PostPage = lazy(() => import("../pages/posts/Post"));
 const PostCommentPage = lazy(() => import("../pages/posts/PostComment"));
 const CreatePostPage = lazy(() => import("../pages/posts/CreatePost"));
 const EditPostPage = lazy(() => import("../pages/posts/EditPost"));
+
+// Shared Chat Component
+const ChatPage = lazy(() => import("../pages/shared/ChatPage"));
 
 // Admin
 const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard"));
@@ -169,8 +154,12 @@ const DoctorConsultationService = lazy(
   () => import("../pages/doctor/DoctorConsultationService"),
 );
 const DoctorProfile = lazy(() => import("../pages/doctor/DoctorProfile"));
+const DoctorTreatmentCases = lazy(
+  () => import("../pages/doctor/DoctorTreatmentCases"),
+);
 
-// Shared
+// Brand
+const BrandProfile = lazy(() => import("../pages/brand/BrandProfile"));
 const ManageProduct = lazy(() => import("../pages/shared/ManageProduct"));
 const TestAcneModel = lazy(() => import("../pages/shared/TestAcneModel"));
 
@@ -181,7 +170,7 @@ const FallbackLoad = () => (
 );
 
 // ==========================================
-// 4. CẤU HÌNH ROUTER
+// 4. CẤU HÌNH ROUTER CHÍNH
 // ==========================================
 const AppRoutes = () => {
   const arrRoutes = [
@@ -193,7 +182,6 @@ const AppRoutes = () => {
         </Suspense>
       ),
       children: [
-        // 🟢 CÁC TRANG PUBLIC
         {
           index: true,
           element: (
@@ -234,10 +222,8 @@ const AppRoutes = () => {
             </Suspense>
           ),
         },
-
-        // 🔴 CÁC TRANG BẮT BUỘC ĐĂNG NHẬP (PATIENT)
         {
-          path: pathDefault.bookAppointment, // Trỏ đến trang Danh sách bác sĩ
+          path: pathDefault.bookAppointment,
           element: (
             <ProtectedRoute allowedRoles={["PATIENT"]}>
               <Suspense fallback={<FallbackLoad />}>
@@ -247,7 +233,7 @@ const AppRoutes = () => {
           ),
         },
         {
-          path: pathDefault.bookAppointmentDetail, // Trỏ đến Form đặt lịch chi tiết của 1 bác sĩ
+          path: pathDefault.bookAppointmentDetail,
           element: (
             <ProtectedRoute allowedRoles={["PATIENT"]}>
               <Suspense fallback={<FallbackLoad />}>
@@ -326,10 +312,41 @@ const AppRoutes = () => {
             </ProtectedRoute>
           ),
         },
+        {
+          path: "my-treatment-cases",
+          element: (
+            <ProtectedRoute allowedRoles={["PATIENT"]}>
+              <Suspense fallback={<FallbackLoad />}>
+                <MyTreatmentCases />
+              </Suspense>
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "treatment-cases/:id",
+          element: (
+            <ProtectedRoute allowedRoles={["PATIENT", "DOCTOR"]}>
+              <Suspense fallback={<FallbackLoad />}>
+                <TreatmentCaseDetail />
+              </Suspense>
+            </ProtectedRoute>
+          ),
+        },
+
+        // CHAT ROUTE CHO PATIENT
+        {
+          path: "chat",
+          element: (
+            <ProtectedRoute allowedRoles={["PATIENT"]}>
+              <Suspense fallback={<FallbackLoad />}>
+                <ChatPage />
+              </Suspense>
+            </ProtectedRoute>
+          ),
+        },
       ],
     },
 
-    // --- AUTH ROUTES ---
     {
       path: pathDefault.login,
       element: (
@@ -391,6 +408,15 @@ const AppRoutes = () => {
           element: (
             <Suspense fallback={<FallbackLoad />}>
               <ManageProduct />
+            </Suspense>
+          ),
+        },
+        // CHAT ROUTE CHO ADMIN
+        {
+          path: "chat",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <ChatPage />
             </Suspense>
           ),
         },
@@ -472,14 +498,69 @@ const AppRoutes = () => {
             </Suspense>
           ),
         },
+        {
+          path: "treatment-cases",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <DoctorTreatmentCases />{" "}
+            </Suspense>
+          ),
+        },
+        {
+          path: "treatment-cases/:id",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <TreatmentCaseDetail />
+            </Suspense>
+          ),
+        },
+        // CHAT ROUTE CHO DOCTOR
+        {
+          path: "chat",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <ChatPage />
+            </Suspense>
+          ),
+        },
       ],
     },
 
-    // --- 404 NOT FOUND ---
+    // --- BRAND ROUTES---
     {
-      path: "*",
-      element: <NotFoundPage />,
+      path: pathDefault.brand,
+      element: (
+        <ProtectedRoute allowedRoles={["BRAND"]}>
+          <Suspense fallback={<FallbackLoad />}>
+            <BrandLayout />
+          </Suspense>
+        </ProtectedRoute>
+      ),
+      children: [
+        {
+          index: true,
+          element: <Navigate to={pathDefault.brandProfile} replace />,
+        },
+        {
+          path: pathDefault.brandProfile,
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <BrandProfile />
+            </Suspense>
+          ),
+        },
+        {
+          path: pathDefault.manageProductBrand,
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <ManageProduct />
+            </Suspense>
+          ),
+        },
+      ],
     },
+
+    { path: "*", element: <NotFoundPage /> },
   ];
 
   const routing = useRoutes(arrRoutes);

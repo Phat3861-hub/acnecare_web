@@ -10,6 +10,7 @@ import {
   AppstoreOutlined,
   ShoppingOutlined,
   LogoutOutlined,
+  MessageOutlined, // Thêm Icon Chat
 } from "@ant-design/icons";
 
 const { Header, Sider, Content } = Layout;
@@ -19,7 +20,6 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // State quản lý việc mở/đóng Drawer (Offcanvas) trên Mobile
   const [drawerVisible, setDrawerVisible] = useState(false);
 
   const handleLogout = () => {
@@ -28,17 +28,20 @@ const AdminLayout = () => {
     });
   };
 
-  // Tự động đóng Drawer khi click chọn link chuyển trang trên điện thoại
   useEffect(() => {
     setDrawerVisible(false);
   }, [location.pathname]);
 
-  // Cấu hình danh sách Menu dùng chung cho cả Desktop và Mobile
   const menuItems = [
     {
       key: "/admin/dashboard",
       icon: <DashboardOutlined />,
       label: <Link to="/admin/dashboard">Dashboard</Link>,
+    },
+    {
+      key: "/admin/chat", // MENU CHAT DÀNH CHO ADMIN
+      icon: <MessageOutlined />,
+      label: <Link to="/admin/chat">Tin nhắn</Link>,
     },
     {
       key: "/admin/manage-users",
@@ -59,9 +62,6 @@ const AdminLayout = () => {
 
   return (
     <Layout className="min-h-screen bg-gray-100">
-      {/* ========================================================= */}
-      {/* 1. SIDEBAR (CHỈ HIỂN THỊ TRÊN DESKTOP) */}
-      {/* ========================================================= */}
       <Sider
         theme="dark"
         width={260}
@@ -69,7 +69,7 @@ const AdminLayout = () => {
         style={{
           overflow: "auto",
           height: "100vh",
-          position: "fixed", // Cố định Sider
+          position: "fixed",
           left: 0,
           top: 0,
           bottom: 0,
@@ -86,9 +86,6 @@ const AdminLayout = () => {
         />
       </Sider>
 
-      {/* ========================================================= */}
-      {/* 2. OFFCANVAS DRAWER (CHỈ HIỂN THỊ TRÊN MOBILE) */}
-      {/* ========================================================= */}
       <Drawer
         title={
           <span className="font-bold text-lg text-gray-800">ADMIN PANEL</span>
@@ -108,31 +105,22 @@ const AdminLayout = () => {
         />
       </Drawer>
 
-      {/* ========================================================= */}
-      {/* 3. MAIN CONTENT AREA (Đẩy sang phải 260px trên Desktop) */}
-      {/* ========================================================= */}
       <Layout className="md:ml-[260px] transition-all duration-300">
-        {/* HEADER CỐ ĐỊNH PHÍA TRÊN (STICKY) */}
         <Header className="bg-white px-4 md:px-6 flex justify-between md:justify-end items-center shadow-sm sticky top-0 z-50 p-0 w-full h-16">
-          {/* Nút Hamburger hiện trên Mobile để mở Drawer */}
           <Button
             type="text"
             icon={<MenuOutlined className="text-lg" />}
             onClick={() => setDrawerVisible(true)}
             className="md:hidden flex items-center justify-center"
           />
-
-          {/* Nút Đăng xuất */}
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 text-red-500 font-medium hover:text-red-700 transition-colors"
           >
-            <LogoutOutlined />
+            <LogoutOutlined />{" "}
             <span className="hidden sm:inline">Đăng xuất</span>
           </button>
         </Header>
-
-        {/* NỘI DUNG SCROLL ĐƯỢC */}
         <Content className="m-4 md:m-6 p-4 md:p-6 bg-white rounded-xl shadow-sm min-h-[280px]">
           <Outlet />
         </Content>
