@@ -8,6 +8,7 @@ import { jwtDecode } from "jwt-decode";
 
 import { authService } from "../../services/AuthService";
 import { setCredentials } from "../../store/slice/UserSlice";
+import "./Login.css";
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
@@ -67,7 +68,8 @@ const Login = () => {
   });
 
   return (
-    <div className="flex min-h-screen bg-background">
+    // 🚨 Chú ý: Đã thêm class "auth-wrapper" ở đây
+    <div className="auth-wrapper flex min-h-screen bg-background">
       <div className="hidden w-1/2 items-center justify-center gradient-primary lg:flex">
         <div className="max-w-md px-12 text-white animate-fade-in">
           <img

@@ -13,6 +13,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { authService } from "../../services/AuthService";
+import "./Login.css";
 
 const { Option } = Select;
 
@@ -52,26 +53,34 @@ const Register = () => {
       setBackendError("");
 
       try {
-        let finalAvatarUrl = `https://ui-avatars.com/api/?name=${values.firstName}+${values.lastName}`;
+        // 1. Tạo đối tượng FormData
+        const formData = new FormData();
 
+        // 2. Nhét file ảnh vào nếu có
         if (avatarFile) {
-          const formData = new FormData();
-          formData.append("file", avatarFile);
-          console.log("Đã lấy được file ảnh để upload:", avatarFile.name);
+          formData.append("avatar", avatarFile);
         }
 
-        const payload = {
+        // 3. Tạo object thông tin user (Không cần avatarUrl nữa vì Backend tự xử lý)
+        const userData = {
           firstName: values.firstName,
           lastName: values.lastName,
           email: values.email,
           phone: values.phone,
           password: values.password,
           dob: values.dob ? values.dob.format("YYYY-MM-DD") : null,
-          avatarUrl: finalAvatarUrl,
           roles: [values.role],
         };
 
-        const res = await authService.register(payload);
+        // 4. Nhét thông tin user vào FormData dưới dạng Blob (chuẩn của Spring Boot)
+        formData.append(
+          "data",
+          new Blob([JSON.stringify(userData)], { type: "application/json" }),
+        );
+
+        // 5. Gửi lên API (Axios sẽ tự động hiểu đây là multipart/form-data)
+        const res = await authService.register(formData);
+
         if (res.data.code === 1000) {
           message.success("Đăng ký thành công! Vui lòng đăng nhập.");
           navigate("/auth/login");
@@ -88,7 +97,8 @@ const Register = () => {
   });
 
   return (
-    <div className="flex min-h-screen bg-background">
+    // 🚨 THÊM CLASS "auth-wrapper" VÀO ĐÂY ĐỂ NHẬN CSS
+    <div className="auth-wrapper flex min-h-screen bg-background">
       <div className="hidden w-1/2 items-center justify-center gradient-primary lg:flex">
         <div className="max-w-md px-12 text-white animate-fade-in">
           <img
@@ -148,7 +158,7 @@ const Register = () => {
                   maxCount={1}
                   beforeUpload={(file) => {
                     setAvatarFile(file);
-                    return false;
+                    return false; // Chặn Upload tự động của Ant Design
                   }}
                   onRemove={() => setAvatarFile(null)}
                 >

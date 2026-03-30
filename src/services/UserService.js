@@ -10,8 +10,13 @@ export const userService = {
   deleteUser: (id) => {
     return http.delete(`/users/${id}`);
   },
+  // 🚨 CẬP NHẬT: Ép kiểu Content-Type sang multipart/form-data
   createUser: (data) => {
-    return http.post("/users", data);
+    return http.post("/users", data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
   },
   changeUserStatus: (id, status) => {
     return http.put(`/users/${id}/status?status=${status}`);
@@ -25,4 +30,11 @@ export const userService = {
   getActiveDoctors: () => http.get("/users/doctors/active"),
   changeBrandProfileStatus: (id, payload) =>
     http.put(`/brands/profile/${id}`, payload),
+  updateMyInfo: (data) => {
+    return http.put("/users/me", data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
 };

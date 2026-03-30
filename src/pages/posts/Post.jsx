@@ -93,7 +93,7 @@ const Post = () => {
     if (!postIdsString) return;
     const currentToken = localStorage.getItem("accessToken");
     const client = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:8080/api/ws"),
+      webSocketFactory: () => new SockJS("http://localhost:9090/api/ws"),
       connectHeaders: { Authorization: `Bearer ${currentToken}` },
       reconnectDelay: 5000,
       onConnect: () => {

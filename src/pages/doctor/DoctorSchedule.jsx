@@ -64,7 +64,7 @@ const DoctorSchedule = () => {
     if (!userInfo?.id) return;
 
     const stompClient = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:8080/api/ws"),
+      webSocketFactory: () => new SockJS("http://localhost:9090/api/ws"),
       debug: (str) => console.log(str),
       onConnect: () => {
         stompClient.subscribe(

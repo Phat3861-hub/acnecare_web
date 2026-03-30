@@ -20,17 +20,18 @@ export const pathDefault = {
   appointmentSuccess: "/appointment-success",
   patientHistory: "/patient/history",
   appointmentDetail: "/patient/history/:id",
+  patientProfile: "/patient/profile", // 🚨 THÊM ĐƯỜNG DẪN NÀY
   products: "/products",
   productDetail: "/products/:id",
   chat: "/chat", // Đường dẫn Chat cho Patient
-
+  testModel: "/test-model",
   // Admin
   admin: "/admin",
   adminDashboard: "/admin/dashboard",
   manageUser: "/admin/manage-users",
   manageCategory: "/admin/manage-categories",
   manageProductAdmin: "/admin/manage-products",
-  adminChat: "/admin/chat", // Đường dẫn Chat cho Admin
+  adminChat: "/admin/chat",
 
   // Doctor
   doctor: "/doctor",
@@ -90,7 +91,6 @@ const ProtectedRoute = ({ allowedRoles, children }) => {
 };
 
 const NotFoundPage = () => {
-  // ... Code NotFoundPage giữ nguyên
   return <Result status="404" title="404" subTitle="Trang không tồn tại" />;
 };
 
@@ -116,6 +116,7 @@ const PatientHistory = lazy(() => import("../pages/patient/PatientHistory"));
 const AppointmentDetail = lazy(
   () => import("../pages/patient/AppointmentDetail"),
 );
+const PatientProfile = lazy(() => import("../pages/patient/PatientProfile")); // 🚨 IMPORT COMPONENT MỚI Ở ĐÂY
 const MyRoutines = lazy(() => import("../pages/patient/MyRoutines"));
 const RoutineBuilder = lazy(() => import("../pages/patient/RoutineBuilder"));
 const ProductList = lazy(() => import("../pages/patient/ProductList"));
@@ -272,6 +273,17 @@ const AppRoutes = () => {
             </ProtectedRoute>
           ),
         },
+        // 🚨 THÊM ROUTE PATIENT PROFILE VÀO ĐÂY
+        {
+          path: pathDefault.patientProfile,
+          element: (
+            <ProtectedRoute allowedRoles={["PATIENT"]}>
+              <Suspense fallback={<FallbackLoad />}>
+                <PatientProfile />
+              </Suspense>
+            </ProtectedRoute>
+          ),
+        },
         {
           path: "routine-builder",
           element: (
@@ -340,6 +352,16 @@ const AppRoutes = () => {
             <ProtectedRoute allowedRoles={["PATIENT"]}>
               <Suspense fallback={<FallbackLoad />}>
                 <ChatPage />
+              </Suspense>
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "test-model",
+          element: (
+            <ProtectedRoute allowedRoles={["PATIENT"]}>
+              <Suspense fallback={<FallbackLoad />}>
+                <TestAcneModel />
               </Suspense>
             </ProtectedRoute>
           ),
@@ -554,6 +576,15 @@ const AppRoutes = () => {
           element: (
             <Suspense fallback={<FallbackLoad />}>
               <ManageProduct />
+            </Suspense>
+          ),
+        },
+        // CHAT ROUTE CHO BRAND
+        {
+          path: "chat",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <ChatPage />
             </Suspense>
           ),
         },

@@ -11,7 +11,7 @@ import postReducer from "./slice/PostSlice";
 import brandReducer from "./slice/BrandSlice";
 import treatmentCaseReducer from "./slice/TreatmentCaseSlice";
 import chatReducer from "./slice/ChatSlice";
-
+import patientProfileReducer from "./slice/PatientProfileSlice";
 export const store = configureStore({
   reducer: {
     user: userReducer,
@@ -25,5 +25,6 @@ export const store = configureStore({
     brand: brandReducer,
     treatmentCase: treatmentCaseReducer,
     chat: chatReducer,
+    patientProfile: patientProfileReducer,
   },
 });
