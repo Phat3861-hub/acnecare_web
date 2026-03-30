@@ -1,0 +1,119 @@
+/* src/pages/auth/Login.css */
+
+.auth-wrapper {
+  --background: 200 20% 98%;
+  --foreground: 210 25% 15%;
+  --card: 0 0% 100%;
+  --card-foreground: 210 25% 15%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 210 25% 15%;
+  --primary: 233 52% 24%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 230 35% 95%;
+  --secondary-foreground: 233 52% 24%;
+  --muted: 200 15% 95%;
+  --muted-foreground: 210 10% 45%;
+  --accent: 230 40% 94%;
+  --accent-foreground: 233 52% 24%;
+  --destructive: 0 72% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 20% 88%;
+  --input: 220 20% 88%;
+  --ring: 233 52% 24%;
+  --radius: 0.75rem;
+
+  font-family: "Inter", system-ui, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.auth-wrapper .gradient-primary {
+  background: linear-gradient(135deg, #1e255e 0%, #2a3175 100%);
+}
+
+.auth-wrapper .gradient-text {
+  background: linear-gradient(135deg, #1e255e 0%, #2a3175 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.auth-wrapper .text-auth {
+  color: #1e255e;
+}
+
+.auth-wrapper .bg-auth {
+  background-color: #1e255e;
+}
+
+.auth-wrapper .border-auth {
+  border-color: rgba(30, 37, 94, 0.12);
+}
+
+.auth-wrapper .bg-auth-soft {
+  background-color: rgba(30, 37, 94, 0.06);
+}
+
+.auth-wrapper .shadow-auth {
+  box-shadow: 0 10px 30px rgba(30, 37, 94, 0.12);
+}
+
+.auth-wrapper .text-balance {
+  text-wrap: balance;
+}
+
+.auth-wrapper .animate-fade-up {
+  animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+.auth-wrapper .animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Ant Design tweaks only for auth wrapper */
+.auth-wrapper .ant-input,
+.auth-wrapper .ant-input-affix-wrapper,
+.auth-wrapper .ant-picker,
+.auth-wrapper .ant-select-selector {
+  border-radius: 0.75rem !important;
+}
+
+.auth-wrapper .ant-input,
+.auth-wrapper .ant-input-affix-wrapper,
+.auth-wrapper .ant-picker {
+  min-height: 44px !important;
+}
+
+.auth-wrapper .ant-input-affix-wrapper input.ant-input {
+  min-height: unset !important;
+}
+
+.auth-wrapper .ant-select-single .ant-select-selector {
+  min-height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+}

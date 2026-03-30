@@ -45,7 +45,7 @@ const PatientLayout = () => {
       key: "profile",
       icon: <UserOutlined />,
       label: "Thông tin cá nhân",
-      onClick: () => navigate("/profile"),
+      onClick: () => navigate("/patient/profile"),
     },
     {
       key: "my-treatment-cases",

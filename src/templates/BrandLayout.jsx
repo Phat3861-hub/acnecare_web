@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { Layout, Menu, Dropdown, Button } from "antd";
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, useNavigate, useLocation, Link } from "react-router-dom";
 import {
   AppstoreOutlined,
   ProfileOutlined,
   UserOutlined,
   LogoutOutlined,
+  MessageOutlined,
 } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { logoutUser } from "../store/slice/UserSlice";
@@ -37,6 +38,11 @@ const BrandLayout = () => {
       key: "/brand/manage-products",
       icon: <AppstoreOutlined />,
       label: "Quản lý Sản phẩm",
+    },
+    {
+      key: "/brand/chat",
+      icon: <MessageOutlined />,
+      label: <Link to="/brand/chat">Tin nhắn</Link>,
     },
   ];
 

@@ -26,6 +26,7 @@ import {
   IdcardOutlined,
   ShopOutlined,
   LinkOutlined,
+  HeartOutlined,
 } from "@ant-design/icons";
 import { userService } from "../../services/UserService";
 import { http } from "../../api/config";
@@ -41,17 +42,26 @@ const ManageUser = () => {
   const [avatarFile, setAvatarFile] = useState(null);
   const [form] = Form.useForm();
 
-  // States cho phần xem chi tiết
+  // States cho phần xem chi tiết đa năng
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+
+  // States chứa Profile riêng biệt theo Role
+  const [patientProfile, setPatientProfile] = useState(null);
   const [doctorProfile, setDoctorProfile] = useState(null);
-  const [brandProfile, setBrandProfile] = useState(null); // THÊM STATE CHO BRAND
+  const [brandProfile, setBrandProfile] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  // States cho phần Từ chối hồ sơ (Dùng chung cho cả Doctor và Brand)
+  // States cho phần Từ chối hồ sơ
   const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
-  const [rejectingType, setRejectingType] = useState(""); // Để biết đang từ chối Doctor hay Brand
+  const [rejectingType, setRejectingType] = useState("");
+
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith("http")) return url;
+    return `http://localhost:9090/api${url}`;
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -91,14 +101,11 @@ const ManageUser = () => {
 
   const handleAddSubmit = async (values) => {
     try {
-      let finalAvatarUrl = `https://ui-avatars.com/api/?name=${values.firstName}+${values.lastName}`;
+      const formData = new FormData();
       if (avatarFile) {
-        const formData = new FormData();
-        formData.append("file", avatarFile);
-        // Upload logic
+        formData.append("avatar", avatarFile);
       }
-
-      const payload = {
+      const userData = {
         firstName: values.firstName,
         lastName: values.lastName,
         email: values.email,
@@ -106,10 +113,13 @@ const ManageUser = () => {
         password: values.password,
         roles: [values.role],
         dob: values.dob ? values.dob.format("YYYY-MM-DD") : null,
-        avatarUrl: finalAvatarUrl,
       };
+      formData.append(
+        "data",
+        new Blob([JSON.stringify(userData)], { type: "application/json" }),
+      );
 
-      const res = await userService.createUser(payload);
+      const res = await userService.createUser(formData);
       if (res.data.code === 1000) {
         message.success("Thêm người dùng thành công!");
         setIsAddModalVisible(false);
@@ -126,14 +136,12 @@ const ManageUser = () => {
       if (res.data.code === 1000) {
         message.success(`Đã cập nhật trạng thái tài khoản thành công!`);
         fetchUsers();
-
         if (selectedUser && selectedUser.id === id) {
           setSelectedUser({ ...selectedUser, status: newStatus });
         }
       }
     } catch (error) {
       const errorMsg = error.response?.data?.message || "";
-      // Bắt lỗi từ Backend trả về và dịch ra tiếng Việt cho Admin dễ hiểu
       if (errorMsg.includes("NOT_APPROVED")) {
         message.error(
           "Vui lòng xem chi tiết và phê duyệt hồ sơ của người này trước khi kích hoạt!",
@@ -143,6 +151,7 @@ const ManageUser = () => {
       }
     }
   };
+
   const handleStatusDropdownChange = (record, newStatus) => {
     if (record.status === newStatus) return;
     const statusLabels = {
@@ -165,29 +174,43 @@ const ManageUser = () => {
     });
   };
 
-  // --- MỞ RỘNG: LẤY THÊM PROFILE CỦA BRAND ---
+  // 🚨 CẬP NHẬT: LẤY ĐA LUỒNG THÔNG TIN PROFILE DỰA VÀO ROLE
   const handleViewDetails = async (record) => {
     setLoadingDetail(true);
     setIsDetailModalVisible(true);
     setSelectedUser(record);
     setDoctorProfile(null);
     setBrandProfile(null);
+    setPatientProfile(null);
 
     try {
+      // 1. Luôn Lấy User Info chung
       const resUser = await userService.getUserById(record.id);
       if (resUser.data.code === 1000) {
         setSelectedUser(resUser.data.result);
       }
 
+      // 2. Phân loại Profile để gọi API
+      const isPatient = record.roles?.some((r) => r.name === "PATIENT");
       const isDoctor = record.roles?.some((r) => r.name === "DOCTOR");
       const isBrand = record.roles?.some((r) => r.name === "BRAND");
+
+      if (isPatient) {
+        try {
+          const resPatient = await http.get(`/patients/profile/${record.id}`);
+          if (resPatient.data?.code === 1000)
+            setPatientProfile(resPatient.data.result);
+        } catch (error) {
+          console.warn("Bệnh nhân chưa cập nhật hồ sơ y tế.");
+        }
+      }
 
       if (isDoctor) {
         try {
           const resDoc = await http.get(`/doctors/profile/${record.id}`);
           if (resDoc.data?.code === 1000) setDoctorProfile(resDoc.data.result);
-        } catch (docError) {
-          console.warn("Bác sĩ này chưa cập nhật hồ sơ.");
+        } catch (error) {
+          console.warn("Bác sĩ chưa cập nhật hồ sơ.");
         }
       }
 
@@ -196,8 +219,8 @@ const ManageUser = () => {
           const resBrand = await http.get(`/brands/profile/${record.id}`);
           if (resBrand.data?.code === 1000)
             setBrandProfile(resBrand.data.result);
-        } catch (brandError) {
-          console.warn("Brand này chưa cập nhật hồ sơ.");
+        } catch (error) {
+          console.warn("Brand chưa cập nhật hồ sơ.");
         }
       }
     } catch (error) {
@@ -217,8 +240,8 @@ const ManageUser = () => {
       const payload = { verificationStatus: status, rejectionReason: reason };
 
       if (rejectingType === "DOCTOR") {
-        const res = await userService.changeDoctorProfileStatus(
-          selectedUser.id,
+        const res = await http.put(
+          `/doctors/profile/${selectedUser.id}/status`,
           payload,
         );
         if (res.data.code === 1000) {
@@ -239,32 +262,26 @@ const ManageUser = () => {
       setIsRejectModalVisible(false);
       setRejectionReason("");
 
-      // TÍNH NĂNG MỚI: TỰ ĐỘNG KÍCH HOẠT TÀI KHOẢN KHI ĐƯỢC DUYỆT
       if (status === "ACCEPTED" || status === "APPROVED") {
         if (selectedUser.status !== "ACTIVE") {
-          // Gọi API bật status user lên ACTIVE
           await userService.changeUserStatus(selectedUser.id, "ACTIVE");
           message.success("Hệ thống đã tự động kích hoạt tài khoản này!");
-
-          // Cập nhật lại UI
           setSelectedUser((prev) => ({ ...prev, status: "ACTIVE" }));
-          fetchUsers(); // Load lại bảng ở ngoài
+          fetchUsers();
         }
       }
     } catch (error) {
       message.error(error.response?.data?.message || "Lỗi khi cập nhật hồ sơ!");
     }
   };
-  // Mở modal từ chối và ghi nhớ loại đang từ chối
+
   const openRejectModal = (type) => {
     setRejectingType(type);
     setIsRejectModalVisible(true);
   };
 
-  // Hàm duyệt nhanh
   const handleApprove = (type) => {
     setRejectingType(type);
-    // Gọi setTimeout để đảm bảo state rejectingType đã kịp update trước khi chạy API
     setTimeout(() => {
       handleUpdateProfileStatus("ACCEPTED");
     }, 0);
@@ -277,9 +294,9 @@ const ManageUser = () => {
       key: "avatarUrl",
       render: (url) => (
         <Avatar
-          src={url}
+          src={getImageUrl(url)}
           icon={<UserOutlined />}
-          className="shadow-sm border border-gray-100"
+          className="shadow-sm border border-gray-100 object-cover"
         />
       ),
     },
@@ -423,8 +440,119 @@ const ManageUser = () => {
           </div>
         </div>
 
-        {/* MODAL 1: THÊM NGƯỜI DÙNG (Giữ nguyên code cũ của bạn) */}
-        {/* ... */}
+        {/* MODAL 1: THÊM NGƯỜI DÙNG */}
+        <Modal
+          title={
+            <h3 className="text-xl font-bold text-gray-800 m-0">
+              Thêm Người Dùng Mới
+            </h3>
+          }
+          open={isAddModalVisible}
+          onCancel={() => setIsAddModalVisible(false)}
+          onOk={() => form.submit()}
+          okText="Tạo tài khoản"
+          cancelText="Hủy bỏ"
+          centered
+          width={600}
+        >
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleAddSubmit}
+            className="mt-4"
+          >
+            <Form.Item label="Ảnh đại diện">
+              <Upload
+                listType="picture"
+                maxCount={1}
+                beforeUpload={(file) => {
+                  setAvatarFile(file);
+                  return false;
+                }}
+                onRemove={() => setAvatarFile(null)}
+              >
+                <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
+              </Upload>
+            </Form.Item>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Form.Item
+                name="firstName"
+                label="Họ"
+                rules={[{ required: true, message: "Vui lòng nhập họ" }]}
+              >
+                <Input placeholder="Nhập họ..." />
+              </Form.Item>
+              <Form.Item
+                name="lastName"
+                label="Tên"
+                rules={[{ required: true, message: "Vui lòng nhập tên" }]}
+              >
+                <Input placeholder="Nhập tên..." />
+              </Form.Item>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Form.Item
+                name="email"
+                label="Email"
+                rules={[
+                  { required: true, message: "Vui lòng nhập email" },
+                  { type: "email", message: "Email không hợp lệ" },
+                ]}
+              >
+                <Input placeholder="email@example.com" />
+              </Form.Item>
+              <Form.Item
+                name="phone"
+                label="Số điện thoại"
+                rules={[
+                  { required: true, message: "Vui lòng nhập số điện thoại" },
+                  { pattern: /^[0-9]{10,11}$/, message: "SĐT không hợp lệ" },
+                ]}
+              >
+                <Input placeholder="0901234567" />
+              </Form.Item>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Form.Item
+                name="dob"
+                label="Ngày sinh"
+                rules={[{ required: true, message: "Vui lòng chọn ngày sinh" }]}
+              >
+                <DatePicker
+                  className="w-full"
+                  format="YYYY-MM-DD"
+                  placeholder="Chọn ngày"
+                />
+              </Form.Item>
+              <Form.Item
+                name="role"
+                label="Vai trò"
+                rules={[{ required: true, message: "Vui lòng chọn vai trò" }]}
+              >
+                <Select placeholder="Chọn vai trò">
+                  <Option value="PATIENT">Người dùng</Option>
+                  <Option value="DOCTOR">Bác sĩ</Option>
+                  <Option value="BRAND">Thương hiệu</Option>
+                  <Option value="ADMIN">Quản trị viên</Option>
+                </Select>
+              </Form.Item>
+            </div>
+
+            <Form.Item
+              name="password"
+              label="Mật khẩu khởi tạo"
+              rules={[
+                { required: true, message: "Vui lòng nhập mật khẩu" },
+                { min: 8, message: "Mật khẩu tối thiểu 8 ký tự" },
+              ]}
+            >
+              <Input.Password placeholder="Nhập mật khẩu..." />
+            </Form.Item>
+          </Form>
+        </Modal>
 
         {/* MODAL 2: GIAO DIỆN XEM CHI TIẾT */}
         <Modal
@@ -447,13 +575,13 @@ const ManageUser = () => {
             ) : (
               selectedUser && (
                 <>
-                  {/* HEADER USER INFO */}
+                  {/* HEADER USER INFO MẶC ĐỊNH */}
                   <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 bg-gradient-to-r from-blue-50 to-white p-6 rounded-2xl border border-blue-100 mb-6">
                     <Avatar
                       size={80}
-                      src={selectedUser.avatarUrl}
+                      src={getImageUrl(selectedUser.avatarUrl)}
                       icon={<UserOutlined />}
-                      className="shadow-md border-2 border-white flex-shrink-0"
+                      className="shadow-md border-2 border-white flex-shrink-0 object-cover"
                     />
                     <div className="flex-1 text-center sm:text-left">
                       <h2 className="text-2xl font-bold text-gray-800 m-0 mb-1">{`${selectedUser.firstName || ""} ${selectedUser.lastName || ""}`}</h2>
@@ -490,7 +618,7 @@ const ManageUser = () => {
                     </div>
                   </div>
 
-                  {/* CONTACT INFO GRID */}
+                  {/* THÔNG TIN LIÊN HỆ */}
                   <h3 className="text-lg font-bold text-gray-800 mb-4 px-1">
                     Thông tin liên hệ
                   </h3>
@@ -539,7 +667,71 @@ const ManageUser = () => {
                     </div>
                   </div>
 
-                  {/* --- DOCTOR PROFILE SECTION --- */}
+                  {/* 🚨🚨🚨 PATIENT PROFILE SECTION 🚨🚨🚨 */}
+                  {selectedUser.roles?.some((r) => r.name === "PATIENT") && (
+                    <div>
+                      <Divider className="my-6 border-gray-200" />
+                      <h3 className="text-lg font-bold text-green-700 mb-4 px-1 flex items-center gap-2">
+                        <HeartOutlined /> Hồ sơ Y tế Cá nhân
+                      </h3>
+                      {patientProfile ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-1">
+                          <div className="bg-green-50/50 p-4 rounded-xl border border-green-100">
+                            <div className="text-xs text-green-600 uppercase tracking-wider mb-1">
+                              Giới tính
+                            </div>
+                            <div className="font-semibold text-gray-800">
+                              {patientProfile.gender ? "Nam" : "Nữ"}
+                            </div>
+                          </div>
+                          <div className="bg-green-50/50 p-4 rounded-xl border border-green-100">
+                            <div className="text-xs text-green-600 uppercase tracking-wider mb-1">
+                              Loại da
+                            </div>
+                            <div className="font-semibold text-gray-800">
+                              {patientProfile.skinType || "Chưa xác định"}
+                            </div>
+                          </div>
+                          <div className="bg-green-50/50 p-4 rounded-xl border border-green-100">
+                            <div className="text-xs text-green-600 uppercase tracking-wider mb-1">
+                              Chiều cao - Cân nặng
+                            </div>
+                            <div className="font-semibold text-gray-800">
+                              {patientProfile.height
+                                ? `${patientProfile.height} cm`
+                                : "N/A"}{" "}
+                              -{" "}
+                              {patientProfile.weight
+                                ? `${patientProfile.weight} kg`
+                                : "N/A"}
+                            </div>
+                          </div>
+                          <div className="bg-green-50/50 p-4 rounded-xl border border-green-100">
+                            <div className="text-xs text-green-600 uppercase tracking-wider mb-1">
+                              Tiền sử dị ứng
+                            </div>
+                            <div className="font-semibold text-gray-800 line-clamp-1">
+                              {patientProfile.allergies || "Không có"}
+                            </div>
+                          </div>
+                          <div className="bg-green-50/50 p-4 rounded-xl border border-green-100 md:col-span-2">
+                            <div className="text-xs text-green-600 uppercase tracking-wider mb-1">
+                              Địa chỉ giao hàng
+                            </div>
+                            <div className="font-semibold text-gray-800">
+                              {patientProfile.address || "Chưa cập nhật"}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 border-2 border-dashed rounded-xl p-8 text-center text-gray-500 mt-4">
+                          <p>Bệnh nhân này chưa cập nhật hồ sơ y tế.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 🚨🚨🚨 DOCTOR PROFILE SECTION 🚨🚨🚨 */}
                   {selectedUser.roles?.some((r) => r.name === "DOCTOR") && (
                     <div>
                       <Divider className="my-6 border-gray-200" />
@@ -581,6 +773,54 @@ const ManageUser = () => {
                                 </p>
                               </div>
                             )}
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                              <div className="text-xs text-blue-500 uppercase tracking-wider mb-1">
+                                Chuyên khoa
+                              </div>
+                              <div className="font-semibold text-gray-800">
+                                {doctorProfile.specialty || "Chưa cập nhật"}
+                              </div>
+                            </div>
+                            <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                              <div className="text-xs text-blue-500 uppercase tracking-wider mb-1">
+                                Kinh nghiệm
+                              </div>
+                              <div className="font-semibold text-gray-800">
+                                {doctorProfile.yearsExperience
+                                  ? `${doctorProfile.yearsExperience} năm`
+                                  : "Chưa cập nhật"}
+                              </div>
+                            </div>
+                            <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 md:col-span-2">
+                              <div className="text-xs text-blue-500 uppercase tracking-wider mb-1">
+                                Nơi công tác
+                              </div>
+                              <div className="font-semibold text-gray-800">
+                                {doctorProfile.clinicName || "Chưa cập nhật"}
+                              </div>
+                            </div>
+                            <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 md:col-span-2">
+                              <div className="text-xs text-blue-500 uppercase tracking-wider mb-1">
+                                Giấy phép hành nghề
+                              </div>
+                              <div className="font-semibold text-blue-600">
+                                {doctorProfile.licenseUrl ? (
+                                  <a
+                                    href={getImageUrl(doctorProfile.licenseUrl)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center gap-1"
+                                  >
+                                    <LinkOutlined /> Xem giấy phép
+                                  </a>
+                                ) : (
+                                  "Chưa cung cấp"
+                                )}
+                              </div>
+                            </div>
+                          </div>
 
                           {/* THAO TÁC DUYỆT (DOCTOR) */}
                           <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -625,7 +865,7 @@ const ManageUser = () => {
                     </div>
                   )}
 
-                  {/* --- MỚI: BRAND PROFILE SECTION --- */}
+                  {/* 🚨🚨🚨 BRAND PROFILE SECTION 🚨🚨🚨 */}
                   {selectedUser.roles?.some((r) => r.name === "BRAND") && (
                     <div>
                       <Divider className="my-6 border-gray-200" />
@@ -657,7 +897,6 @@ const ManageUser = () => {
 
                       {brandProfile ? (
                         <div className="space-y-4 px-1">
-                          {/* Status Alert if Rejected */}
                           {brandProfile.verificationStatus === "REJECTED" &&
                             brandProfile.rejectionReason && (
                               <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg mb-4">
@@ -670,14 +909,13 @@ const ManageUser = () => {
                               </div>
                             )}
 
-                          {/* Thông tin Brand */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100 flex items-center gap-4">
                               <Avatar
                                 size={50}
-                                src={brandProfile.logoUrl}
+                                src={getImageUrl(brandProfile.logoUrl)}
                                 shape="square"
-                                className="border shadow-sm bg-white"
+                                className="border shadow-sm bg-white object-cover"
                               />
                               <div>
                                 <div className="text-xs text-purple-500 uppercase tracking-wider mb-1">
@@ -691,7 +929,7 @@ const ManageUser = () => {
 
                             <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
                               <div className="text-xs text-purple-500 uppercase tracking-wider mb-1">
-                                Website chính thức
+                                Website
                               </div>
                               <div className="font-semibold text-gray-800 line-clamp-1">
                                 {brandProfile.website ? (
@@ -709,17 +947,6 @@ const ManageUser = () => {
                               </div>
                             </div>
                           </div>
-
-                          {brandProfile.description && (
-                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mt-2">
-                              <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">
-                                Giới thiệu thương hiệu
-                              </div>
-                              <p className="text-gray-600 italic m-0 text-sm leading-relaxed text-justify">
-                                {brandProfile.description}
-                              </p>
-                            </div>
-                          )}
 
                           {/* THAO TÁC DUYỆT (BRAND) */}
                           <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -770,7 +997,7 @@ const ManageUser = () => {
           </div>
         </Modal>
 
-        {/* MODAL 3: NHẬP LÝ DO TỪ CHỐI HỒ SƠ (DÙNG CHUNG) */}
+        {/* MODAL 3: NHẬP LÝ DO TỪ CHỐI HỒ SƠ */}
         <Modal
           title={
             <span className="text-red-500 font-bold text-lg">

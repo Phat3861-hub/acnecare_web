@@ -108,7 +108,7 @@ const BookAppointment = () => {
   // 3. WEBSOCKET ĐỂ KHÓA GIỜ TỨC THÌ
   useEffect(() => {
     const stompClient = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:8080/api/ws"),
+      webSocketFactory: () => new SockJS("http://localhost:9090/api/ws"),
       debug: () => {}, // Ẩn log rác
       onConnect: () => {
         stompClient.subscribe(`/topic/doctor/${doctorId}/schedule`, (msg) => {

@@ -8,6 +8,10 @@ export const authService = {
     return http.post("/auth/logout", data);
   },
   register: (data) => {
-    return http.post("/users", data);
+    return http.post("/users", data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
   },
 };

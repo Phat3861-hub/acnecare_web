@@ -9,6 +9,9 @@ import {
   Alert,
   Tag,
   Avatar,
+  Divider,
+  Upload,
+  DatePicker,
 } from "antd";
 import {
   ShopOutlined,
@@ -16,47 +19,126 @@ import {
   CheckCircleOutlined,
   SyncOutlined,
   CloseCircleOutlined,
+  UserOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
+import dayjs from "dayjs";
 import { fetchMyBrandProfile } from "../../store/slice/BrandSlice";
 import { brandService } from "../../services/BrandService";
+import { userService } from "../../services/UserService";
 
 const { TextArea } = Input;
 
 const BrandProfile = () => {
   const dispatch = useDispatch();
   const [form] = Form.useForm();
-  const { profile, loading } = useSelector((state) => state.brand);
+
+  const { profile: brandProfile, loading: brandLoading } = useSelector(
+    (state) => state.brand,
+  );
+
+  // Local states cho User Info (Đại diện Brand)
+  const [userInfo, setUserInfo] = useState(null);
+  const [userLoading, setUserLoading] = useState(false);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
   const [updating, setUpdating] = useState(false);
   const [logoPreview, setLogoPreview] = useState("");
 
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith("http")) return url;
+    return `http://localhost:9090/api${url}`;
+  };
+
   useEffect(() => {
-    dispatch(fetchMyBrandProfile());
+    const fetchAllData = async () => {
+      setUserLoading(true);
+      try {
+        const userRes = await userService.getMyInfo();
+        if (userRes.data.code === 1000) {
+          setUserInfo(userRes.data.result);
+          setAvatarPreview(getImageUrl(userRes.data.result.avatarUrl));
+        }
+      } catch (error) {
+        message.error("Lỗi lấy thông tin tài khoản đại diện!");
+      } finally {
+        setUserLoading(false);
+      }
+      dispatch(fetchMyBrandProfile());
+    };
+    fetchAllData();
   }, [dispatch]);
 
   useEffect(() => {
-    if (profile) {
+    if (brandProfile && userInfo) {
       form.setFieldsValue({
-        brandName: profile.brandName,
-        description: profile.description,
-        website: profile.website,
-        logoUrl: profile.logoUrl,
+        // User Info (Đại diện)
+        firstName: userInfo.firstName,
+        lastName: userInfo.lastName,
+        phone: userInfo.phone,
+        dob: userInfo.dob ? dayjs(userInfo.dob, "YYYY-MM-DD") : null,
+        // Brand Profile Info
+        brandName: brandProfile.brandName,
+        description: brandProfile.description,
+        website: brandProfile.website,
+        logoUrl: brandProfile.logoUrl,
       });
-      setLogoPreview(profile.logoUrl);
+      setLogoPreview(getImageUrl(brandProfile.logoUrl));
     }
-  }, [profile, form]);
+  }, [brandProfile, userInfo, form]);
 
   const onFinish = async (values) => {
     setUpdating(true);
     try {
-      await brandService.updateMyProfile(values);
-      message.success("Cập nhật hồ sơ thương hiệu thành công!");
-      dispatch(fetchMyBrandProfile()); // Load lại dữ liệu mới
+      // 1. UPDATE USER INFO (Đại diện)
+      const userFormData = new FormData();
+      if (avatarFile) {
+        userFormData.append("avatar", avatarFile);
+      }
+      const userData = {
+        firstName: values.firstName,
+        lastName: values.lastName,
+        phone: values.phone,
+        password: values.password, // Bắt buộc
+        roles: ["BRAND"],
+        dob: values.dob ? values.dob.format("YYYY-MM-DD") : null,
+      };
+      userFormData.append(
+        "data",
+        new Blob([JSON.stringify(userData)], { type: "application/json" }),
+      );
+
+      await userService.updateMyInfo(userFormData);
+
+      // 2. UPDATE BRAND PROFILE
+      const brandData = {
+        brandName: values.brandName,
+        description: values.description,
+        website: values.website,
+        logoUrl: values.logoUrl,
+      };
+      await brandService.updateMyProfile(brandData);
+
+      message.success("Cập nhật toàn bộ hồ sơ thành công!");
+      form.setFieldsValue({ password: "" });
+      dispatch(fetchMyBrandProfile()); // Load lại dữ liệu Brand
     } catch (error) {
-      message.error(error.response?.data?.message || "Cập nhật thất bại!");
+      message.error(
+        error.response?.data?.message || error || "Cập nhật thất bại!",
+      );
     } finally {
       setUpdating(false);
     }
+  };
+
+  const handleAvatarChange = (info) => {
+    if (info.file) {
+      setAvatarFile(info.file);
+      setAvatarPreview(URL.createObjectURL(info.file));
+    }
+    return false;
   };
 
   const getStatusTag = (status, reason) => {
@@ -102,7 +184,9 @@ const BrandProfile = () => {
     }
   };
 
-  if (loading && !profile) {
+  const isLoading = brandLoading || userLoading;
+
+  if (isLoading && !brandProfile && !userInfo) {
     return (
       <div className="flex justify-center py-20">
         <Spin size="large" />
@@ -111,17 +195,20 @@ const BrandProfile = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8">
+    <div className="max-w-5xl mx-auto py-8 px-4">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Hồ sơ Thương hiệu</h2>
+        <h2 className="text-2xl font-bold text-gray-800">
+          Hồ sơ Thương hiệu & Đại diện
+        </h2>
         <p className="text-gray-500 text-sm">
-          Cập nhật thông tin để khách hàng hiểu rõ hơn về nhãn hàng của bạn.
+          Cập nhật thông tin cá nhân và thông tin hiển thị của nhãn hàng.
         </p>
       </div>
 
       <Card
         className="shadow-sm border-gray-100 rounded-xl"
-        title="Thông tin cơ bản"
+        title="Tổng quan"
+        loading={isLoading}
       >
         <div className="mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start md:items-center justify-between flex-col md:flex-row gap-4">
           <div className="flex items-center gap-4">
@@ -129,15 +216,17 @@ const BrandProfile = () => {
               size={64}
               src={logoPreview || "https://via.placeholder.com/64"}
               shape="square"
-              className="shadow-sm border"
+              className="shadow-sm border object-cover bg-white"
             />
             <div>
               <div className="font-bold text-lg">
-                {profile?.brandName || "Tên thương hiệu chưa cập nhật"}
+                {brandProfile?.brandName || "Tên thương hiệu chưa cập nhật"}
               </div>
               <div className="text-xs text-gray-500 mt-1">
                 Gia nhập:{" "}
-                {new Date(profile?.createdAt).toLocaleDateString("vi-VN")}
+                {brandProfile?.createdAt
+                  ? new Date(brandProfile.createdAt).toLocaleDateString("vi-VN")
+                  : "N/A"}
               </div>
             </div>
           </div>
@@ -146,13 +235,13 @@ const BrandProfile = () => {
               Trạng thái kiểm duyệt
             </div>
             {getStatusTag(
-              profile?.verificationStatus,
-              profile?.rejectionReason,
+              brandProfile?.verificationStatus,
+              brandProfile?.rejectionReason,
             )}
           </div>
         </div>
 
-        {profile?.verificationStatus === "REJECTED" && (
+        {brandProfile?.verificationStatus === "REJECTED" && (
           <Alert
             message="Hồ sơ bị từ chối"
             description="Vui lòng cập nhật lại thông tin chính xác để Admin xem xét lại."
@@ -163,6 +252,92 @@ const BrandProfile = () => {
         )}
 
         <Form form={form} layout="vertical" onFinish={onFinish}>
+          {/* --- PHẦN 1: THÔNG TIN NGƯỜI ĐẠI DIỆN (USER) --- */}
+          <Divider orientation="left" plain>
+            <span className="text-purple-600 font-bold text-base flex items-center gap-2">
+              <UserOutlined /> 1. Thông tin người đại diện (Tài khoản)
+            </span>
+          </Divider>
+
+          <div className="flex flex-col md:flex-row gap-8 mb-6">
+            <div className="flex flex-col items-center gap-3">
+              <Avatar
+                size={120}
+                src={avatarPreview}
+                icon={<UserOutlined />}
+                className="border shadow-sm object-cover"
+              />
+              <Upload
+                showUploadList={false}
+                beforeUpload={() => false}
+                onChange={handleAvatarChange}
+              >
+                <Button icon={<UploadOutlined />} size="small">
+                  Ảnh Đại Diện
+                </Button>
+              </Upload>
+            </div>
+
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-x-6">
+              <Form.Item
+                name="firstName"
+                label={<span className="font-medium">Họ người đại diện</span>}
+                rules={[{ required: true }]}
+              >
+                <Input size="large" />
+              </Form.Item>
+              <Form.Item
+                name="lastName"
+                label={<span className="font-medium">Tên người đại diện</span>}
+                rules={[{ required: true }]}
+              >
+                <Input size="large" />
+              </Form.Item>
+              <Form.Item
+                name="phone"
+                label={
+                  <span className="font-medium">Số điện thoại liên hệ</span>
+                }
+                rules={[{ required: true }]}
+              >
+                <Input size="large" />
+              </Form.Item>
+              <Form.Item
+                name="dob"
+                label={<span className="font-medium">Ngày sinh</span>}
+                rules={[{ required: true }]}
+              >
+                <DatePicker
+                  className="w-full"
+                  size="large"
+                  format="YYYY-MM-DD"
+                />
+              </Form.Item>
+              <Form.Item
+                name="password"
+                label={
+                  <span className="font-medium">
+                    Xác nhận Mật khẩu (Bắt buộc)
+                  </span>
+                }
+                rules={[
+                  { required: true, message: "Nhập mật khẩu để xác nhận lưu" },
+                  { min: 8 },
+                ]}
+                tooltip="Hệ thống yêu cầu xác nhận mật khẩu để lưu trữ thông tin."
+              >
+                <Input.Password size="large" placeholder="Nhập mật khẩu..." />
+              </Form.Item>
+            </div>
+          </div>
+
+          {/* --- PHẦN 2: THÔNG TIN THƯƠNG HIỆU (BRAND PROFILE) --- */}
+          <Divider orientation="left" plain className="mt-4">
+            <span className="text-purple-600 font-bold text-base flex items-center gap-2">
+              <ShopOutlined /> 2. Thông tin Thương hiệu hiển thị
+            </span>
+          </Divider>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
             <Form.Item
               label="Tên thương hiệu"
@@ -174,7 +349,7 @@ const BrandProfile = () => {
               <Input
                 size="large"
                 prefix={<ShopOutlined className="text-gray-400" />}
-                placeholder="Nhập tên thương hiệu của bạn"
+                placeholder="Tên nhãn hàng..."
               />
             </Form.Item>
 
@@ -194,27 +369,25 @@ const BrandProfile = () => {
           </div>
 
           <Form.Item
-            label="Đường dẫn Ảnh Logo (URL)"
+            label="Đường dẫn Ảnh Logo thương hiệu (URL)"
             name="logoUrl"
-            rules={[
-              { type: "url", message: "Vui lòng nhập đúng định dạng URL!" },
-            ]}
+            rules={[{ type: "url" }]}
           >
             <Input
               size="large"
               placeholder="https://..."
-              onChange={(e) => setLogoPreview(e.target.value)}
+              onChange={(e) => setLogoPreview(getImageUrl(e.target.value))}
             />
           </Form.Item>
 
           <Form.Item label="Giới thiệu về thương hiệu" name="description">
             <TextArea
               rows={4}
-              placeholder="Viết vài dòng giới thiệu về triết lý, sứ mệnh hoặc lịch sử nhãn hàng của bạn..."
+              placeholder="Viết vài dòng giới thiệu về triết lý, sứ mệnh..."
             />
           </Form.Item>
 
-          <div className="flex justify-end mt-6">
+          <div className="flex justify-end mt-6 pt-4 border-t">
             <Button
               type="primary"
               htmlType="submit"
@@ -222,7 +395,7 @@ const BrandProfile = () => {
               loading={updating}
               className="px-8 font-semibold rounded-lg bg-[#1e255e]"
             >
-              Lưu thay đổi
+              Lưu toàn bộ thay đổi
             </Button>
           </div>
         </Form>
