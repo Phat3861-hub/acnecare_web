@@ -50,7 +50,7 @@ const ChatPage = () => {
   const stompClient = useRef(null);
   const messagesEndRef = useRef(null);
 
-  const ADMIN_ID = "3159d202-190a-44e9-bb64-15b5a1c219f0";
+  const ADMIN_ID = "b290eedd-c923-4e1a-b286-61f6e8d727cb";
 
   const getOtherUserId = (room) => {
     if (!room) return null;
