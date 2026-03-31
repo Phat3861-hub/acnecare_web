@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Table,
   Button,
@@ -16,6 +16,8 @@ import {
   Descriptions,
   Image,
   Tooltip,
+  Card,
+  Empty,
 } from "antd";
 import {
   UploadOutlined,
@@ -26,6 +28,8 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   SearchOutlined,
+  ShoppingOutlined,
+  ClockCircleOutlined,
 } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProducts } from "../../store/slice/ProductSlice";
@@ -39,9 +43,6 @@ const { Option } = Select;
 const ManageProduct = () => {
   const dispatch = useDispatch();
 
-  // ================================================================
-  // 1. LẤY THÔNG TIN USER
-  // ================================================================
   let currentUser = useSelector((state) => state.user?.userInfo);
 
   if (!currentUser || !currentUser.id) {
@@ -50,19 +51,17 @@ const ManageProduct = () => {
       const decoded = jwtDecode(token);
       const tokenRoles = decoded.roles || decoded.scope || "";
       let role = "PATIENT";
+
       if (tokenRoles.includes("ADMIN")) role = "ADMIN";
       else if (tokenRoles.includes("DOCTOR")) role = "DOCTOR";
       else if (tokenRoles.includes("BRAND")) role = "BRAND";
 
-      currentUser = { id: decoded.sub, role: role };
+      currentUser = { id: decoded.sub, role };
     }
   }
 
   const isAdmin = currentUser?.role === "ADMIN";
 
-  // ================================================================
-  // 2. STATE QUẢN LÝ DỮ LIỆU
-  // ================================================================
   const { products, loading: prodLoading } = useSelector(
     (state) => state.product,
   );
@@ -87,30 +86,31 @@ const ManageProduct = () => {
     }
   }, [dispatch, categories.length]);
 
-  // ================================================================
-  // 3. LOGIC LỌC DỮ LIỆU (Tích hợp Tìm kiếm)
-  // ================================================================
-  const filteredProducts = products.filter((item) => {
-    // 1. Lọc theo Tab
-    let isTabMatch = true;
-    if (activeTab === "MINE") isTabMatch = item.createdBy === currentUser?.id;
-    if (activeTab === "PENDING") {
-      isTabMatch =
-        item.approvalStatus === "PENDING" &&
-        (isAdmin || item.createdBy === currentUser?.id);
-    }
+  const filteredProducts = useMemo(() => {
+    return products.filter((item) => {
+      let isTabMatch = true;
 
-    // 2. Lọc theo Keyword (Tên hoặc Thương hiệu)
-    let isSearchMatch = true;
-    if (searchText) {
-      const lowerSearch = searchText.toLowerCase();
-      const matchName = item.name?.toLowerCase().includes(lowerSearch);
-      const matchBrand = item.brand?.toLowerCase().includes(lowerSearch);
-      isSearchMatch = matchName || matchBrand;
-    }
+      if (activeTab === "MINE") {
+        isTabMatch = item.createdBy === currentUser?.id;
+      }
 
-    return isTabMatch && isSearchMatch;
-  });
+      if (activeTab === "PENDING") {
+        isTabMatch =
+          item.approvalStatus === "PENDING" &&
+          (isAdmin || item.createdBy === currentUser?.id);
+      }
+
+      let isSearchMatch = true;
+      if (searchText) {
+        const lowerSearch = searchText.toLowerCase();
+        const matchName = item.name?.toLowerCase().includes(lowerSearch);
+        const matchBrand = item.brand?.toLowerCase().includes(lowerSearch);
+        isSearchMatch = matchName || matchBrand;
+      }
+
+      return isTabMatch && isSearchMatch;
+    });
+  }, [products, activeTab, searchText, currentUser?.id, isAdmin]);
 
   const tabItems = [
     { key: "ALL", label: "Tất cả sản phẩm" },
@@ -118,9 +118,13 @@ const ManageProduct = () => {
     { key: "PENDING", label: "Chờ duyệt" },
   ];
 
-  // ================================================================
-  // 4. CÁC HÀM XỬ LÝ
-  // ================================================================
+  const approvedCount = products.filter(
+    (item) => item.approvalStatus === "APPROVED",
+  ).length;
+  const pendingCount = products.filter(
+    (item) => item.approvalStatus === "PENDING",
+  ).length;
+
   const openModal = (record = null) => {
     setEditingProduct(record);
 
@@ -151,12 +155,14 @@ const ManageProduct = () => {
         const urls = record.imagesUrl
           .split(",")
           .filter((url) => url.trim() !== "");
+
         const formattedFiles = urls.map((url, index) => ({
           uid: `-${index + 2}`,
           name: `image-${index}.png`,
           status: "done",
           url: url.trim(),
         }));
+
         setImageFileList(formattedFiles);
       } else {
         setImageFileList([]);
@@ -178,15 +184,19 @@ const ManageProduct = () => {
   const handleSave = async (values) => {
     try {
       const formData = new FormData();
+
       formData.append("name", values.name);
       formData.append("brand", values.brand);
       formData.append("categoryId", values.categoryId);
       formData.append("description", values.description);
 
-      if (values.ingredients)
+      if (values.ingredients) {
         formData.append("ingredients", values.ingredients);
-      if (values.affiliateUrl)
+      }
+
+      if (values.affiliateUrl) {
         formData.append("affiliateUrl", values.affiliateUrl);
+      }
 
       if (thumbnailFileList.length > 0) {
         if (thumbnailFileList[0].originFileObj) {
@@ -206,6 +216,7 @@ const ManageProduct = () => {
           retainedImages.push(file.url);
         }
       });
+
       formData.append("imagesUrl", retainedImages.join(","));
 
       if (editingProduct) {
@@ -213,10 +224,9 @@ const ManageProduct = () => {
         message.success("Cập nhật sản phẩm thành công!");
       } else {
         await productService.createProduct(formData);
-        message.success(
-          "Thêm sản phẩm thành công! (Chờ duyệt nếu không phải Admin)",
-        );
+        message.success("Thêm sản phẩm thành công!");
       }
+
       setIsModalVisible(false);
       dispatch(fetchProducts());
     } catch (error) {
@@ -227,7 +237,7 @@ const ManageProduct = () => {
   const handleDelete = async (id) => {
     try {
       await productService.deleteProduct(id);
-      message.success("Xóa thành công!");
+      message.success("Xóa sản phẩm thành công!");
       dispatch(fetchProducts());
     } catch (error) {
       message.error("Xóa thất bại!");
@@ -251,47 +261,50 @@ const ManageProduct = () => {
     return e?.fileList;
   };
 
-  // ================================================================
-  // 5. CẤU HÌNH CỘT BẢNG
-  // ================================================================
   const columns = [
     {
-      title: "Ảnh",
-      dataIndex: "thumbnailUrl",
-      width: 80, // Giảm một chút cho gọn trên mobile
-      render: (url) => (
-        <Avatar
-          shape="square"
-          size={50} // Giảm size avatar xuống chút để đỡ chiếm chỗ
-          src={url || "https://via.placeholder.com/50"}
-          className="border border-gray-200 shadow-sm"
-        />
-      ),
-    },
-    {
-      title: "Thông tin Sản phẩm",
+      title: "Sản phẩm",
+      key: "product",
       render: (_, record) => (
-        <div className="min-w-[150px]">
-          <div className="font-semibold text-gray-800 text-[14px] md:text-base leading-tight md:leading-normal">
-            {record.name}
-          </div>
-          <div className="text-[11px] md:text-xs text-gray-500 mt-1 uppercase tracking-wider">
-            {record.brand}
+        <div className="group flex items-center gap-3 min-w-[240px]">
+          <Avatar
+            shape="square"
+            size={56}
+            src={record.thumbnailUrl || "https://via.placeholder.com/56"}
+            className="border border-gray-200 shadow-sm rounded-xl transition-all duration-300 group-hover:scale-105 group-hover:shadow-md"
+          />
+          <div>
+            <div className="font-semibold text-gray-800 leading-tight transition-colors duration-300 group-hover:text-blue-700">
+              {record.name}
+            </div>
+            <div className="text-xs text-gray-500 mt-1 uppercase tracking-wide">
+              {record.brand}
+            </div>
           </div>
         </div>
       ),
     },
     {
       title: "Danh mục",
-      render: (_, record) => <Tag color="blue">{record.category?.name}</Tag>,
+      key: "category",
+      width: 180,
+      render: (_, record) => (
+        <Tag className="px-3 py-1 rounded-full border-0 bg-blue-100 text-blue-700 shadow-sm">
+          {record.category?.name}
+        </Tag>
+      ),
     },
     {
       title: "Trạng thái",
       dataIndex: "approvalStatus",
+      width: 160,
       render: (status) => (
         <Tag
-          color={status === "APPROVED" ? "success" : "warning"}
-          className="px-2 md:px-3 py-0.5 md:py-1 rounded-full font-medium"
+          className={`px-3 py-1 rounded-full font-medium border-0 shadow-sm ${
+            status === "APPROVED"
+              ? "bg-green-100 text-green-700"
+              : "bg-orange-100 text-orange-700"
+          }`}
         >
           {status === "APPROVED" ? "Đã duyệt" : "Chờ duyệt"}
         </Tag>
@@ -299,19 +312,21 @@ const ManageProduct = () => {
     },
     {
       title: "Hành động",
+      key: "action",
+      width: 240,
       align: "center",
       render: (_, record) => {
         const isOwner = currentUser?.id === record.createdBy;
         const canEditOrDelete = isAdmin || isOwner;
 
         return (
-          <Space size="small" className="whitespace-nowrap">
+          <Space size="small" wrap>
             <Tooltip title="Xem chi tiết">
               <Button
                 type="text"
-                onClick={() => openDetailModal(record)}
-                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2"
                 icon={<EyeOutlined />}
+                onClick={() => openDetailModal(record)}
+                className="text-blue-600 rounded-lg transition-all duration-300 hover:!bg-blue-50 hover:scale-105"
               />
             </Tooltip>
 
@@ -320,11 +335,11 @@ const ManageProduct = () => {
                 title="Duyệt sản phẩm này?"
                 onConfirm={() => handleUpdateStatus(record.id, "APPROVED")}
               >
-                <Tooltip title="Duyệt sản phẩm">
+                <Tooltip title="Duyệt">
                   <Button
                     type="text"
-                    className="text-green-600 hover:text-green-800 hover:bg-green-50 px-2"
                     icon={<CheckCircleOutlined />}
+                    className="text-green-600 rounded-lg transition-all duration-300 hover:!bg-green-50 hover:scale-105"
                   />
                 </Tooltip>
               </Popconfirm>
@@ -338,8 +353,8 @@ const ManageProduct = () => {
                 <Tooltip title="Hủy duyệt">
                   <Button
                     type="text"
-                    className="text-orange-500 hover:text-orange-700 hover:bg-orange-50 px-2"
                     icon={<CloseCircleOutlined />}
+                    className="text-orange-500 rounded-lg transition-all duration-300 hover:!bg-orange-50 hover:scale-105"
                   />
                 </Tooltip>
               </Popconfirm>
@@ -350,11 +365,12 @@ const ManageProduct = () => {
                 <Tooltip title="Chỉnh sửa">
                   <Button
                     type="text"
-                    onClick={() => openModal(record)}
-                    className="text-gray-600 hover:text-blue-600 hover:bg-gray-100 px-2"
                     icon={<EditOutlined />}
+                    onClick={() => openModal(record)}
+                    className="text-gray-700 rounded-lg transition-all duration-300 hover:!bg-gray-100 hover:scale-105"
                   />
                 </Tooltip>
+
                 <Popconfirm
                   title="Xóa sản phẩm này?"
                   okText="Xóa"
@@ -367,7 +383,7 @@ const ManageProduct = () => {
                       type="text"
                       danger
                       icon={<DeleteOutlined />}
-                      className="px-2"
+                      className="rounded-lg transition-all duration-300 hover:scale-105"
                     />
                   </Tooltip>
                 </Popconfirm>
@@ -380,71 +396,135 @@ const ManageProduct = () => {
   ];
 
   return (
-    // Bỏ padding mặc định khi ở mobile, giữ padding lớn ở tablet/PC
-    <div className="bg-white p-3 sm:p-4 md:p-8 rounded-xl md:rounded-2xl shadow-sm border border-gray-100 min-h-screen">
-      {/* HEADER TỪNG TRANG */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-800">
-            Quản lý Sản phẩm
-          </h2>
-          <p className="text-gray-500 text-xs md:text-sm mt-1">
-            Danh sách tất cả các sản phẩm đang được quản lý trên hệ thống.
-          </p>
+    <div className="min-h-screen bg-transparent">
+      <Card
+        bordered={false}
+        className="rounded-2xl shadow-sm overflow-hidden border-0"
+        bodyStyle={{ padding: 0 }}
+      >
+        <div className="px-6 md:px-8 py-7 bg-gradient-to-r from-slate-900 via-slate-800 to-blue-900 text-white relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_28%)]" />
+          <div className="relative flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5">
+            <div>
+              <div className="uppercase tracking-[0.22em] text-xs text-blue-200 mb-2">
+                Product management
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-2">
+                Quản lý sản phẩm
+              </h2>
+              <p className="text-slate-300 text-sm md:text-base max-w-2xl">
+                Quản lý danh sách sản phẩm, duyệt nội dung và cập nhật thông tin
+                trong một giao diện trực quan và hiện đại hơn.
+              </p>
+            </div>
+
+            <Button
+              type="primary"
+              onClick={() => openModal()}
+              size="large"
+              icon={<PlusOutlined />}
+              className="rounded-xl shadow-md w-full xl:w-auto transition-all duration-300 hover:scale-[1.03] hover:shadow-xl"
+            >
+              Thêm sản phẩm
+            </Button>
+          </div>
         </div>
-        <Button
-          type="primary"
-          onClick={() => openModal()}
-          size="large"
-          icon={<PlusOutlined />}
-          className="w-full md:w-auto rounded-lg shadow-md hover:shadow-lg transition-shadow"
-        >
-          Thêm Sản phẩm
-        </Button>
-      </div>
 
-      {/* FILTER TABS & SEARCH */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 bg-gray-50/50 p-2 md:p-3 rounded-lg border border-gray-100 gap-4">
-        {/* Tabs để full width ở mobile cho cuộn ngang */}
-        <div className="w-full lg:w-auto overflow-x-auto custom-scrollbar pb-1">
-          <Tabs
-            activeKey={activeTab}
-            onChange={(key) => setActiveTab(key)}
-            items={tabItems}
-            style={{ marginBottom: 0 }}
-          />
+        <div className="p-5 md:p-6 bg-slate-50">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-gray-500">Tổng sản phẩm</div>
+                  <div className="text-3xl font-bold text-gray-800 mt-1">
+                    {products.length}
+                  </div>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center transition-all duration-300 hover:scale-110">
+                  <ShoppingOutlined className="text-blue-600 text-lg" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-gray-500">Đã duyệt</div>
+                  <div className="text-3xl font-bold text-gray-800 mt-1">
+                    {approvedCount}
+                  </div>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center transition-all duration-300 hover:scale-110">
+                  <CheckCircleOutlined className="text-green-600 text-lg" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-gray-500">Chờ duyệt</div>
+                  <div className="text-3xl font-bold text-gray-800 mt-1">
+                    {pendingCount}
+                  </div>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center transition-all duration-300 hover:scale-110">
+                  <ClockCircleOutlined className="text-orange-500 text-lg" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-5 mb-5 transition-all duration-300 hover:shadow-md">
+            <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+              <div className="w-full xl:w-auto overflow-x-auto">
+                <Tabs
+                  activeKey={activeTab}
+                  onChange={(key) => setActiveTab(key)}
+                  items={tabItems}
+                />
+              </div>
+
+              <Input
+                placeholder="Tìm tên hoặc thương hiệu..."
+                prefix={<SearchOutlined className="text-gray-400" />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                allowClear
+                className="w-full xl:w-80 rounded-xl transition-all duration-300 hover:border-blue-400 focus-within:shadow-md"
+                size="large"
+              />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-lg">
+            <Table
+              columns={columns}
+              dataSource={filteredProducts}
+              rowKey="id"
+              loading={prodLoading}
+              pagination={{
+                pageSize: 8,
+                showSizeChanger: true,
+                showTotal: (total) => `Tổng cộng ${total} sản phẩm`,
+              }}
+              rowClassName={() =>
+                "transition-all duration-300 hover:bg-blue-50/50"
+              }
+              scroll={{ x: "max-content" }}
+              locale={{
+                emptyText: (
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description="Chưa có sản phẩm nào"
+                  />
+                ),
+              }}
+            />
+          </div>
         </div>
+      </Card>
 
-        <Input
-          placeholder="Tìm tên hoặc thương hiệu..."
-          prefix={<SearchOutlined className="text-gray-400" />}
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          allowClear
-          className="w-full lg:w-72 rounded-md"
-          size="middle"
-        />
-      </div>
-
-      {/* BẢNG DỮ LIỆU */}
-      <div className="overflow-x-auto custom-scrollbar">
-        <Table
-          columns={columns}
-          dataSource={filteredProducts}
-          rowKey="id"
-          loading={prodLoading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showTotal: (total) => `Tổng cộng ${total} sản phẩm`,
-          }}
-          rowClassName="hover:bg-gray-50 cursor-pointer transition-colors"
-          // Cho phép cuộn ngang nếu bảng bị tràn trên mobile
-          scroll={{ x: "max-content" }}
-        />
-      </div>
-
-      {/* MODAL THÊM/SỬA SẢN PHẨM */}
       <Modal
         title={
           <div className="text-lg md:text-xl font-bold flex items-center gap-2">
@@ -459,55 +539,52 @@ const ManageProduct = () => {
         open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
         footer={null}
-        width={750}
+        width={780}
         destroyOnClose
         centered
-        style={{ padding: "0 10px" }}
       >
         <Form
           form={form}
           layout="vertical"
           onFinish={handleSave}
-          className="mt-6"
+          className="mt-5"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5">
             <Form.Item
-              label={
-                <span className="font-medium text-sm md:text-base">
-                  Tên sản phẩm
-                </span>
-              }
+              label={<span className="font-medium">Tên sản phẩm</span>}
               name="name"
-              rules={[
-                { required: true, message: "Vui lòng nhập tên sản phẩm!" },
-              ]}
+              rules={[{ required: true, message: "Vui lòng nhập tên sản phẩm!" }]}
             >
-              <Input size="large" placeholder="VD: Sữa rửa mặt Cetaphil" />
+              <Input
+                size="large"
+                placeholder="Ví dụ: Sữa rửa mặt Cetaphil"
+                className="rounded-xl transition-all duration-300 hover:border-blue-400 focus-within:shadow-md"
+              />
             </Form.Item>
 
             <Form.Item
-              label={
-                <span className="font-medium text-sm md:text-base">
-                  Thương hiệu
-                </span>
-              }
+              label={<span className="font-medium">Thương hiệu</span>}
               name="brand"
-              rules={[
-                { required: true, message: "Vui lòng nhập thương hiệu!" },
-              ]}
+              rules={[{ required: true, message: "Vui lòng nhập thương hiệu!" }]}
             >
-              <Input size="large" placeholder="VD: Cetaphil" />
+              <Input
+                size="large"
+                placeholder="Ví dụ: Cetaphil"
+                className="rounded-xl transition-all duration-300 hover:border-blue-400 focus-within:shadow-md"
+              />
             </Form.Item>
           </div>
 
           <Form.Item
-            label={
-              <span className="font-medium text-sm md:text-base">Danh mục</span>
-            }
+            label={<span className="font-medium">Danh mục</span>}
             name="categoryId"
-            rules={[{ required: true, message: "Vui lòng chọn danh mục!" }]}
+            rules={[{ required: true, message: "Vui lòng chọn danh mục phù hợp!" }]}
           >
-            <Select size="large" placeholder="-- Chọn danh mục phù hợp --">
+            <Select
+              size="large"
+              placeholder="-- Chọn danh mục phù hợp --"
+              className="rounded-xl"
+            >
               {categories.map((cat) => (
                 <Option key={cat.id} value={cat.id}>
                   {cat.name}
@@ -516,22 +593,11 @@ const ManageProduct = () => {
             </Select>
           </Form.Item>
 
-          <div className="p-3 md:p-4 bg-gray-50 border border-gray-100 rounded-lg mb-6">
+          <div className="bg-slate-50 border border-gray-100 rounded-2xl p-4 mb-5 transition-all duration-300 hover:shadow-sm">
             <Form.Item
-              label={
-                <span className="font-medium text-sm md:text-base">
-                  Ảnh Thumbnail (Ảnh đại diện chính)
-                </span>
-              }
+              label={<span className="font-medium">Ảnh thumbnail</span>}
               valuePropName="fileList"
               getValueFromEvent={normFile}
-              extra={
-                <span className="text-xs">
-                  {editingProduct
-                    ? "Để trống nếu bạn muốn giữ lại ảnh cũ."
-                    : "Định dạng hỗ trợ: JPG, PNG."}
-                </span>
-              }
               className="mb-4"
             >
               <Upload
@@ -541,30 +607,19 @@ const ManageProduct = () => {
                 onChange={(info) => setThumbnailFileList(info.fileList)}
                 fileList={thumbnailFileList}
               >
-                <Button icon={<UploadOutlined />}>Tải ảnh lên</Button>
+                <Button
+                  icon={<UploadOutlined />}
+                  className="rounded-xl transition-all duration-300 hover:scale-[1.02]"
+                >
+                  Tải ảnh đại diện
+                </Button>
               </Upload>
             </Form.Item>
 
             <Form.Item
-              label={
-                <span className="font-medium text-sm md:text-base">
-                  Các ảnh phụ (Chất kem, mặt sau...)
-                </span>
-              }
+              label={<span className="font-medium">Ảnh phụ</span>}
               valuePropName="fileList"
               getValueFromEvent={normFile}
-              extra={
-                <span className="text-xs">
-                  {editingProduct ? (
-                    <span className="text-orange-500">
-                      ⚠️ Lưu ý: Nếu tải lên ảnh mới, toàn bộ ảnh phụ cũ sẽ bị
-                      thay thế.
-                    </span>
-                  ) : (
-                    "Có thể chọn nhiều ảnh cùng lúc."
-                  )}
-                </span>
-              }
               style={{ marginBottom: 0 }}
             >
               <Upload
@@ -574,64 +629,63 @@ const ManageProduct = () => {
                 onChange={(info) => setImageFileList(info.fileList)}
                 fileList={imageFileList}
               >
-                <Button icon={<UploadOutlined />}>Chọn nhiều ảnh</Button>
+                <Button
+                  icon={<UploadOutlined />}
+                  className="rounded-xl transition-all duration-300 hover:scale-[1.02]"
+                >
+                  Chọn nhiều ảnh
+                </Button>
               </Upload>
             </Form.Item>
           </div>
 
           <Form.Item
-            label={
-              <span className="font-medium text-sm md:text-base">
-                Mô tả sản phẩm
-              </span>
-            }
+            label={<span className="font-medium">Mô tả sản phẩm</span>}
             name="description"
             rules={[{ required: true, message: "Vui lòng nhập mô tả!" }]}
           >
             <TextArea
               rows={4}
               placeholder="Nhập công dụng, đặc điểm nổi bật của sản phẩm..."
+              className="rounded-xl transition-all duration-300 hover:border-blue-400 focus-within:shadow-md"
             />
           </Form.Item>
 
           <Form.Item
-            label={
-              <span className="font-medium text-sm md:text-base">
-                Thành phần chi tiết (Ingredients)
-              </span>
-            }
+            label={<span className="font-medium">Thành phần chi tiết</span>}
             name="ingredients"
           >
             <TextArea
               rows={3}
-              placeholder="VD: Water, Glycerin, Niacinamide..."
+              placeholder="Ví dụ: Water, Glycerin, Niacinamide..."
+              className="rounded-xl transition-all duration-300 hover:border-blue-400 focus-within:shadow-md"
             />
           </Form.Item>
 
           <Form.Item
-            label={
-              <span className="font-medium text-sm md:text-base">
-                Link mua hàng (Affiliate / Shopee)
-              </span>
-            }
+            label={<span className="font-medium">Link mua hàng</span>}
             name="affiliateUrl"
           >
-            <Input size="large" placeholder="https://shopee.vn/..." />
+            <Input
+              size="large"
+              placeholder="https://shopee.vn/..."
+              className="rounded-xl transition-all duration-300 hover:border-blue-400 focus-within:shadow-md"
+            />
           </Form.Item>
 
-          <div className="flex flex-col sm:flex-row justify-end gap-3 mt-8 pt-4 border-t">
+          <div className="flex flex-col sm:flex-row justify-end gap-3 pt-3 border-t">
             <Button
               size="large"
               onClick={() => setIsModalVisible(false)}
-              className="w-full sm:w-auto"
+              className="rounded-xl w-full sm:w-auto transition-all duration-300 hover:scale-[1.02]"
             >
-              Hủy bỏ
+              Hủy
             </Button>
             <Button
               size="large"
               type="primary"
               htmlType="submit"
-              className="w-full sm:w-auto px-8"
+              className="rounded-xl w-full sm:w-auto transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
             >
               {editingProduct ? "Lưu thay đổi" : "Tạo sản phẩm"}
             </Button>
@@ -639,29 +693,32 @@ const ManageProduct = () => {
         </Form>
       </Modal>
 
-      {/* MODAL XEM CHI TIẾT SẢN PHẨM */}
       <Modal
         title={null}
         open={isDetailModalVisible}
         onCancel={() => setIsDetailModalVisible(false)}
         footer={null}
-        width={800}
+        width={820}
         centered
-        style={{ padding: "0 10px" }}
       >
         {detailProduct && (
-          <div className="pt-4">
+          <div className="pt-3">
             <div className="flex justify-between items-start border-b pb-4 mb-6">
-              <h2 className="text-xl md:text-2xl font-bold text-gray-800 pr-2">
-                Thông tin chi tiết
-              </h2>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-1">
+                  {detailProduct.name}
+                </h2>
+                <div className="text-sm text-gray-500">
+                  {detailProduct.brand}
+                </div>
+              </div>
+
               <Tag
-                color={
+                className={`px-3 py-1 rounded-full border-0 shadow-sm ${
                   detailProduct.approvalStatus === "APPROVED"
-                    ? "success"
-                    : "warning"
-                }
-                className="text-xs md:text-sm px-2 md:px-3 py-1 rounded-full whitespace-nowrap"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-orange-100 text-orange-700"
+                }`}
               >
                 {detailProduct.approvalStatus === "APPROVED"
                   ? "Đã duyệt"
@@ -669,115 +726,93 @@ const ManageProduct = () => {
               </Tag>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-6 md:gap-8 mb-8">
-              <div className="shrink-0 flex justify-center w-full sm:w-auto">
+            <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6">
+              <div>
                 <Image
-                  width={200}
-                  height={200}
+                  width={220}
+                  height={220}
                   src={
                     detailProduct.thumbnailUrl ||
-                    "https://via.placeholder.com/200"
+                    "https://via.placeholder.com/220"
                   }
-                  className="rounded-xl object-cover shadow-md border border-gray-100"
-                  fallback="https://via.placeholder.com/200"
+                  className="rounded-2xl object-cover border border-gray-100 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md"
+                  fallback="https://via.placeholder.com/220"
                 />
               </div>
-              <div className="flex-1 text-center sm:text-left">
-                <h3 className="text-2xl md:text-3xl font-bold mb-2 text-gray-900 leading-tight">
-                  {detailProduct.name}
-                </h3>
-                <div className="inline-block bg-gray-100 text-gray-600 px-3 py-1 rounded-md text-xs md:text-sm font-semibold uppercase tracking-wider mb-4">
-                  {detailProduct.brand}
-                </div>
 
-                <div className="mb-4">
-                  <span className="text-gray-500 mr-2 text-sm md:text-base">
-                    Danh mục:
-                  </span>
-                  <Tag color="blue" className="text-xs md:text-sm">
-                    {detailProduct.category?.name}
-                  </Tag>
-                </div>
-
-                {detailProduct.affiliateUrl && (
-                  <Button
-                    type="primary"
-                    href={detailProduct.affiliateUrl}
-                    target="_blank"
-                    className="mt-2 bg-orange-500 hover:bg-orange-600 border-none shadow-sm w-full sm:w-auto"
+              <div>
+                <Descriptions bordered column={1} size="middle">
+                  <Descriptions.Item
+                    label={<span className="font-medium">Danh mục</span>}
                   >
-                    Xem Nơi Mua Chính Hãng
-                  </Button>
-                )}
+                    <Tag className="border-0 bg-blue-100 text-blue-700 rounded-full">
+                      {detailProduct.category?.name}
+                    </Tag>
+                  </Descriptions.Item>
+
+                  <Descriptions.Item
+                    label={<span className="font-medium">Mô tả</span>}
+                  >
+                    <div className="whitespace-pre-wrap text-gray-700">
+                      {detailProduct.description}
+                    </div>
+                  </Descriptions.Item>
+
+                  <Descriptions.Item
+                    label={<span className="font-medium">Thành phần</span>}
+                  >
+                    {detailProduct.ingredients ? (
+                      <div className="whitespace-pre-wrap text-gray-700">
+                        {detailProduct.ingredients}
+                      </div>
+                    ) : (
+                      <span className="italic text-gray-400">
+                        Không có thông tin thành phần.
+                      </span>
+                    )}
+                  </Descriptions.Item>
+
+                  <Descriptions.Item
+                    label={<span className="font-medium">Link mua hàng</span>}
+                  >
+                    {detailProduct.affiliateUrl ? (
+                      <a
+                        href={detailProduct.affiliateUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-blue-600 font-medium transition-all duration-300 hover:text-blue-700 hover:underline"
+                      >
+                        Mở liên kết mua hàng
+                      </a>
+                    ) : (
+                      <span className="text-gray-400 italic">
+                        Chưa có liên kết
+                      </span>
+                    )}
+                  </Descriptions.Item>
+                </Descriptions>
               </div>
             </div>
 
-            <Descriptions
-              bordered
-              column={1}
-              size="small" // Giảm size description trên màn nhỏ
-              className="bg-gray-50/50"
-            >
-              <Descriptions.Item
-                label={
-                  <span className="font-bold text-gray-700 w-20 md:w-32 inline-block text-xs md:text-sm">
-                    Mô tả
-                  </span>
-                }
-              >
-                <div className="whitespace-pre-wrap text-gray-700 leading-relaxed text-justify text-sm md:text-base">
-                  {detailProduct.description}
-                </div>
-              </Descriptions.Item>
-
-              <Descriptions.Item
-                label={
-                  <span className="font-bold text-gray-700 w-20 md:w-32 inline-block text-xs md:text-sm">
-                    Thành phần
-                  </span>
-                }
-              >
-                {detailProduct.ingredients ? (
-                  <div className="whitespace-pre-wrap text-gray-700 leading-relaxed text-sm md:text-base">
-                    {detailProduct.ingredients}
-                  </div>
-                ) : (
-                  <span className="italic text-gray-400 text-sm md:text-base">
-                    Không có thông tin thành phần.
-                  </span>
-                )}
-              </Descriptions.Item>
-            </Descriptions>
-
             {detailProduct.imagesUrl && (
               <div className="mt-8">
-                <h4 className="font-bold text-base md:text-lg mb-4 text-gray-800 border-b pb-2">
+                <h4 className="font-semibold text-gray-800 mb-4">
                   Hình ảnh tham khảo
                 </h4>
-                <div className="flex flex-wrap gap-2 md:gap-4 justify-center sm:justify-start">
+                <div className="flex flex-wrap gap-3">
                   {detailProduct.imagesUrl.split(",").map((img, index) => (
                     <Image
                       key={index}
-                      width={100} // Nhỏ lại xíu để nhét được nhiều ảnh trên điện thoại
+                      width={100}
                       height={100}
                       src={img.trim()}
-                      className="rounded-lg border border-gray-200 object-cover shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                      className="rounded-xl border border-gray-200 object-cover transition-all duration-300 hover:scale-105 hover:shadow-md"
                       fallback="https://via.placeholder.com/100"
                     />
                   ))}
                 </div>
               </div>
             )}
-
-            <div className="mt-8 flex justify-end">
-              <Button
-                size="large"
-                onClick={() => setIsDetailModalVisible(false)}
-                className="w-full sm:w-auto"
-              >
-                Đóng cửa sổ
-              </Button>
-            </div>
           </div>
         )}
       </Modal>
