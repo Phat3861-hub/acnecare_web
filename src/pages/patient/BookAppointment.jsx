@@ -104,11 +104,11 @@ const BookAppointment = () => {
   useEffect(() => {
     fetchSchedulesAndBusyTimes(selectedDate, selectedServiceObj);
   }, [selectedDate, selectedServiceObj, fetchSchedulesAndBusyTimes]);
-
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
   // 3. WEBSOCKET ĐỂ KHÓA GIỜ TỨC THÌ
   useEffect(() => {
     const stompClient = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:9090/api/ws"),
+      webSocketFactory: () => new SockJS(`${backendUrl}/api/ws`),
       debug: () => {}, // Ẩn log rác
       onConnect: () => {
         stompClient.subscribe(`/topic/doctor/${doctorId}/schedule`, (msg) => {

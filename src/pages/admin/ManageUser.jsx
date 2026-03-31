@@ -31,9 +31,8 @@ import {
 import { userService } from "../../services/UserService";
 import { http } from "../../api/config";
 import dayjs from "dayjs";
-
 const { Option } = Select;
-
+console.log("Backend URL:", import.meta.env.VITE_BACKEND_URL);
 const ManageUser = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -60,9 +59,11 @@ const ManageUser = () => {
   const getImageUrl = (url) => {
     if (!url) return null;
     if (url.startsWith("http")) return url;
-    return `http://localhost:9090/api${url}`;
-  };
 
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+    return `${baseUrl}/api${url}`;
+  };
   const fetchUsers = async () => {
     setLoading(true);
     try {

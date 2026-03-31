@@ -84,6 +84,7 @@ const PostComment = () => {
     }
   }, [postId]);
 
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
   // 2. THIẾT LẬP KẾT NỐI WEBSOCKET (Đã cấu hình dùng Cookie)
   useEffect(() => {
     if (!postId) return;
@@ -91,7 +92,7 @@ const PostComment = () => {
     const client = new Client({
       // SỬA LỖI 3: Thêm { withCredentials: true } để tự động gửi HttpOnly Cookie và bỏ header Authorization
       webSocketFactory: () =>
-        new SockJS("http://localhost:9090/api/ws", null, {
+        new SockJS(`${backendUrl}/api/ws`, null, {
           withCredentials: true,
         }),
       reconnectDelay: 5000,

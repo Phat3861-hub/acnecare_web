@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { jwtDecode } from "jwt-decode";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 
@@ -39,6 +38,18 @@ import {
 const { Header, Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
 
+const getCookie = (name) => {
+  try {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
+    return null;
+  } catch (error) {
+    console.error("🚨 [Lỗi lấy Cookie]:", error);
+    return null;
+  }
+};
+
 const Post = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -59,18 +70,30 @@ const Post = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState(null);
 
-  // Decode User ID
-  let currentUserId = user?.id;
-  if (!currentUserId) {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        currentUserId = decoded.sub;
-      } catch (err) {
-        console.error("Token error:", err);
-      }
+  // ==========================================
+  // 🐞 DEBUG: BẮT LỖI LẤY ID NGƯỜI DÙNG
+  // ==========================================
+  let currentUserId = null;
+  try {
+    try {
+      const localUser = JSON.parse(localStorage.getItem("userInfo")); // Đổi "userInfo" thành key của bạn
+      currentUserId = user?.id || localUser?.id;
+    } catch (e) {
+      currentUserId = null;
     }
+    console.log("🛠 [Debug System] Giá trị user?.id từ Redux:", user?.id);
+    console.log(
+      "🛠 [Debug System] Giá trị từ localStorage('userId'):",
+      localStorage.getItem("userId"),
+    );
+    console.log(
+      "🛠 [Debug System] currentUserId chốt lại đang dùng là:",
+      currentUserId,
+      "| Kiểu dữ liệu:",
+      typeof currentUserId,
+    );
+  } catch (error) {
+    console.error("🚨 [Lỗi] Không thể lấy currentUserId:", error);
   }
 
   // 1. FETCH DATA
@@ -87,54 +110,74 @@ const Post = () => {
   }, []);
 
   const postIdsString = posts.map((p) => p.id).join(",");
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL || "http://localhost:9090";
 
-  // 2. WEBSOCKET (Giữ nguyên logic của bạn)
+  // 2. WEBSOCKET
   useEffect(() => {
     if (!postIdsString) return;
-    const currentToken = localStorage.getItem("accessToken");
-    const client = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:9090/api/ws"),
-      connectHeaders: { Authorization: `Bearer ${currentToken}` },
-      reconnectDelay: 5000,
-      onConnect: () => {
-        client.subscribe("/topic/posts/delete", (msg) =>
-          dispatch(deletePostRealtime(msg.body)),
-        );
-        client.subscribe("/topic/posts/update", (msg) =>
-          dispatch(updatePostRealtime(JSON.parse(msg.body))),
-        );
-        postIdsString.split(",").forEach((postId) => {
-          client.subscribe(`/topic/posts/${postId}/likes`, (msg) => {
-            dispatch(
-              updateLikesRealtime({
-                postId,
-                isActionLike: JSON.parse(msg.body),
-              }),
-            );
-          });
-          client.subscribe(`/topic/posts/${postId}/comments`, () => {
-            dispatch(updateCommentsCountRealtime({ postId, type: "add" }));
-          });
-          client.subscribe(`/topic/posts/${postId}/comments/delete`, () => {
-            dispatch(updateCommentsCountRealtime({ postId, type: "delete" }));
-          });
-          client.subscribe(`/topic/posts/${postId}/images/upload`, (msg) => {
-            dispatch(
-              addImagesRealtime({ postId, newImages: JSON.parse(msg.body) }),
-            );
-          });
-          client.subscribe(`/topic/posts/${postId}/images/delete`, (msg) => {
-            dispatch(removeImageRealtime({ postId, imageId: msg.body }));
-          });
-        });
-      },
-    });
-    client.activate();
-    stompClientRef.current = client;
-    return () => stompClientRef.current?.deactivate();
-  }, [postIdsString, dispatch]);
 
-  // 3. HANDLERS
+    try {
+      const currentToken = getCookie("accessToken");
+      if (!currentToken) {
+        console.warn(
+          "⚠️ [Cảnh báo WS] Không tìm thấy accessToken trong Cookie!",
+        );
+      }
+
+      const client = new Client({
+        webSocketFactory: () => new SockJS(`${backendUrl}/api/ws`),
+        connectHeaders: currentToken
+          ? { Authorization: `Bearer ${currentToken}` }
+          : {},
+        reconnectDelay: 5000,
+        onConnect: () => {
+          console.log("✅ [WebSocket] Đã kết nối thành công!");
+          client.subscribe("/topic/posts/delete", (msg) =>
+            dispatch(deletePostRealtime(msg.body)),
+          );
+          client.subscribe("/topic/posts/update", (msg) =>
+            dispatch(updatePostRealtime(JSON.parse(msg.body))),
+          );
+          postIdsString.split(",").forEach((postId) => {
+            client.subscribe(`/topic/posts/${postId}/likes`, (msg) => {
+              dispatch(
+                updateLikesRealtime({
+                  postId,
+                  isActionLike: JSON.parse(msg.body),
+                }),
+              );
+            });
+            client.subscribe(`/topic/posts/${postId}/comments`, () => {
+              dispatch(updateCommentsCountRealtime({ postId, type: "add" }));
+            });
+            client.subscribe(`/topic/posts/${postId}/comments/delete`, () => {
+              dispatch(updateCommentsCountRealtime({ postId, type: "delete" }));
+            });
+            client.subscribe(`/topic/posts/${postId}/images/upload`, (msg) => {
+              dispatch(
+                addImagesRealtime({ postId, newImages: JSON.parse(msg.body) }),
+              );
+            });
+            client.subscribe(`/topic/posts/${postId}/images/delete`, (msg) => {
+              dispatch(removeImageRealtime({ postId, imageId: msg.body }));
+            });
+          });
+        },
+        onStompError: (frame) => {
+          console.error("🚨 [Lỗi WebSocket STOMP]:", frame);
+        },
+      });
+      client.activate();
+      stompClientRef.current = client;
+    } catch (error) {
+      console.error("🚨 [Lỗi Khởi tạo WebSocket]:", error);
+    }
+
+    return () => stompClientRef.current?.deactivate();
+  }, [postIdsString, dispatch, backendUrl]);
+
+  // 3. HANDLERS (Giữ nguyên không đổi)
   const handleToggleLike = async (postId, currentIsLiked) => {
     dispatch(toggleLikeLocal({ postId, isLiked: !currentIsLiked }));
     try {
@@ -181,7 +224,6 @@ const Post = () => {
 
   return (
     <Layout className="min-h-screen bg-slate-50">
-      {/* Header Chuyên Nghiệp */}
       <Header className="bg-white border-b px-4 sticky top-0 z-50 flex items-center justify-center h-16 shadow-sm">
         <div className="max-w-2xl w-full flex justify-between items-center">
           <Title level={4} className="m-0 text-blue-600 tracking-tight">
@@ -204,7 +246,6 @@ const Post = () => {
 
       <Content className="p-4 flex flex-col items-center">
         <div className="max-w-2xl w-full">
-          {/* Thông báo từ Redux */}
           {reduxMessage && !isLoading && (
             <Card className="mb-4 bg-blue-50 border-blue-100 py-0 text-center">
               <Text strong className="text-blue-700">
@@ -213,7 +254,6 @@ const Post = () => {
             </Card>
           )}
 
-          {/* Danh sách bài viết */}
           <Spin
             spinning={isLoading && posts.length === 0}
             tip="Đang tải dữ liệu..."
@@ -221,7 +261,41 @@ const Post = () => {
             <div className="space-y-6">
               {posts.length > 0
                 ? posts.map((post) => {
-                    const isOwner = currentUserId === post.user?.id;
+                    // ==========================================
+                    // 🐞 DEBUG: KIỂM TRA TỪNG BÀI VIẾT
+                    // ==========================================
+                    let isOwner = false;
+                    try {
+                      console.log(
+                        `\n🔍 [Debug] Đang kiểm tra bài viết ID: ${post.id}`,
+                      );
+                      console.log(
+                        `   👉 ID người đăng bài này (post.user?.id):`,
+                        post.user?.id,
+                        "| Kiểu:",
+                        typeof post.user?.id,
+                      );
+                      console.log(
+                        `   👉 ID của bạn (currentUserId):`,
+                        currentUserId,
+                        "| Kiểu:",
+                        typeof currentUserId,
+                      );
+
+                      isOwner = Boolean(
+                        currentUserId &&
+                        post.user?.id &&
+                        String(currentUserId) === String(post.user?.id),
+                      );
+
+                      console.log(`   ✅ Kết quả isOwner:`, isOwner);
+                    } catch (error) {
+                      console.error(
+                        `🚨 [Lỗi] Quá trình kiểm tra Owner bị lỗi ở bài viết ${post.id}:`,
+                        error,
+                      );
+                    }
+
                     const hasLiked = post.liked || post.isLiked;
 
                     return (
@@ -230,7 +304,6 @@ const Post = () => {
                         className="shadow-sm border-slate-200 overflow-hidden hover:shadow-md transition-shadow"
                         bodyStyle={{ padding: "16px" }}
                       >
-                        {/* Header Bài Viết */}
                         <div className="flex justify-between items-start mb-4">
                           <Space align="center" size={12}>
                             <Avatar
@@ -280,7 +353,7 @@ const Post = () => {
                           )}
                         </div>
 
-                        {/* Nội dung bài viết */}
+                        {/* Các phần render khác giữ nguyên */}
                         <div className="mb-4">
                           <Title
                             level={5}
@@ -293,7 +366,6 @@ const Post = () => {
                           </Paragraph>
                         </div>
 
-                        {/* Hình ảnh (Sử dụng Image.PreviewGroup của Antd) */}
                         {post.postsImage?.length > 0 && (
                           <div
                             className={`grid gap-1 mb-4 rounded-lg overflow-hidden border border-slate-100 ${post.postsImage.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
@@ -313,7 +385,6 @@ const Post = () => {
 
                         <Divider className="my-3" />
 
-                        {/* Action Buttons */}
                         <div className="flex justify-between items-center">
                           <Space size={24}>
                             <Text
@@ -350,7 +421,6 @@ const Post = () => {
                           </Button>
                         </div>
 
-                        {/* Comment Input Box */}
                         {activeCommentPostId === post.id && (
                           <div className="mt-4 pt-4 border-t border-slate-50 flex gap-2">
                             <Input
@@ -385,7 +455,6 @@ const Post = () => {
         </div>
       </Content>
 
-      {/* Modal Xóa - Phong cách Antd hiện đại */}
       <Modal
         title={
           <Text strong className="text-lg">

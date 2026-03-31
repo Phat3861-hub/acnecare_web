@@ -176,12 +176,13 @@ const ChatPage = () => {
     }
   }, [messages]);
 
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
   // 4. Kết nối WebSocket khi chọn phòng
   useEffect(() => {
     if (activeRoom) {
       dispatch(fetchMessages(activeRoom.roomId));
 
-      const socket = new SockJS("http://localhost:9090/api/ws");
+      const socket = new SockJS(`${backendUrl}/api/ws`);
       const client = new Client({
         webSocketFactory: () => socket,
         onConnect: () => {
@@ -447,12 +448,12 @@ const ChatPage = () => {
                         {msg.type === "IMAGES" ? (
                           <div className="overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
                             <img
-                              src={`http://localhost:8080/api${msg.messageContent}`}
+                              src={`${backendUrl}/api${msg.messageContent}`}
                               alt="sent-img"
                               className="block max-w-[280px] max-h-[350px] w-full h-auto object-cover cursor-pointer hover:opacity-90"
                               onClick={() =>
                                 window.open(
-                                  `http://localhost:8080/api${msg.messageContent}`,
+                                  `${backendUrl}/api${msg.messageContent}`,
                                   "_blank",
                                 )
                               }
