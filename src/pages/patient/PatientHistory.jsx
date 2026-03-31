@@ -24,8 +24,9 @@ const PatientHistory = () => {
   useEffect(() => {
     if (!userInfo?.id) return;
 
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
     const stompClient = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:9090/api/ws"),
+      webSocketFactory: () => new SockJS(`${backendUrl}/api/ws`),
       debug: (str) => console.log(str),
       onConnect: () => {
         console.log("Patient đã kết nối WebSocket lắng nghe thông báo!");

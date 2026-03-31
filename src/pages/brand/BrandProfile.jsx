@@ -49,7 +49,10 @@ const BrandProfile = () => {
   const getImageUrl = (url) => {
     if (!url) return null;
     if (url.startsWith("http")) return url;
-    return `http://localhost:9090/api${url}`;
+
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+    return `${baseUrl}/api${url}`;
   };
 
   useEffect(() => {
