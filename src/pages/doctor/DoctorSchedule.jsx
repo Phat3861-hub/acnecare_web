@@ -63,8 +63,11 @@ const DoctorSchedule = () => {
   useEffect(() => {
     if (!userInfo?.id) return;
 
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
     const stompClient = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:9090/api/ws"),
+      // Thay thế localhost bằng biến backendUrl
+      webSocketFactory: () => new SockJS(`${backendUrl}/api/ws`),
       debug: (str) => console.log(str),
       onConnect: () => {
         stompClient.subscribe(

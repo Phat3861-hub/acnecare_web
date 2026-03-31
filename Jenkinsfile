@@ -29,7 +29,6 @@ pipeline {
                 script {
                     sh "docker rm -f ${CONTAINER_NAME} || true"
                     
-                    // Thêm cờ -e để truyền biến môi trường vào container lúc chạy
                     sh """
                     docker run -d \
                     -p ${HOST_PORT}:80 \
