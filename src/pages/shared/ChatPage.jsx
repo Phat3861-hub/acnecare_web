@@ -50,7 +50,7 @@ const ChatPage = () => {
   const stompClient = useRef(null);
   const messagesEndRef = useRef(null);
 
-  const ADMIN_ID = "b290eedd-c923-4e1a-b286-61f6e8d727cb";
+  const ADMIN_ID = "f663c3df-8192-4a7b-a1ea-4a4ccdb69462";
 
   const getImageUrl = (url) => {
     if (!url) return null;
