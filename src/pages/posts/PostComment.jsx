@@ -33,26 +33,39 @@ const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
 const PostComment = () => {
-  // SỬA LỖI 1: Lấy đúng tên tham số 'id' từ URL và gán vào biến 'postId'
   const { id: postId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const stompClientRef = useRef(null);
 
   const { user } = useSelector((state) => state.user);
-  let currentUserId = user?.id;
 
-  // SỬA LỖI 2: Lấy currentUserId từ userInfo thay vì giải mã token từ localStorage
-  if (!currentUserId) {
+  // ==========================================
+  // 🚨 XÁC ĐỊNH ROLE ĐỂ ĐIỀU HƯỚNG QUAY LẠI CHO ĐÚNG
+  // ==========================================
+  let currentUserId = user?.id;
+  let currentUserRole = user?.role;
+
+  if (!currentUserId || !currentUserRole) {
     const userInfoStr = localStorage.getItem("userInfo");
     if (userInfoStr) {
       try {
-        currentUserId = JSON.parse(userInfoStr).id;
+        const userInfo = JSON.parse(userInfoStr);
+        currentUserId = currentUserId || userInfo.id;
+        currentUserRole = currentUserRole || userInfo.role;
       } catch (err) {
         console.error("Lỗi parse userInfo:", err);
       }
     }
   }
+
+  const getBaseRoute = () => {
+    if (currentUserRole === "ADMIN") return "/admin";
+    if (currentUserRole === "DOCTOR") return "/doctor";
+    if (currentUserRole === "BRAND") return "/brand";
+    return ""; // Mặc định cho Patient
+  };
+  const baseRoute = getBaseRoute();
 
   const [post, setPost] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,6 +100,7 @@ const PostComment = () => {
 
     return `${baseUrl}/api${cleanPath}`;
   };
+
   // 1. TẢI DỮ LIỆU BÀI VIẾT BAN ĐẦU
   useEffect(() => {
     const fetchPostDetails = async () => {
@@ -110,18 +124,21 @@ const PostComment = () => {
   }, [postId]);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  // 2. THIẾT LẬP KẾT NỐI WEBSOCKET (Đã cấu hình dùng Cookie)
+  // 2. THIẾT LẬP KẾT NỐI WEBSOCKET
   useEffect(() => {
     if (!postId) return;
 
     const client = new Client({
-      // SỬA LỖI 3: Thêm { withCredentials: true } để tự động gửi HttpOnly Cookie và bỏ header Authorization
       webSocketFactory: () =>
         new SockJS(`${backendUrl}/api/ws`, null, {
           withCredentials: true,
         }),
+      debug: (str) => {
+        console.log("📡 [STOMP RADAR]: " + str);
+      },
       reconnectDelay: 5000,
       onConnect: () => {
+        console.log("✅✅✅ [WEBSOCKET] ĐÃ BẮT TAY THÀNH CÔNG VỚI BACKEND!");
         client.subscribe(`/topic/posts/${postId}/comments`, (msg) => {
           const newComment = JSON.parse(msg.body);
           setPost((prev) => {
@@ -275,7 +292,7 @@ const PostComment = () => {
             {pageError || "Không tìm thấy bài viết."}
           </Text>
           <Button
-            onClick={() => navigate("/posts")}
+            onClick={() => navigate(`${baseRoute}/posts`)} // 🚨 ĐÃ SỬA
             className="bg-blue-600 text-white border-none font-bold px-6"
           >
             Quay lại bảng tin
@@ -298,7 +315,7 @@ const PostComment = () => {
         {/* Nút quay lại */}
         <div>
           <Button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate(-1)} // navigate(-1) sẽ tự động quay lại trang trước đó bất kể Role nào
             className="bg-white border-slate-200 text-slate-600 font-medium rounded-lg hover:text-blue-600 hover:border-blue-400"
           >
             Quay lại bảng tin
@@ -334,7 +351,6 @@ const PostComment = () => {
                 {post.postsImage.map((img, index) => (
                   <Image
                     key={index}
-                    // ĐÃ SỬA: Bọc hàm getImageUrl
                     src={getImageUrl(img.imageUrl)}
                     alt="Post media"
                     className="w-full h-64 object-cover"
@@ -392,7 +408,6 @@ const PostComment = () => {
                     className="flex gap-3 items-start bg-white"
                   >
                     <Avatar
-                      // ĐÃ SỬA: Bọc hàm getImageUrl, nếu null thì antd Avatar sẽ render phần children (chữ cái đầu)
                       src={
                         comment.avatarUrl
                           ? getImageUrl(comment.avatarUrl)

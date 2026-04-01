@@ -58,7 +58,7 @@ const DoctorLayout = () => {
     {
       key: "/doctor/schedule",
       icon: <CalendarOutlined />,
-      label: <Link to="/doctor/schedule">Lịch khám</Link>,
+      label: <Link to="/doctor/schedule">Lịch làm việc</Link>,
     },
     {
       key: "/doctor/treatment-cases",
@@ -83,7 +83,7 @@ const DoctorLayout = () => {
     {
       key: "/doctor/availability",
       icon: <ClockCircleOutlined />,
-      label: <Link to="/doctor/availability">Quản lý thời gian rảnh</Link>,
+      label: <Link to="/doctor/availability">Quản lý lịch làm việc</Link>,
     },
     {
       key: "/doctor/patient-history",
@@ -121,7 +121,7 @@ const DoctorLayout = () => {
       >
         <div className="h-16 flex items-center justify-between border-b sticky top-0 bg-white z-10 px-4">
           <div className="text-blue-600 font-black text-xl tracking-wider truncate">
-            DOCTOR PORTAL
+            DOCTOR ACNECARE
           </div>
           <Button
             type="text"
@@ -148,7 +148,7 @@ const DoctorLayout = () => {
             className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 lg:hidden"
           />
           <div className="hidden lg:block font-semibold text-gray-700 text-lg">
-            Bảng Điều Khiển
+            QUẢN TRỊ BÁC SĨ
           </div>
           <Dropdown
             menu={{ items: userMenuItems }}

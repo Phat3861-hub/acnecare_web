@@ -350,7 +350,7 @@ const ManageAvailability = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-gray-800 m-0">
-              Đăng ký lịch rảnh
+              Thêm thời gian làm việc
             </h2>
             <p className="text-gray-500 m-0 mt-1 text-sm md:text-base">
               Nhấp vào một ngày trên lịch để xem và cấu hình khung giờ trống.
@@ -363,7 +363,7 @@ const ManageAvailability = () => {
             onClick={() => handleAddNew(selectedDate)}
             className="bg-indigo-600 shadow-md hover:shadow-lg transition-all w-full sm:w-auto"
           >
-            Thêm lịch rảnh
+            Thêm lịch
           </Button>
         </div>
 
@@ -497,13 +497,14 @@ const ManageAvailability = () => {
         <Modal
           title={
             <span className="text-lg md:text-xl font-bold">
-              {editingId ? "Cập nhật lịch rảnh" : "Đăng ký lịch rảnh mới"}
+              {editingId
+                ? "Cập nhật lịch làm việc"
+                : "Đăng ký lịch làm việc mới"}
             </span>
           }
           open={isModalOpen}
           onCancel={() => setIsModalOpen(false)}
           footer={null}
-          destroyOnClose
           zIndex={1050}
           style={{ padding: "0 10px" }}
           centered
@@ -545,8 +546,8 @@ const ManageAvailability = () => {
               ]}
               extra={
                 <span className="text-xs text-orange-500">
-                  *Nếu Giờ kết thúc bé hơn Giờ bắt đầu, hệ thống sẽ tự động vắt
-                  sang ngày hôm sau.
+                  *Lưu ý: Nếu khung giờ kết thúc trước hoặc bằng giờ bắt đầu, hệ
+                  thống sẽ tự động hiểu là qua ngày hôm sau.
                 </span>
               }
             >

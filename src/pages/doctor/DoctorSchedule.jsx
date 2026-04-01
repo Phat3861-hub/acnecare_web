@@ -11,6 +11,7 @@ import {
   Input,
 } from "antd";
 import dayjs from "dayjs";
+import "dayjs/locale/vi";
 import {
   fetchDoctorSchedule,
   updateStatus,
@@ -18,7 +19,7 @@ import {
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { Link } from "react-router-dom";
-
+import locale from "antd/es/date-picker/locale/vi_VN";
 const { Option } = Select;
 
 const DoctorSchedule = () => {
@@ -169,7 +170,7 @@ const DoctorSchedule = () => {
                   onClick={() => onSelectDate(day)}
                 >
                   <div className="text-[10px] md:text-[11px] text-gray-500 font-bold tracking-wider uppercase">
-                    {day.format("ddd")}
+                    {day.locale("vi").format("ddd")}
                   </div>
                   <div
                     className={`text-base md:text-lg font-bold mt-1 w-7 h-7 md:w-8 md:h-8 flex items-center justify-center mx-auto rounded-full ${
@@ -500,7 +501,7 @@ const DoctorSchedule = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 gap-4">
           <div className="flex flex-wrap items-center gap-4 md:gap-6 w-full md:w-auto">
             <h2 className="text-xl md:text-2xl font-bold text-gray-900 m-0">
-              Schedule
+              Lịch làm việc
             </h2>
 
             <div className="bg-gray-200/60 p-1 rounded-lg flex text-sm shadow-inner w-full sm:w-auto">
@@ -512,7 +513,7 @@ const DoctorSchedule = () => {
                     : "text-gray-500 hover:text-gray-700"
                 }`}
               >
-                Week
+                Tuần
               </button>
               <button
                 onClick={() => setViewMode("month")}
@@ -522,7 +523,7 @@ const DoctorSchedule = () => {
                     : "text-gray-500 hover:text-gray-700"
                 }`}
               >
-                Month
+                Tháng
               </button>
             </div>
           </div>
@@ -550,8 +551,8 @@ const DoctorSchedule = () => {
                   </svg>
                 </button>
                 <span className="mx-2 md:mx-4 text-xs md:text-sm font-semibold text-gray-700 truncate">
-                  {weekDays[0].format("MMM D")} -{" "}
-                  {weekDays[6].format("MMM D, YYYY")}
+                  {weekDays[0].locale("vi").format("D [Thg] M")} -{" "}
+                  {weekDays[6].locale("vi").format("D [Thg] M, YYYY")}
                 </span>
                 <button
                   onClick={() => setCurrentDate((prev) => prev.add(1, "week"))}
@@ -579,7 +580,11 @@ const DoctorSchedule = () => {
           {viewMode === "month" ? (
             <div className="p-2 md:p-4 overflow-x-auto custom-scrollbar">
               <div className="min-w-[600px] lg:min-w-full">
-                <Calendar cellRender={cellRender} onSelect={onSelectDate} />
+                <Calendar
+                  locale={locale}
+                  cellRender={cellRender}
+                  onSelect={onSelectDate}
+                />
               </div>
             </div>
           ) : (

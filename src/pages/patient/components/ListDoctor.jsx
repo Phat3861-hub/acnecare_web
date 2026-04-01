@@ -1,21 +1,27 @@
 import React, { useEffect } from "react";
-import { Button, Spin, Row, Col, message } from "antd";
-import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { Button, Spin, Row, Col, message, Typography } from "antd";
+import {
+  LeftOutlined,
+  RightOutlined,
+  ArrowRightOutlined,
+} from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchActiveDoctors } from "../../../store/slice/DoctorSlice";
 import { useNavigate } from "react-router-dom";
+
+const { Title, Text } = Typography;
 
 const ListDoctor = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const { activeDoctors, loading } = useSelector((state) => state.doctor);
-  // Lấy thêm state user từ Redux để kiểm tra đăng nhập
   const { user } = useSelector((state) => state.user);
+
+  const BRAND_COLOR = "#8C52FF"; // Mã màu thương hiệu của Trinh
 
   const getImageUrl = (url) => {
     if (!url) return null;
-
     const baseUrl = import.meta.env.VITE_BACKEND_URL;
 
     if (url.startsWith("http")) {
@@ -31,11 +37,9 @@ const ListDoctor = () => {
     }
 
     const cleanPath = url.startsWith("/") ? url : `/${url}`;
-
     if (cleanPath.startsWith("/api/")) {
       return `${baseUrl}${cleanPath}`;
     }
-
     return `${baseUrl}/api${cleanPath}`;
   };
 
@@ -43,19 +47,13 @@ const ListDoctor = () => {
     dispatch(fetchActiveDoctors());
   }, [dispatch]);
 
-  // LOGIC XỬ LÝ CLICK ĐẶT LỊCH
   const handleBookAppointment = (doctorId) => {
-    // 1. Kiểm tra xem có user trong Redux hoặc localStorage không
     const isLogged = user || localStorage.getItem("userInfo");
-
-    // 2. Nếu chưa đăng nhập
     if (!isLogged) {
       message.warning("Vui lòng đăng nhập để tiến hành đặt lịch khám!");
       navigate("/auth/login");
       return;
     }
-
-    // 3. Nếu đã đăng nhập, chuyển sang trang đặt lịch
     navigate(`/book-appointment/${doctorId}`);
   };
 
@@ -67,67 +65,85 @@ const ListDoctor = () => {
     );
 
   return (
-    <div className="py-16 px-4 md:px-12 lg:px-24 bg-white">
-      <div className="text-center max-w-2xl mx-auto mb-12">
-        <h2 className="text-3xl md:text-4xl font-black text-[#1e255e] mb-4">
-          Bảng xếp hạng bác sĩ da liễu xuất sắc
+    <div className="py-20 px-4 md:px-12 lg:px-24 bg-[#fcfcfc]">
+      {/* Tiêu đề phần Bác sĩ */}
+      <div className="text-center max-w-2xl mx-auto mb-16">
+        <h2
+          className="text-3xl md:text-4xl font-black mb-4 tracking-tight"
+          style={{ color: "#1a1b3a" }}
+        >
+          Đội ngũ <span style={{ color: BRAND_COLOR }}>Chuyên gia</span> xuất
+          sắc
         </h2>
-        <p className="text-gray-500 text-sm md:text-base">
-          Điểm qua các bác sĩ da liễu được đánh giá cao dựa trên hiệu quả điều
-          trị và phản hồi tích cực từ bệnh nhân, giúp bạn dễ dàng lựa chọn bác
-          sĩ phù hợp.
+        <p className="text-gray-500 text-sm md:text-base font-medium">
+          Kết nối trực tiếp với các bác sĩ da liễu đầu ngành. Dựa trên hiệu quả
+          điều trị và phản hồi thực tế từ hàng nghìn bệnh nhân.
         </p>
       </div>
 
-      <Row gutter={[24, 40]} justify="center">
+      <Row gutter={[32, 48]} justify="center">
         {activeDoctors.slice(0, 4).map((doc) => (
           <Col xs={24} sm={12} md={6} key={doc.id}>
             <div
               className="flex flex-col items-center group cursor-pointer"
-              onClick={() => handleBookAppointment(doc.id)} // Gắn sự kiện click vào đây
+              onClick={() => handleBookAppointment(doc.id)}
             >
-              {/* Ảnh bác sĩ */}
-              <div className="w-full aspect-[3/4] overflow-hidden bg-[#e0f0ff] rounded-sm mb-4">
+              {/* Khung ảnh bác sĩ với Border Radius lớn hơn cho mềm mại */}
+              <div className="w-full aspect-[3/4] overflow-hidden bg-[#f3f0ff] rounded-[24px] mb-5 shadow-sm transition-all duration-500 group-hover:shadow-2xl group-hover:shadow-purple-200 relative">
                 <img
-                  // ĐÃ SỬA: Dùng getImageUrl để bọc url của ảnh lại
                   src={
                     doc.avatarUrl
                       ? getImageUrl(doc.avatarUrl)
                       : "https://i.pravatar.cc/300"
                   }
                   alt={`Dr. ${doc.lastName}`}
-                  className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                  className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-110"
                 />
+
+                {/* Lớp phủ khi hover */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#8C52FF]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                {/* Badge nhỏ khi hover */}
+                <div className="absolute bottom-4 right-4 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+                  <div className="bg-white p-2 rounded-full shadow-lg text-[#8C52FF]">
+                    <ArrowRightOutlined />
+                  </div>
+                </div>
               </div>
-              <h3 className="text-lg font-bold text-[#1e255e] m-0">
+
+              <h3
+                className="text-xl font-bold m-0 transition-colors"
+                style={{ color: "#1a1b3a" }}
+              >
                 Dr. {doc.firstName} {doc.lastName}
               </h3>
-              <p className="text-gray-500 text-sm mt-1 m-0">
-                HUTECH University
+              <p className="text-gray-400 text-sm mt-1 m-0 font-bold uppercase tracking-widest">
+                Chuyên khoa Da liễu
               </p>
             </div>
           </Col>
         ))}
+
         {activeDoctors.length === 0 && !loading && (
-          <div className="text-center w-full text-gray-500">
+          <div className="text-center w-full text-gray-400 italic py-10">
             Hiện chưa có bác sĩ nào đang hoạt động.
           </div>
         )}
       </Row>
 
-      {/* Nút điều hướng Carousel */}
-      <div className="flex justify-center gap-4 mt-12">
+      {/* Nút điều hướng Carousel - Cập nhật màu Tím */}
+      <div className="flex justify-center gap-6 mt-16">
         <Button
           shape="circle"
           size="large"
           icon={<LeftOutlined />}
-          className="border-gray-400 text-gray-600"
+          className="hover:!border-[#8C52FF] hover:!text-[#8C52FF] border-gray-200 text-gray-400 shadow-sm"
         />
         <Button
           shape="circle"
           size="large"
           icon={<RightOutlined />}
-          className="border-gray-400 text-gray-600"
+          className="!bg-[#8C52FF] !border-[#8C52FF] !text-white shadow-lg shadow-purple-200 hover:brightness-110"
         />
       </div>
     </div>

@@ -13,7 +13,7 @@ const HomeHero = () => {
         className="absolute right-0 top-0 w-full md:w-2/3 h-full bg-cover bg-center bg-no-repeat z-0"
         style={{
           backgroundImage:
-            "url('https://images.unsplash.com/photo-1556228578-0d85b1a4d571?q=80&w=1000&auto=format&fit=crop')",
+            "url('https://t4.ftcdn.net/jpg/04/27/45/51/360_F_427455122_aQgSpwmeamkvYvuNkb8dhnSg5LZcGCsh.jpg')",
           maskImage: "linear-gradient(to right, transparent, black 40%)",
           WebkitMaskImage: "linear-gradient(to right, transparent, black 40%)",
         }}
