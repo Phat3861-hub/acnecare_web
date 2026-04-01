@@ -80,27 +80,28 @@ const ManageProduct = () => {
   const [thumbnailFileList, setThumbnailFileList] = useState([]);
   const [imageFileList, setImageFileList] = useState([]);
 
-  // ĐÃ THÊM: Hàm xử lý URL ảnh chuẩn xác cho môi trường thực tế
   const getImageUrl = (url) => {
-    if (!url) return null;
-    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+  if (!url) return null;
 
-    // 1. Chuyển IP cũ thành HTTPS mới
-    if (url.includes("203.145.47.214:5173")) {
-      return url.replace("http://203.145.47.214:5173", baseUrl);
+  const baseUrl = import.meta.env.VITE_BACKEND_URL; 
+
+  if (url.startsWith("http")) {
+    if (url.includes("203.145.47.214") || url.includes("https://acnecare.io.vn/api/")) {
+      const parts = url.split("/api/");
+      const path = "/api/" + parts[parts.length - 1];
+      return `${baseUrl}${path}`;
     }
+    return url;
+  }
 
-    // 2. Link ngoài chuẩn thì giữ nguyên
-    if (url.startsWith("http")) return url;
+  const cleanPath = url.startsWith("/") ? url : `/${url}`;
+  
+  if (cleanPath.startsWith("/api/")) {
+    return `${baseUrl}${cleanPath}`;
+  }
 
-    // 3. Xử lý link tương đối (nối thêm backend url, tránh trùng /api/)
-    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
-    if (cleanUrl.startsWith("/api/")) {
-      return `${baseUrl}${cleanUrl}`;
-    }
-
-    return `${baseUrl}/api${cleanUrl}`;
-  };
+  return `${baseUrl}/api${cleanPath}`;
+};
 
   useEffect(() => {
     dispatch(fetchProducts());
