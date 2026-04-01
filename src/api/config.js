@@ -5,7 +5,6 @@ import { message } from "antd";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
 export const http = axios.create({
-  // SỬA LỖI 1: Gọi thẳng tới domain Backend, bỏ dấu "/" ở cuối
   baseURL: `${BACKEND_URL}/api`,
   withCredentials: true,
   timeout: 10000,

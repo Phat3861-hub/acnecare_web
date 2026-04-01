@@ -173,29 +173,24 @@ const BookAppointment = () => {
 
     const baseDate = selectedDate.format("YYYY-MM-DD");
     let currentSlot = dayjs(`${baseDate}T08:00:00`);
-    const endOfDay = dayjs(`${baseDate}T17:00:00`);
+    const endOfDay = dayjs(`${baseDate}T18:00:00`);
 
     // Dùng durationMinutes từ chính Dịch vụ mà bệnh nhân đã chọn (Mặc định 30p nếu ko có)
     const duration = selectedServiceObj.durationMinutes || 30;
 
     while (currentSlot.isBefore(endOfDay)) {
       const slotStart = currentSlot;
-      const slotEnd = currentSlot.add(duration, "minute");
 
-      const isAvailable = availableSchedules.some((schedule) => {
-        const schStart = dayjs(schedule.startTime);
-        const schEnd = dayjs(schedule.endTime);
-        return (
-          (slotStart.isSame(schStart) || slotStart.isAfter(schStart)) &&
-          (slotEnd.isSame(schEnd) || slotEnd.isBefore(schEnd))
-        );
-      });
+      // Thêm điều kiện: Nếu là hôm nay thì chỉ hiện những giờ chưa tới
+      const isPast =
+        selectedDate.isSame(dayjs(), "day") && slotStart.isBefore(dayjs());
 
-      if (isAvailable) {
+      if (isAvailable && !isPast) {
+        // Chỉ push nếu giờ đó chưa trôi qua
         slots.push(slotStart.format("YYYY-MM-DDTHH:mm:00"));
       }
 
-      currentSlot = slotStart.add(30, "minute"); // Cứ mỗi 30p vẽ 1 nút
+      currentSlot = slotStart.add(30, "minute");
     }
     return slots;
   };
@@ -358,7 +353,7 @@ const BookAppointment = () => {
               value={selectedDate}
               onChange={(date) => setSelectedDate(date || dayjs())}
               disabledDate={(current) =>
-                current && current < dayjs().startOf("day")
+                current && current.isBefore(dayjs(), "day")
               }
               allowClear={false}
               format="DD/MM/YYYY"

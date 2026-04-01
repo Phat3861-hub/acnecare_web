@@ -4,14 +4,14 @@ import { postService } from "../../services/PostService";
 // --- Async Thunks ---
 
 export const fetchAllPosts = createAsyncThunk(
-  "post/fetchAllPosts",
-  async (_, { rejectWithValue }) => {
+  "post/fetchAll",
+  // Nhận page và size từ UI truyền xuống, mặc định page 0, size 5
+  async ({ page = 0, size = 5 } = {}, thunkAPI) => {
     try {
-      const res = await postService.getAllPosts();
-      // Trả về mảng result từ cấu trúc API của bạn
-      return res.data?.result || res.result || [];
+      const response = await postService.getAllPosts(page, size);
+      return response.data.result; // Trả về PagedResponse { content, totalPages, page, ... }
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || error.message);
+      return thunkAPI.rejectWithValue(error.response?.data?.message);
     }
   },
 );
@@ -52,7 +52,6 @@ export const createCommentThunk = createAsyncThunk(
   },
 );
 
-//
 export const updatePostThunk = createAsyncThunk(
   "post/updatePost",
   async ({ userId, postId, data }, { rejectWithValue }) => {
@@ -88,7 +87,7 @@ export const uploadPostImagesThunk = createAsyncThunk(
     }
   },
 );
-//
+
 export const createPostThunk = createAsyncThunk(
   "post/createPost",
   async ({ userId, data }, { rejectWithValue }) => {
@@ -100,7 +99,7 @@ export const createPostThunk = createAsyncThunk(
     }
   },
 );
-//
+
 export const updateCommentThunk = createAsyncThunk(
   "post/updateComment",
   async ({ postId, commentId, data }, { rejectWithValue }) => {
@@ -124,6 +123,7 @@ export const deleteCommentThunk = createAsyncThunk(
     }
   },
 );
+
 // --- Slice ---
 
 const postSlice = createSlice({
@@ -132,6 +132,7 @@ const postSlice = createSlice({
     posts: [],
     isLoading: false,
     message: "",
+    totalPages: 0, // 🚨 Thêm trạng thái lưu tổng số trang để UI xử lý Infinite Loading
   },
   reducers: {
     // Các action đồng bộ dùng cho WebSocket để cập nhật UI realtime
@@ -186,8 +187,7 @@ const postSlice = createSlice({
           user: oldPost.user,
           postsImage: oldPost.postsImage,
 
-          // Các thông số đếm cũng giữ nguyên của state hiện tại,
-          // vì việc like/comment có luồng socket riêng quản lý rồi
+          // Các thông số đếm cũng giữ nguyên của state hiện tại
           comments: oldPost.comments,
           likesCount: oldPost.likesCount,
           commentsCount: oldPost.commentsCount,
@@ -228,7 +228,26 @@ const postSlice = createSlice({
       })
       .addCase(fetchAllPosts.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.posts = action.payload;
+
+        // Bóc tách dữ liệu từ PagedResponse của Backend
+        const { content, totalPages, page } = action.payload;
+
+        if (page === 0) {
+          // Nếu load trang 0 (chạy lần đầu hoặc F5), ghi đè lại toàn bộ state
+          state.posts = content;
+        } else {
+          // Lọc ra các bài viết mới (để tránh bị trùng lặp ID khi Backend thêm dữ liệu song song)
+          const existingPostIds = new Set(state.posts.map((post) => post.id));
+          const newPosts = content.filter(
+            (post) => !existingPostIds.has(post.id),
+          );
+
+          // Cộng dồn bài viết mới vào danh sách hiện tại
+          state.posts = [...state.posts, ...newPosts];
+        }
+
+        // Cập nhật tổng số trang để UI nhận biết
+        state.totalPages = totalPages;
       })
       .addCase(fetchAllPosts.rejected, (state, action) => {
         state.isLoading = false;
@@ -262,6 +281,7 @@ export const {
   addImagesRealtime,
   removeImageRealtime,
   toggleLikeLocal,
+  setPosts, // Export thêm cái này nếu ở ngoài cần dùng
 } = postSlice.actions;
 
 export default postSlice.reducer;
