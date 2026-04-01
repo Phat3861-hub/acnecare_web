@@ -5,7 +5,6 @@ import { postService } from "../../services/PostService";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 
-// Import Ant Design components
 import {
   Layout,
   Card,
@@ -22,7 +21,6 @@ import {
   Empty,
 } from "antd";
 
-// Import các thunk từ PostSlice
 import {
   updateCommentThunk,
   deleteCommentThunk,
@@ -32,6 +30,18 @@ const { Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
+// Thêm hàm lấy cookie để lấy token
+const getCookie = (name) => {
+  try {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
+    return null;
+  } catch (error) {
+    return null;
+  }
+};
+
 const PostComment = () => {
   const { id: postId } = useParams();
   const navigate = useNavigate();
@@ -40,9 +50,6 @@ const PostComment = () => {
 
   const { user } = useSelector((state) => state.user);
 
-  // ==========================================
-  // 🚨 XÁC ĐỊNH ROLE ĐỂ ĐIỀU HƯỚNG QUAY LẠI CHO ĐÚNG
-  // ==========================================
   let currentUserId = user?.id;
   let currentUserRole = user?.role;
 
@@ -63,7 +70,7 @@ const PostComment = () => {
     if (currentUserRole === "ADMIN") return "/admin";
     if (currentUserRole === "DOCTOR") return "/doctor";
     if (currentUserRole === "BRAND") return "/brand";
-    return ""; // Mặc định cho Patient
+    return "";
   };
   const baseRoute = getBaseRoute();
 
@@ -77,9 +84,7 @@ const PostComment = () => {
 
   const getImageUrl = (url) => {
     if (!url) return null;
-
     const baseUrl = import.meta.env.VITE_BACKEND_URL;
-
     if (url.startsWith("http")) {
       if (
         url.includes("203.145.47.214") ||
@@ -91,17 +96,11 @@ const PostComment = () => {
       }
       return url;
     }
-
     const cleanPath = url.startsWith("/") ? url : `/${url}`;
-
-    if (cleanPath.startsWith("/api/")) {
-      return `${baseUrl}${cleanPath}`;
-    }
-
+    if (cleanPath.startsWith("/api/")) return `${baseUrl}${cleanPath}`;
     return `${baseUrl}/api${cleanPath}`;
   };
 
-  // 1. TẢI DỮ LIỆU BÀI VIẾT BAN ĐẦU
   useEffect(() => {
     const fetchPostDetails = async () => {
       try {
@@ -118,21 +117,23 @@ const PostComment = () => {
       }
     };
 
-    if (postId) {
-      fetchPostDetails();
-    }
+    if (postId) fetchPostDetails();
   }, [postId]);
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  // 2. THIẾT LẬP KẾT NỐI WEBSOCKET
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL || "http://localhost:9090";
+
   useEffect(() => {
     if (!postId) return;
 
+    // Lấy Token để xác thực qua WebSocket
+    const currentToken = getCookie("accessToken");
+
     const client = new Client({
-      webSocketFactory: () =>
-        new SockJS(`${backendUrl}/api/ws`, null, {
-          withCredentials: true,
-        }),
+      webSocketFactory: () => new SockJS(`${backendUrl}/api/ws`),
+      connectHeaders: currentToken
+        ? { Authorization: `Bearer ${currentToken}` }
+        : {}, // Quan trọng: Auth Header
       reconnectDelay: 5000,
       onConnect: () => {
         client.subscribe(`/topic/posts/${postId}/comments`, (msg) => {
@@ -192,7 +193,7 @@ const PostComment = () => {
     stompClientRef.current = client;
 
     return () => stompClientRef.current?.deactivate();
-  }, [postId]);
+  }, [postId, backendUrl]);
 
   const formatDate = (dateString) => {
     if (!dateString) return "Không rõ thời gian";
@@ -204,7 +205,6 @@ const PostComment = () => {
     return `${firstName || ""} ${lastName || ""}`.trim();
   };
 
-  // 3. XÓA BÌNH LUẬN
   const handleDeleteComment = (commentId) => {
     Modal.confirm({
       title: (
@@ -232,7 +232,6 @@ const PostComment = () => {
     });
   };
 
-  // 4. SỬA BÌNH LUẬN
   const handleStartEdit = (comment) => {
     setEditingCommentId(comment.id);
     setEditContent(comment.commentContent);
@@ -262,7 +261,6 @@ const PostComment = () => {
           data: { commentContent: editContent.trim() },
         }),
       ).unwrap();
-
       setEditingCommentId(null);
       antdMessage.success("Cập nhật thành công.");
     } catch (error) {
@@ -288,7 +286,7 @@ const PostComment = () => {
             {pageError || "Không tìm thấy bài viết."}
           </Text>
           <Button
-            onClick={() => navigate(`${baseRoute}/posts`)} // 🚨 ĐÃ SỬA
+            onClick={() => navigate(`${baseRoute}/posts`)}
             className="bg-blue-600 text-white border-none font-bold px-6"
           >
             Quay lại bảng tin
@@ -301,24 +299,21 @@ const PostComment = () => {
   return (
     <Layout className="min-h-screen bg-slate-50 py-6 px-4">
       <Content className="max-w-3xl mx-auto w-full flex flex-col gap-6 relative">
-        {/* Lớp phủ ngăn thao tác khi đang gọi API sửa/xóa */}
         {isProcessing && (
           <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-50 rounded-2xl flex items-center justify-center">
             <Spin tip="Đang xử lý..." />
           </div>
         )}
 
-        {/* Nút quay lại */}
         <div>
           <Button
-            onClick={() => navigate(-1)} // navigate(-1) sẽ tự động quay lại trang trước đó bất kể Role nào
+            onClick={() => navigate(-1)}
             className="bg-white border-slate-200 text-slate-600 font-medium rounded-lg hover:text-blue-600 hover:border-blue-400"
           >
             Quay lại bảng tin
           </Button>
         </div>
 
-        {/* CHI TIẾT BÀI VIẾT */}
         <Card
           className="rounded-2xl shadow-sm border-slate-200"
           bodyStyle={{ padding: "24px" }}
@@ -334,7 +329,6 @@ const PostComment = () => {
             <span className="mx-2">•</span>
             {formatDate(post.createdAt)}
           </div>
-
           <Paragraph className="text-slate-700 text-base leading-relaxed whitespace-pre-wrap">
             {post.postContent}
           </Paragraph>
@@ -355,9 +349,7 @@ const PostComment = () => {
               </Image.PreviewGroup>
             </div>
           )}
-
           <Divider className="my-4" />
-
           <div className="flex justify-between items-center text-slate-600 text-sm font-medium">
             <div>
               <Text strong className="text-blue-600 text-base">
@@ -374,7 +366,6 @@ const PostComment = () => {
           </div>
         </Card>
 
-        {/* DANH SÁCH BÌNH LUẬN */}
         <Card
           className="rounded-2xl shadow-sm border-slate-200"
           bodyStyle={{ padding: "24px" }}
@@ -420,7 +411,6 @@ const PostComment = () => {
                         <Text strong className="text-slate-800">
                           {fullName}
                         </Text>
-
                         <Space size={16} className="ml-2">
                           <Text className="text-xs text-slate-400">
                             {formatDate(comment.createAt || comment.createdAt)}
