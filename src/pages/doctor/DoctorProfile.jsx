@@ -57,23 +57,28 @@ const DoctorProfile = () => {
   // ĐÃ SỬA: Đồng bộ hàm getImageUrl thông minh để fix triệt để lỗi 400 và Mixed Content
   const getImageUrl = (url) => {
     if (!url) return null;
+
     const baseUrl = import.meta.env.VITE_BACKEND_URL;
 
-    // 1. Tự động chuyển đổi IP cũ thành Domain HTTPS mới
-    if (url.includes("203.145.47.214:5173")) {
-      return url.replace("http://203.145.47.214:5173", baseUrl);
+    if (url.startsWith("http")) {
+      if (
+        url.includes("203.145.47.214") ||
+        url.includes("https://acnecare.io.vn/api/")
+      ) {
+        const parts = url.split("/api/");
+        const path = "/api/" + parts[parts.length - 1];
+        return `${baseUrl}${path}`;
+      }
+      return url;
     }
 
-    // 2. Trả về nguyên bản nếu là link ngoài đã chuẩn HTTP/HTTPS
-    if (url.startsWith("http")) return url;
+    const cleanPath = url.startsWith("/") ? url : `/${url}`;
 
-    // 3. Xử lý đường dẫn tương đối, chống lỗi nối trùng chữ /api/api
-    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
-    if (cleanUrl.startsWith("/api/")) {
-      return `${baseUrl}${cleanUrl}`;
+    if (cleanPath.startsWith("/api/")) {
+      return `${baseUrl}${cleanPath}`;
     }
 
-    return `${baseUrl}/api${cleanUrl}`;
+    return `${baseUrl}/api${cleanPath}`;
   };
 
   // Load cả 2 dữ liệu: User Info và Doctor Profile
