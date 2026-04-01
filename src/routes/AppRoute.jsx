@@ -545,6 +545,38 @@ const AppRoutes = () => {
             </Suspense>
           ),
         },
+        {
+          path: "posts",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <PostPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: "posts/:id",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <PostCommentPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: "createpost",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <CreatePostPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: "editpost/:postId",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <EditPostPage />
+            </Suspense>
+          ),
+        },
       ],
     },
 

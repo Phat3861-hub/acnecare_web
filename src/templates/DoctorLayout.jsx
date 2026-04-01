@@ -14,7 +14,7 @@ import {
   LogoutOutlined,
   UserOutlined,
   CloseOutlined,
-  MessageOutlined, // Thêm Icon Chat
+  MessageOutlined,
 } from "@ant-design/icons";
 
 const { Header, Sider, Content } = Layout;
@@ -66,7 +66,7 @@ const DoctorLayout = () => {
       label: <Link to="/doctor/treatment-cases">Quản lý ca điều trị</Link>,
     },
     {
-      key: "/doctor/chat", // MENU CHAT DÀNH CHO BÁC SĨ
+      key: "/doctor/chat",
       icon: <MessageOutlined />,
       label: <Link to="/doctor/chat">Tin nhắn</Link>,
     },
@@ -94,6 +94,11 @@ const DoctorLayout = () => {
       key: "/doctor/consultation-services",
       icon: <AppstoreOutlined />,
       label: <Link to="/doctor/consultation-services">Quản lý dịch vụ</Link>,
+    },
+    {
+      key: "/doctor/posts",
+      icon: <TeamOutlined />,
+      label: <Link to="/doctor/posts">Cộng đồng</Link>,
     },
   ];
 
@@ -170,11 +175,14 @@ const DoctorLayout = () => {
             </div>
           </Dropdown>
         </Header>
-        <Content className="flex-1 overflow-y-auto bg-gray-50/50 p-4 md:p-6 lg:p-8 relative">
-          <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 min-h-full transition-all">
+
+        {/* 👇 ĐÃ CHỈNH SỬA PHẦN NÀY 👇 */}
+        <Content className="flex-1 flex flex-col overflow-hidden bg-gray-50/50 p-4 md:p-6 lg:p-8 relative">
+          <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex-1 overflow-y-auto transition-all">
             <Outlet />
           </div>
         </Content>
+        {/* 👆 ĐÃ CHỈNH SỬA PHẦN NÀY 👆 */}
       </Layout>
     </Layout>
   );

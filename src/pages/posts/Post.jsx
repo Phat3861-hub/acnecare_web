@@ -66,7 +66,7 @@ const Post = () => {
   const subscribedPostsRef = useRef(new Set());
   const [isStompConnected, setIsStompConnected] = useState(false);
   const observer = useRef();
-
+  const lockingPostsRef = useRef(new Set());
   const { user } = useSelector((state) => state.user);
   const {
     posts,
@@ -239,12 +239,21 @@ const Post = () => {
   }, [posts, isStompConnected, dispatch]);
 
   const handleToggleLike = async (postId, currentIsLiked) => {
+    if (lockingPostsRef.current.has(postId)) {
+      return;
+    }
+
+    lockingPostsRef.current.add(postId);
+
     dispatch(toggleLikeLocal({ postId, isLiked: !currentIsLiked }));
+
     try {
       await dispatch(toggleLikeThunk(postId)).unwrap();
     } catch (error) {
       dispatch(toggleLikeLocal({ postId, isLiked: currentIsLiked }));
       antdMessage.error("Lỗi tương tác");
+    } finally {
+      lockingPostsRef.current.delete(postId);
     }
   };
 
