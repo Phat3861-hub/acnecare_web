@@ -6,7 +6,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
 export const http = axios.create({
   // SỬA LỖI 1: Gọi thẳng tới domain Backend, bỏ dấu "/" ở cuối
-  baseURL: `${BACKEND_URL}/api`, 
+  baseURL: `${BACKEND_URL}/api`,
   withCredentials: true,
   timeout: 10000,
   headers: {
@@ -15,6 +15,7 @@ export const http = axios.create({
   },
 });
 
+console.log("BACKEND_URL:", BACKEND_URL);
 let refreshTokenRequest = null;
 
 http.interceptors.response.use(
@@ -37,7 +38,7 @@ http.interceptors.response.use(
         refreshTokenRequest = axios
           .post(
             // SỬA LỖI 2: Viết rõ ràng đường dẫn tuyệt đối, không sợ bị double slash
-            `${BACKEND_URL}/api/auth/refresh`, 
+            `${BACKEND_URL}/api/auth/refresh`,
             {},
             {
               withCredentials: true,
@@ -54,7 +55,7 @@ http.interceptors.response.use(
             message.error(
               "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!",
             );
-            
+
             // Lời khuyên: Nếu bạn có lưu thông tin user trong localStorage/sessionStorage
             // thì nên clear nó ở đây trước khi đẩy về trang login.
             // Ví dụ: localStorage.removeItem("userInfo");

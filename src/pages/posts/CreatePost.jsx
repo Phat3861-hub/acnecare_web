@@ -46,6 +46,28 @@ const Createpost = () => {
   const [imagePreviews, setImagePreviews] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // ĐÃ THÊM: Hàm xử lý URL ảnh chuẩn xác cho môi trường thực tế
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+    // 1. Chuyển IP cũ thành HTTPS mới
+    if (url.includes("203.145.47.214:5173")) {
+      return url.replace("http://203.145.47.214:5173", baseUrl);
+    }
+
+    // 2. Link ngoài chuẩn thì giữ nguyên
+    if (url.startsWith("http")) return url;
+
+    // 3. Xử lý link tương đối (nối thêm backend url, tránh trùng /api/)
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    if (cleanUrl.startsWith("/api/")) {
+      return `${baseUrl}${cleanUrl}`;
+    }
+
+    return `${baseUrl}/api${cleanUrl}`;
+  };
+
   // 1. TỰ ĐỘNG TẢI DỮ LIỆU NẾU LÀ CHẾ ĐỘ SỬA
   useEffect(() => {
     if (isEditMode) {
@@ -279,7 +301,8 @@ const Createpost = () => {
                           className="relative group aspect-square opacity-80"
                         >
                           <Image
-                            src={url}
+                            // ĐÃ SỬA: Bọc hàm getImageUrl
+                            src={getImageUrl(url)}
                             className="w-full h-full object-cover rounded-lg border shadow-sm"
                             preview={false}
                           />

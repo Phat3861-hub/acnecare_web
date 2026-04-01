@@ -80,6 +80,28 @@ const ManageProduct = () => {
   const [thumbnailFileList, setThumbnailFileList] = useState([]);
   const [imageFileList, setImageFileList] = useState([]);
 
+  // ĐÃ THÊM: Hàm xử lý URL ảnh chuẩn xác cho môi trường thực tế
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+    // 1. Chuyển IP cũ thành HTTPS mới
+    if (url.includes("203.145.47.214:5173")) {
+      return url.replace("http://203.145.47.214:5173", baseUrl);
+    }
+
+    // 2. Link ngoài chuẩn thì giữ nguyên
+    if (url.startsWith("http")) return url;
+
+    // 3. Xử lý link tương đối (nối thêm backend url, tránh trùng /api/)
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    if (cleanUrl.startsWith("/api/")) {
+      return `${baseUrl}${cleanUrl}`;
+    }
+
+    return `${baseUrl}/api${cleanUrl}`;
+  };
+
   useEffect(() => {
     dispatch(fetchProducts());
     if (categories.length === 0) {
@@ -140,7 +162,8 @@ const ManageProduct = () => {
             uid: "-1",
             name: "thumbnail.png",
             status: "done",
-            url: record.thumbnailUrl,
+            // ĐÃ SỬA: Bọc hàm getImageUrl để ảnh cũ load lên Modal không bị lỗi
+            url: getImageUrl(record.thumbnailUrl),
           },
         ]);
       } else {
@@ -155,7 +178,8 @@ const ManageProduct = () => {
           uid: `-${index + 2}`,
           name: `image-${index}.png`,
           status: "done",
-          url: url.trim(),
+          // ĐÃ SỬA: Bọc hàm getImageUrl
+          url: getImageUrl(url.trim()),
         }));
         setImageFileList(formattedFiles);
       } else {
@@ -263,7 +287,8 @@ const ManageProduct = () => {
         <Avatar
           shape="square"
           size={50} // Giảm size avatar xuống chút để đỡ chiếm chỗ
-          src={url || "https://via.placeholder.com/50"}
+          // ĐÃ SỬA: Bọc hàm getImageUrl
+          src={url ? getImageUrl(url) : "https://via.placeholder.com/50"}
           className="border border-gray-200 shadow-sm"
         />
       ),
@@ -674,9 +699,11 @@ const ManageProduct = () => {
                 <Image
                   width={200}
                   height={200}
+                  // ĐÃ SỬA: Bọc hàm getImageUrl
                   src={
-                    detailProduct.thumbnailUrl ||
-                    "https://via.placeholder.com/200"
+                    detailProduct.thumbnailUrl
+                      ? getImageUrl(detailProduct.thumbnailUrl)
+                      : "https://via.placeholder.com/200"
                   }
                   className="rounded-xl object-cover shadow-md border border-gray-100"
                   fallback="https://via.placeholder.com/200"
@@ -760,7 +787,8 @@ const ManageProduct = () => {
                       key={index}
                       width={100} // Nhỏ lại xíu để nhét được nhiều ảnh trên điện thoại
                       height={100}
-                      src={img.trim()}
+                      // ĐÃ SỬA: Bọc hàm getImageUrl
+                      src={getImageUrl(img.trim())}
                       className="rounded-lg border border-gray-200 object-cover shadow-sm hover:shadow-md transition-shadow cursor-pointer"
                       fallback="https://via.placeholder.com/100"
                     />

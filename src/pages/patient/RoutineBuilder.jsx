@@ -51,6 +51,28 @@ const RoutineBuilder = () => {
     EVENING: [],
   });
 
+  // ĐÃ THÊM: Hàm xử lý URL ảnh chuẩn xác cho môi trường thực tế
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+    // 1. Chuyển đổi IP cũ thành HTTPS mới
+    if (url.includes("203.145.47.214:5173")) {
+      return url.replace("http://203.145.47.214:5173", baseUrl);
+    }
+
+    // 2. Trả về nguyên bản nếu là link ngoài đã chuẩn HTTP/HTTPS
+    if (url.startsWith("http")) return url;
+
+    // 3. Xử lý đường dẫn tương đối, chống lỗi nối trùng chữ /api/api
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    if (cleanUrl.startsWith("/api/")) {
+      return `${baseUrl}${cleanUrl}`;
+    }
+
+    return `${baseUrl}/api${cleanUrl}`;
+  };
+
   useEffect(() => {
     fetchInitialData();
 
@@ -238,8 +260,9 @@ const RoutineBuilder = () => {
                     {index + 1}
                   </div>
                   <img
+                    // ĐÃ SỬA: Chèn hàm getImageUrl vào đây
                     src={
-                      item.product.thumbnailUrl ||
+                      getImageUrl(item.product.thumbnailUrl) ||
                       "https://via.placeholder.com/50"
                     }
                     alt="thumb"
@@ -391,8 +414,9 @@ const RoutineBuilder = () => {
                         className="border rounded-lg p-3 bg-white cursor-grab hover:shadow-md hover:border-blue-400 transition-all flex flex-col items-center text-center"
                       >
                         <img
+                          // ĐÃ SỬA: Chèn hàm getImageUrl vào đây
                           src={
-                            product.thumbnailUrl ||
+                            getImageUrl(product.thumbnailUrl) ||
                             "https://via.placeholder.com/100"
                           }
                           alt={product.name}

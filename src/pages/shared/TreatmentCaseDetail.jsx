@@ -38,7 +38,7 @@ import {
   DeleteOutlined,
   SunOutlined,
   MoonOutlined,
-  EditOutlined, // Thêm icon Edit
+  EditOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -60,22 +60,38 @@ const TreatmentCaseDetail = () => {
   const [submittingPlan, setSubmittingPlan] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
-  // BIẾN QUẢN LÝ CHỈNH SỬA
   const [editingPlanId, setEditingPlanId] = useState(null);
   const [planForm] = Form.useForm();
 
-  // STATE QUẢN LÝ DỮ LIỆU KHO SẢN PHẨM
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
 
-  // STATE QUẢN LÝ DRAG & DROP PHÁC ĐỒ
   const [planSteps, setPlanSteps] = useState({
     MORNING: [],
     AFTERNOON: [],
     EVENING: [],
   });
+
+  // ĐÃ THÊM: Hàm xử lý URL ảnh chuẩn xác cho môi trường thực tế
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+    if (url.includes("203.145.47.214:5173")) {
+      return url.replace("http://203.145.47.214:5173", baseUrl);
+    }
+
+    if (url.startsWith("http")) return url;
+
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    if (cleanUrl.startsWith("/api/")) {
+      return `${baseUrl}${cleanUrl}`;
+    }
+
+    return `${baseUrl}/api${cleanUrl}`;
+  };
 
   useEffect(() => {
     dispatch(fetchCaseById(id));
@@ -84,7 +100,6 @@ const TreatmentCaseDetail = () => {
     };
   }, [dispatch, id]);
 
-  // Lấy dữ liệu sản phẩm khi mở Modal kê phác đồ
   useEffect(() => {
     if (isPlanModalVisible && products.length === 0) {
       fetchProductData();
@@ -119,7 +134,6 @@ const TreatmentCaseDetail = () => {
     setFilteredProducts(result);
   };
 
-  // ==================== LOGIC DRAG & DROP ====================
   const handleDragStart = (e, product) => {
     e.dataTransfer.setData("product", JSON.stringify(product));
   };
@@ -135,7 +149,6 @@ const TreatmentCaseDetail = () => {
     if (productData) {
       const product = JSON.parse(productData);
 
-      // Kiểm tra trùng lặp trong cùng một cữ
       const isExist = planSteps[timeOfDay].find(
         (item) => item.productId === product.id,
       );
@@ -149,7 +162,7 @@ const TreatmentCaseDetail = () => {
           ...prev[timeOfDay],
           {
             uid:
-              Date.now().toString() + Math.random().toString(36).substring(7), // Thêm random để chắc chắn uid là duy nhất
+              Date.now().toString() + Math.random().toString(36).substring(7),
             productId: product.id,
             customName: product.name,
             thumbnailUrl: product.thumbnailUrl,
@@ -163,7 +176,6 @@ const TreatmentCaseDetail = () => {
     }
   };
 
-  // Hàm thêm "Thuốc ngoài" (nhập tay)
   const addCustomItem = (timeOfDay) => {
     setPlanSteps((prev) => ({
       ...prev,
@@ -201,9 +213,6 @@ const TreatmentCaseDetail = () => {
     });
   };
 
-  // ==================== HÀM MỞ MODAL ====================
-
-  // Mở modal tạo mới
   const handleOpenCreateModal = () => {
     setEditingPlanId(null);
     planForm.resetFields();
@@ -211,19 +220,16 @@ const TreatmentCaseDetail = () => {
     setIsPlanModalVisible(true);
   };
 
-  // Mở modal chỉnh sửa (Nạp dữ liệu từ phác đồ cũ vào form)
   const handleEditPlan = () => {
     const latestPlan = currentCase.treatmentPlans[0];
     if (!latestPlan) return;
 
     setEditingPlanId(latestPlan.id);
 
-    // Nạp ghi chú
     planForm.setFieldsValue({
       notes: latestPlan.notes || "",
     });
 
-    // Nạp danh sách sản phẩm
     const steps = { MORNING: [], AFTERNOON: [], EVENING: [] };
 
     latestPlan.items.forEach((item, index) => {
@@ -237,11 +243,10 @@ const TreatmentCaseDetail = () => {
         usageInstruction: item.usageInstruction || "",
         durationDays: item.durationDays || 30,
         isCustom: isCustomItem,
-        stepOrder: item.stepOrder, // Giữ lại stepOrder để sort
+        stepOrder: item.stepOrder,
       });
     });
 
-    // Sắp xếp lại thứ tự theo stepOrder trước khi nạp vào state
     Object.keys(steps).forEach((time) => {
       steps[time].sort((a, b) => a.stepOrder - b.stepOrder);
     });
@@ -250,7 +255,6 @@ const TreatmentCaseDetail = () => {
     setIsPlanModalVisible(true);
   };
 
-  // ==================== SUBMIT API (LƯU & CẬP NHẬT) ====================
   const handleCreatePlan = async () => {
     try {
       const values = await planForm.validateFields();
@@ -298,7 +302,6 @@ const TreatmentCaseDetail = () => {
         items: stepsPayload,
       };
 
-      // Xác định gọi API tạo mới hay cập nhật
       if (editingPlanId) {
         await treatmentPlanService.updatePlan(editingPlanId, payload);
         message.success("Cập nhật phác đồ thành công!");
@@ -307,7 +310,6 @@ const TreatmentCaseDetail = () => {
         message.success("Kê phác đồ thành công!");
       }
 
-      // Reset Modal & Refresh dữ liệu
       setIsPlanModalVisible(false);
       setEditingPlanId(null);
       planForm.resetFields();
@@ -316,7 +318,6 @@ const TreatmentCaseDetail = () => {
     } catch (error) {
       if (error.errorFields) return;
       message.error(error.response?.data?.message || "Lỗi khi lưu phác đồ");
-      console.error("Plan Error:", error);
     } finally {
       setSubmittingPlan(false);
     }
@@ -343,7 +344,6 @@ const TreatmentCaseDetail = () => {
     }
   };
 
-  // Render Vùng Kéo Thả
   const renderDropZone = (title, timeOfDay, icon, bgColor) => (
     <div
       className={`p-4 rounded-xl mb-5 border-2 border-dashed ${bgColor} transition-all duration-300 min-h-[150px]`}
@@ -386,8 +386,10 @@ const TreatmentCaseDetail = () => {
 
                   {!item.isCustom && (
                     <img
+                      // ĐÃ SỬA: Bọc hàm getImageUrl
                       src={
-                        item.thumbnailUrl || "https://via.placeholder.com/50"
+                        getImageUrl(item.thumbnailUrl) ||
+                        "https://via.placeholder.com/50"
                       }
                       alt="thumb"
                       className="w-10 h-10 object-cover rounded border shrink-0"
@@ -530,7 +532,6 @@ const TreatmentCaseDetail = () => {
               </div>
             </div>
 
-            {/* HIỂN THỊ NÚT THIẾT KẾ PHÁC ĐỒ NẾU CHƯA CÓ */}
             {isDoctor && currentCase.status === "ACTIVE" && !latestPlan && (
               <Button
                 type="primary"
@@ -581,7 +582,6 @@ const TreatmentCaseDetail = () => {
           </Descriptions>
         </div>
 
-        {/* ================= KHU VỰC HIỂN THỊ PHÁC ĐỒ ĐIỀU TRỊ ================= */}
         {latestPlan && (
           <div className="bg-gradient-to-r from-purple-50 to-white p-6 md:p-8 rounded-2xl shadow-sm border border-purple-100 mb-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 transform translate-x-10 -translate-y-10"></div>
@@ -598,7 +598,6 @@ const TreatmentCaseDetail = () => {
               </div>
 
               <div className="flex gap-2">
-                {/* BỆNH NHÂN: Nút Áp dụng vào Routine */}
                 {!isDoctor && (
                   <Popconfirm
                     title="Đồng bộ vào Routine?"
@@ -624,7 +623,6 @@ const TreatmentCaseDetail = () => {
                   </Popconfirm>
                 )}
 
-                {/* BÁC SĨ: Nút Chỉnh sửa */}
                 {isDoctor && currentCase.status === "ACTIVE" && (
                   <Button
                     type="primary"
@@ -704,7 +702,6 @@ const TreatmentCaseDetail = () => {
           </div>
         )}
 
-        {/* DÒNG THỜI GIAN CÁC LẦN KHÁM */}
         <h3 className="text-xl font-bold text-gray-800 mb-6 px-2 flex items-center gap-2">
           <ClockCircleOutlined className="text-blue-600" /> Lịch sử Khám & Đánh
           giá
@@ -776,9 +773,6 @@ const TreatmentCaseDetail = () => {
         </div>
       </div>
 
-      {/* ======================================================== */}
-      {/* MODAL BÁC SĨ KÊ / CHỈNH SỬA PHÁC ĐỒ (DRAG & DROP) */}
-      {/* ======================================================== */}
       <Modal
         title={
           <span className="text-xl font-bold text-purple-700 flex items-center gap-2">
@@ -797,7 +791,6 @@ const TreatmentCaseDetail = () => {
         className="custom-plan-modal top-5"
       >
         <Row gutter={[24, 24]} className="mt-4">
-          {/* CỘT TRÁI: Vùng Kéo thả Lịch trình */}
           <Col xs={24} lg={14}>
             <Form
               form={planForm}
@@ -866,7 +859,6 @@ const TreatmentCaseDetail = () => {
             </Form>
           </Col>
 
-          {/* CỘT PHẢI: Tủ Sản Phẩm (Nguồn kéo thả) */}
           <Col xs={24} lg={10}>
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 h-full flex flex-col">
               <Title
@@ -916,8 +908,9 @@ const TreatmentCaseDetail = () => {
                         className="border rounded-lg p-3 bg-white cursor-grab active:cursor-grabbing hover:shadow-md hover:border-purple-400 transition-all flex flex-col items-center text-center group"
                       >
                         <img
+                          // ĐÃ SỬA: Bọc hàm getImageUrl
                           src={
-                            product.thumbnailUrl ||
+                            getImageUrl(product.thumbnailUrl) ||
                             "https://via.placeholder.com/100"
                           }
                           alt={product.name}
