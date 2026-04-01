@@ -48,13 +48,26 @@ const PatientProfile = () => {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // ĐÃ SỬA: Hàm xử lý URL ảnh chuẩn xác cho môi trường thực tế
   const getImageUrl = (url) => {
     if (!url) return null;
-    if (url.startsWith("http")) return url;
-
     const baseUrl = import.meta.env.VITE_BACKEND_URL;
 
-    return `${baseUrl}/api${url}`;
+    // 1. Chuyển đổi IP cũ thành HTTPS mới
+    if (url.includes("203.145.47.214:5173")) {
+      return url.replace("http://203.145.47.214:5173", baseUrl);
+    }
+
+    // 2. Trả về nguyên bản nếu là link ngoài đã chuẩn HTTP/HTTPS
+    if (url.startsWith("http")) return url;
+
+    // 3. Xử lý đường dẫn tương đối, chống lỗi nối trùng chữ /api/api
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    if (cleanUrl.startsWith("/api/")) {
+      return `${baseUrl}${cleanUrl}`;
+    }
+
+    return `${baseUrl}/api${cleanUrl}`;
   };
 
   // 1. Lấy dữ liệu khi vào trang (Cả User Info và Patient Profile)

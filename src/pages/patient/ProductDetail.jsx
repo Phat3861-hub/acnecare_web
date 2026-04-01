@@ -37,6 +37,28 @@ const ProductDetail = () => {
     (state) => state.product,
   );
 
+  // ĐÃ THÊM: Hàm xử lý đường dẫn ảnh để fix lỗi 400 và Mixed Content
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+    // 1. Chuyển đổi IP cũ thành HTTPS mới
+    if (url.includes("203.145.47.214:5173")) {
+      return url.replace("http://203.145.47.214:5173", baseUrl);
+    }
+
+    // 2. Trả về nguyên bản nếu là link ngoài đã chuẩn HTTP/HTTPS
+    if (url.startsWith("http")) return url;
+
+    // 3. Xử lý đường dẫn tương đối
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    if (cleanUrl.startsWith("/api/")) {
+      return `${baseUrl}${cleanUrl}`;
+    }
+
+    return `${baseUrl}/api${cleanUrl}`;
+  };
+
   useEffect(() => {
     dispatch(fetchProductById(id));
     // Load sẵn danh sách tất cả sản phẩm nếu Redux đang rỗng để làm phần Gợi ý
@@ -109,8 +131,11 @@ const ProductDetail = () => {
           {/* Cột trái: Hình ảnh */}
           <div className="w-full md:w-5/12 bg-[#fdfdfd] p-8 flex flex-col items-center justify-center border-r border-gray-100 relative">
             <Image
+              // ĐÃ SỬA: Bọc hàm getImageUrl
               src={
-                currentProduct.thumbnailUrl || "https://via.placeholder.com/400"
+                currentProduct.thumbnailUrl
+                  ? getImageUrl(currentProduct.thumbnailUrl)
+                  : "https://via.placeholder.com/400"
               }
               alt={currentProduct.name}
               className="object-contain mix-blend-multiply drop-shadow-lg rounded-lg"
@@ -123,7 +148,8 @@ const ProductDetail = () => {
                 {currentProduct.imagesUrl.split(",").map((url, idx) => (
                   <Image
                     key={idx}
-                    src={url.trim()}
+                    // ĐÃ SỬA: Bọc hàm getImageUrl
+                    src={getImageUrl(url.trim())}
                     width={70}
                     height={70}
                     className="object-cover rounded-lg border border-gray-200 cursor-pointer hover:border-blue-500 hover:shadow-md transition-all"
@@ -249,9 +275,11 @@ const ProductDetail = () => {
                 >
                   <div className="h-48 bg-[#fdfdfd] p-4 flex items-center justify-center relative">
                     <img
+                      // ĐÃ SỬA: Bọc hàm getImageUrl
                       src={
-                        product.thumbnailUrl ||
-                        "https://via.placeholder.com/200"
+                        product.thumbnailUrl
+                          ? getImageUrl(product.thumbnailUrl)
+                          : "https://via.placeholder.com/200"
                       }
                       alt={product.name}
                       className="h-full object-contain mix-blend-multiply drop-shadow-sm group-hover:scale-110 transition-transform duration-500"

@@ -52,6 +52,28 @@ const ChatPage = () => {
 
   const ADMIN_ID = "b290eedd-c923-4e1a-b286-61f6e8d727cb";
 
+  // ĐÃ THÊM: Hàm xử lý URL ảnh chuẩn xác cho môi trường thực tế
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+    // 1. Chuyển đổi IP cũ thành HTTPS mới
+    if (url.includes("203.145.47.214:5173")) {
+      return url.replace("http://203.145.47.214:5173", baseUrl);
+    }
+
+    // 2. Trả về nguyên bản nếu là link ngoài đã chuẩn HTTP/HTTPS
+    if (url.startsWith("http")) return url;
+
+    // 3. Xử lý đường dẫn tương đối, chống lỗi nối trùng chữ /api/api
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    if (cleanUrl.startsWith("/api/")) {
+      return `${baseUrl}${cleanUrl}`;
+    }
+
+    return `${baseUrl}/api${cleanUrl}`;
+  };
+
   const getOtherUserId = (room) => {
     if (!room) return null;
 
@@ -318,7 +340,12 @@ const ChatPage = () => {
                     avatar={
                       <Badge dot color="green" offset={[-5, 35]}>
                         <Avatar
-                          src={partner.avatar ? `${partner.avatar}` : null}
+                          // ĐÃ SỬA: Bọc hàm getImageUrl
+                          src={
+                            partner.avatar
+                              ? getImageUrl(partner.avatar)
+                              : undefined
+                          }
                           icon={
                             partner.avatar ? null : partner.isAdmin ? (
                               <CustomerServiceOutlined />
@@ -367,10 +394,11 @@ const ChatPage = () => {
               <div className="flex items-center gap-3">
                 <Badge dot color="green" offset={[-3, 30]}>
                   <Avatar
+                    // ĐÃ SỬA: Bọc hàm getImageUrl
                     src={
                       getPartnerDisplayInfo(activeRoom).avatar
-                        ? `${getPartnerDisplayInfo(activeRoom).avatar}`
-                        : null
+                        ? getImageUrl(getPartnerDisplayInfo(activeRoom).avatar)
+                        : undefined
                     }
                     icon={
                       getPartnerDisplayInfo(activeRoom).avatar ? null : (
@@ -397,10 +425,11 @@ const ChatPage = () => {
               <div className="flex flex-col items-center justify-center my-6 text-gray-400">
                 <Avatar
                   size={64}
+                  // ĐÃ SỬA: Bọc hàm getImageUrl
                   src={
                     getPartnerDisplayInfo(activeRoom).avatar
-                      ? `${getPartnerDisplayInfo(activeRoom).avatar}`
-                      : null
+                      ? getImageUrl(getPartnerDisplayInfo(activeRoom).avatar)
+                      : undefined
                   }
                   icon={
                     getPartnerDisplayInfo(activeRoom).avatar ? null : (
@@ -433,8 +462,11 @@ const ChatPage = () => {
                       {!isMe && !isConsecutive && (
                         <Avatar
                           size="small"
+                          // ĐÃ SỬA: Bọc hàm getImageUrl
                           src={
-                            partnerInfo.avatar ? `${partnerInfo.avatar}` : null
+                            partnerInfo.avatar
+                              ? getImageUrl(partnerInfo.avatar)
+                              : undefined
                           }
                           icon={partnerInfo.avatar ? null : <UserOutlined />}
                           className="bg-gray-300 mr-2 self-end mb-1"
@@ -448,12 +480,13 @@ const ChatPage = () => {
                         {msg.type === "IMAGES" ? (
                           <div className="overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
                             <img
-                              src={`${backendUrl}/api${msg.messageContent}`}
+                              // ĐÃ SỬA: Dùng getImageUrl thay vì tự nối chuỗi
+                              src={getImageUrl(msg.messageContent)}
                               alt="sent-img"
                               className="block max-w-[280px] max-h-[350px] w-full h-auto object-cover cursor-pointer hover:opacity-90"
                               onClick={() =>
                                 window.open(
-                                  `${backendUrl}/api${msg.messageContent}`,
+                                  getImageUrl(msg.messageContent),
                                   "_blank",
                                 )
                               }

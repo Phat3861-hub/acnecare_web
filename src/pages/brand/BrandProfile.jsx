@@ -46,13 +46,26 @@ const BrandProfile = () => {
   const [updating, setUpdating] = useState(false);
   const [logoPreview, setLogoPreview] = useState("");
 
+  // ĐÃ SỬA: Đồng bộ hàm getImageUrl thông minh để fix triệt để lỗi 400 và Mixed Content
   const getImageUrl = (url) => {
     if (!url) return null;
-    if (url.startsWith("http")) return url;
-
     const baseUrl = import.meta.env.VITE_BACKEND_URL;
 
-    return `${baseUrl}/api${url}`;
+    // 1. Tự động chuyển đổi IP cũ thành Domain HTTPS mới
+    if (url.includes("203.145.47.214:5173")) {
+      return url.replace("http://203.145.47.214:5173", baseUrl);
+    }
+
+    // 2. Trả về nguyên bản nếu là link ngoài đã chuẩn HTTP/HTTPS (vd: Google Avatar, link drive)
+    if (url.startsWith("http")) return url;
+
+    // 3. Xử lý đường dẫn tương đối, chống lỗi nối trùng chữ /api/api
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    if (cleanUrl.startsWith("/api/")) {
+      return `${baseUrl}${cleanUrl}`;
+    }
+
+    return `${baseUrl}/api${cleanUrl}`;
   };
 
   useEffect(() => {
@@ -337,7 +350,7 @@ const BrandProfile = () => {
           {/* --- PHẦN 2: THÔNG TIN THƯƠNG HIỆU (BRAND PROFILE) --- */}
           <Divider orientation="left" plain className="mt-4">
             <span className="text-purple-600 font-bold text-base flex items-center gap-2">
-              <ShopOutlined /> 2. Thông tin Thương hiệu hiển thị
+              <ShopOutlined /> 2. Thôngত্তি Brand hiển thị
             </span>
           </Divider>
 

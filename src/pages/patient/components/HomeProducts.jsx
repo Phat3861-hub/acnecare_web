@@ -12,6 +12,28 @@ const HomeProducts = () => {
   const { products, loading } = useSelector((state) => state.product);
   const [displayProducts, setDisplayProducts] = useState([]);
 
+  // Hàm xử lý đường dẫn ảnh để fix lỗi 400 và Mixed Content
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+    // 1. Chuyển đổi IP cũ thành HTTPS mới
+    if (url.includes("203.145.47.214:5173")) {
+      return url.replace("http://203.145.47.214:5173", baseUrl);
+    }
+
+    // 2. Trả về nguyên bản nếu là link ngoài (Google Drive, Placeholder...)
+    if (url.startsWith("http")) return url;
+
+    // 3. Xử lý đường dẫn tương đối
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    if (cleanUrl.startsWith("/api/")) {
+      return `${baseUrl}${cleanUrl}`;
+    }
+
+    return `${baseUrl}/api${cleanUrl}`;
+  };
+
   // Gọi API lấy danh sách sản phẩm nếu chưa có
   useEffect(() => {
     if (products.length === 0) {
@@ -82,8 +104,10 @@ const HomeProducts = () => {
               {/* Phần ảnh */}
               <div className="h-48 bg-gray-50 overflow-hidden relative p-4 flex items-center justify-center">
                 <img
+                  // ĐÃ SỬA: Dùng hàm getImageUrl để bọc url lại
                   src={
-                    product.thumbnailUrl || "https://via.placeholder.com/500"
+                    getImageUrl(product.thumbnailUrl) ||
+                    "https://via.placeholder.com/500"
                   }
                   alt={product.name}
                   className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
