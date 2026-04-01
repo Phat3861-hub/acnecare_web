@@ -238,23 +238,16 @@ const postSlice = createSlice({
       })
       .addCase(deletePostThunk.rejected, (state, action) => {
         state.message = action.payload;
-      })
-      .addCase(toggleLikeThunk.rejected, (state, action) => {
-        state.message = action.payload;
-        // Xử lý hoàn tác (revert) nếu API gọi thất bại
-        const postId = action.meta.arg;
-        const post = state.posts.find((p) => p.id === postId);
-        if (post) {
-          const revertIsLiked = !post.isLiked;
-          post.isLiked = revertIsLiked;
-          post.liked = revertIsLiked;
-
-          // API lỗi nghĩa là sẽ không có WS nào dội về, ta xóa lệnh chờ bỏ qua WS
-          if (state.ignoredWsCount[postId] > 0) {
-            state.ignoredWsCount[postId] -= 1;
-          }
-        }
       });
+    builder.addCase(toggleLikeThunk.fulfilled, (state, action) => {
+      const { postId, likesCount, isLiked } = action.payload;
+
+      const postIndex = state.posts.findIndex((p) => p.id === postId);
+      if (postIndex !== -1) {
+        state.posts[postIndex].likesCount = likesCount;
+        state.posts[postIndex].isLiked = isLiked;
+      }
+    });
   },
 });
 
