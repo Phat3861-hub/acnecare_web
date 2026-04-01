@@ -130,7 +130,6 @@ const postSlice = createSlice({
     isLoading: false,
     message: "",
     totalPages: 0,
-    ignoredWsCount: {}, // 🚨 Kho lưu trữ đếm số lượng tin nhắn WS cần "bỏ qua" để chống cộng đúp
   },
   reducers: {
     toggleLikeLocal: (state, action) => {
@@ -139,27 +138,14 @@ const postSlice = createSlice({
       if (post) {
         post.liked = isLiked;
         post.isLiked = isLiked;
-
-        // Cập nhật số lượng Like ngay lập tức cho mượt (Optimistic Update)
-        post.likesCount = isLiked
-          ? (post.likesCount || 0) + 1
-          : Math.max(0, (post.likesCount || 0) - 1);
-
-        // ĐÁNH DẤU: Ta tự xử lý rồi, nên sẽ cố tình "phớt lờ" 1 tin nhắn WS tới đây của bài post này
-        state.ignoredWsCount[postId] = (state.ignoredWsCount[postId] || 0) + 1;
       }
     },
+
+    // 2. KHI WEBSOCKET BÁO VỀ THÌ MỚI ĐƯỢC CỘNG/TRỪ SỐ
     updateLikesRealtime: (state, action) => {
       const { postId, isActionLike } = action.payload;
-
-      // BƯỚC LỌC KỲ DIỆU: Nếu đây là tin nhắn WS dội về từ action do CHÍNH MÌNH vừa bấm
-      if (state.ignoredWsCount[postId] && state.ignoredWsCount[postId] > 0) {
-        state.ignoredWsCount[postId] -= 1; // Tiêu hao 1 "kim bài miễn tử"
-        return; // Dừng lại, KHÔNG CỘNG TRỪ NỮA ĐỂ TRÁNH ĐÚP
-      }
-
-      // Nếu chạy xuống đây, nghĩa là tin nhắn WS này do người khác (hoặc tab khác) bấm Like
       const post = state.posts.find((p) => p.id === postId);
+
       if (post) {
         post.likesCount = isActionLike
           ? (post.likesCount || 0) + 1
