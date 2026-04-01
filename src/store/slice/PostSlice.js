@@ -248,9 +248,6 @@ const postSlice = createSlice({
           const revertIsLiked = !post.isLiked;
           post.isLiked = revertIsLiked;
           post.liked = revertIsLiked;
-          post.likesCount = revertIsLiked
-            ? (post.likesCount || 0) + 1
-            : Math.max(0, (post.likesCount || 0) - 1);
 
           // API lỗi nghĩa là sẽ không có WS nào dội về, ta xóa lệnh chờ bỏ qua WS
           if (state.ignoredWsCount[postId] > 0) {

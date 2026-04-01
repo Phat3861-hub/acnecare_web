@@ -120,8 +120,7 @@ const PostComment = () => {
     if (postId) fetchPostDetails();
   }, [postId]);
 
-  const backendUrl =
-    import.meta.env.VITE_BACKEND_URL || "http://localhost:9090";
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   useEffect(() => {
     if (!postId) return;

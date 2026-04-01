@@ -158,8 +158,7 @@ const Post = () => {
     [isLoading, hasMore],
   );
 
-  const backendUrl =
-    import.meta.env.VITE_BACKEND_URL || "http://localhost:9090";
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   // 1. CHỈ TẠO KẾT NỐI WEBSOCKET 1 LẦN DUY NHẤT KHI MOUNT
   useEffect(() => {
