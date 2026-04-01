@@ -2,14 +2,12 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { postService } from "../../services/PostService";
 
 // --- Async Thunks ---
-
 export const fetchAllPosts = createAsyncThunk(
   "post/fetchAll",
-  // Nhận page và size từ UI truyền xuống, mặc định page 0, size 5
   async ({ page = 0, size = 5 } = {}, thunkAPI) => {
     try {
       const response = await postService.getAllPosts(page, size);
-      return response.data.result; // Trả về PagedResponse { content, totalPages, page, ... }
+      return response.data.result;
     } catch (error) {
       return thunkAPI.rejectWithValue(error.response?.data?.message);
     }
@@ -21,7 +19,7 @@ export const deletePostThunk = createAsyncThunk(
   async ({ userId, postId }, { rejectWithValue }) => {
     try {
       await postService.deletePost(userId, postId);
-      return postId; // Trả về ID để xóa khỏi state local
+      return postId;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);
     }
@@ -125,24 +123,47 @@ export const deleteCommentThunk = createAsyncThunk(
 );
 
 // --- Slice ---
-
 const postSlice = createSlice({
   name: "post",
   initialState: {
     posts: [],
     isLoading: false,
     message: "",
-    totalPages: 0, // 🚨 Thêm trạng thái lưu tổng số trang để UI xử lý Infinite Loading
+    totalPages: 0,
+    ignoredWsCount: {}, // 🚨 Kho lưu trữ đếm số lượng tin nhắn WS cần "bỏ qua" để chống cộng đúp
   },
   reducers: {
-    // Các action đồng bộ dùng cho WebSocket để cập nhật UI realtime
-
     toggleLikeLocal: (state, action) => {
       const { postId, isLiked } = action.payload;
       const post = state.posts.find((p) => p.id === postId);
       if (post) {
         post.liked = isLiked;
         post.isLiked = isLiked;
+
+        // Cập nhật số lượng Like ngay lập tức cho mượt (Optimistic Update)
+        post.likesCount = isLiked
+          ? (post.likesCount || 0) + 1
+          : Math.max(0, (post.likesCount || 0) - 1);
+
+        // ĐÁNH DẤU: Ta tự xử lý rồi, nên sẽ cố tình "phớt lờ" 1 tin nhắn WS tới đây của bài post này
+        state.ignoredWsCount[postId] = (state.ignoredWsCount[postId] || 0) + 1;
+      }
+    },
+    updateLikesRealtime: (state, action) => {
+      const { postId, isActionLike } = action.payload;
+
+      // BƯỚC LỌC KỲ DIỆU: Nếu đây là tin nhắn WS dội về từ action do CHÍNH MÌNH vừa bấm
+      if (state.ignoredWsCount[postId] && state.ignoredWsCount[postId] > 0) {
+        state.ignoredWsCount[postId] -= 1; // Tiêu hao 1 "kim bài miễn tử"
+        return; // Dừng lại, KHÔNG CỘNG TRỪ NỮA ĐỂ TRÁNH ĐÚP
+      }
+
+      // Nếu chạy xuống đây, nghĩa là tin nhắn WS này do người khác (hoặc tab khác) bấm Like
+      const post = state.posts.find((p) => p.id === postId);
+      if (post) {
+        post.likesCount = isActionLike
+          ? (post.likesCount || 0) + 1
+          : Math.max(0, (post.likesCount || 0) - 1);
       }
     },
     addImagesRealtime: (state, action) => {
@@ -161,7 +182,6 @@ const postSlice = createSlice({
         );
       }
     },
-
     setPosts: (state, action) => {
       state.posts = action.payload;
     },
@@ -170,24 +190,15 @@ const postSlice = createSlice({
       const index = state.posts.findIndex((p) => p.id === updatedPost.id);
 
       if (index !== -1) {
-        // Lấy bài post cũ ra
         const oldPost = state.posts[index];
-
-        // Gộp dữ liệu an toàn tuyệt đối
         state.posts[index] = {
-          ...oldPost, // Rải toàn bộ thuộc tính cũ ra trước
-
-          // CHỈ đè những trường text thực sự có thay đổi từ updatedPost
+          ...oldPost,
           postTitle: updatedPost.postTitle || oldPost.postTitle,
           postContent: updatedPost.postContent || oldPost.postContent,
           status: updatedPost.status || oldPost.status,
           updatedAt: updatedPost.updatedAt || oldPost.updatedAt,
-
-          // ÉP BUỘC GIỮ NGUYÊN các thông tin không bao giờ thay đổi khi edit text
           user: oldPost.user,
           postsImage: oldPost.postsImage,
-
-          // Các thông số đếm cũng giữ nguyên của state hiện tại
           comments: oldPost.comments,
           likesCount: oldPost.likesCount,
           commentsCount: oldPost.commentsCount,
@@ -197,17 +208,8 @@ const postSlice = createSlice({
     deletePostRealtime: (state, action) => {
       state.posts = state.posts.filter((p) => p.id !== action.payload);
     },
-    updateLikesRealtime: (state, action) => {
-      const { postId, isActionLike } = action.payload;
-      const post = state.posts.find((p) => p.id === postId);
-      if (post) {
-        post.likesCount = isActionLike
-          ? (post.likesCount || 0) + 1
-          : Math.max(0, (post.likesCount || 0) - 1);
-      }
-    },
     updateCommentsCountRealtime: (state, action) => {
-      const { postId, type } = action.payload; // type: 'add' hoặc 'delete'
+      const { postId, type } = action.payload;
       const post = state.posts.find((p) => p.id === postId);
       if (post) {
         post.commentsCount =
@@ -222,39 +224,28 @@ const postSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Fetch All Posts
       .addCase(fetchAllPosts.pending, (state) => {
         state.isLoading = true;
       })
       .addCase(fetchAllPosts.fulfilled, (state, action) => {
         state.isLoading = false;
-
-        // Bóc tách dữ liệu từ PagedResponse của Backend
         const { content, totalPages, page } = action.payload;
 
         if (page === 0) {
-          // Nếu load trang 0 (chạy lần đầu hoặc F5), ghi đè lại toàn bộ state
           state.posts = content;
         } else {
-          // Lọc ra các bài viết mới (để tránh bị trùng lặp ID khi Backend thêm dữ liệu song song)
           const existingPostIds = new Set(state.posts.map((post) => post.id));
           const newPosts = content.filter(
             (post) => !existingPostIds.has(post.id),
           );
-
-          // Cộng dồn bài viết mới vào danh sách hiện tại
           state.posts = [...state.posts, ...newPosts];
         }
-
-        // Cập nhật tổng số trang để UI nhận biết
         state.totalPages = totalPages;
       })
       .addCase(fetchAllPosts.rejected, (state, action) => {
         state.isLoading = false;
         state.message = action.payload;
       })
-
-      // Delete Post (Optimistic hoặc chờ API)
       .addCase(deletePostThunk.fulfilled, (state, action) => {
         state.posts = state.posts.filter((p) => p.id !== action.payload);
         state.message = "Đã xóa bài viết thành công.";
@@ -262,12 +253,24 @@ const postSlice = createSlice({
       .addCase(deletePostThunk.rejected, (state, action) => {
         state.message = action.payload;
       })
-
-      // Toggle Like (Cập nhật local ngay khi gọi)
       .addCase(toggleLikeThunk.rejected, (state, action) => {
         state.message = action.payload;
-        // Chỗ này bạn có thể logic revert lại like nếu cần,
-        // nhưng thường WebSocket sẽ lo phần sync số lượng.
+        // Xử lý hoàn tác (revert) nếu API gọi thất bại
+        const postId = action.meta.arg;
+        const post = state.posts.find((p) => p.id === postId);
+        if (post) {
+          const revertIsLiked = !post.isLiked;
+          post.isLiked = revertIsLiked;
+          post.liked = revertIsLiked;
+          post.likesCount = revertIsLiked
+            ? (post.likesCount || 0) + 1
+            : Math.max(0, (post.likesCount || 0) - 1);
+
+          // API lỗi nghĩa là sẽ không có WS nào dội về, ta xóa lệnh chờ bỏ qua WS
+          if (state.ignoredWsCount[postId] > 0) {
+            state.ignoredWsCount[postId] -= 1;
+          }
+        }
       });
   },
 });
@@ -281,7 +284,7 @@ export const {
   addImagesRealtime,
   removeImageRealtime,
   toggleLikeLocal,
-  setPosts, // Export thêm cái này nếu ở ngoài cần dùng
+  setPosts,
 } = postSlice.actions;
 
 export default postSlice.reducer;

@@ -174,13 +174,16 @@ const PostComment = () => {
           });
         });
 
+        // BẠN TÌM ĐOẠN SUBSCRIBE NÀY
         client.subscribe(`/topic/posts/${postId}/likes`, (msg) => {
-          const isLiked = JSON.parse(msg.body);
+          // Thay thế JSON.parse bằng đoạn này
+          const isActionLike = String(msg.body).trim().toLowerCase() === "true";
+
           setPost((prev) => {
             if (!prev) return prev;
             return {
               ...prev,
-              likesCount: isLiked
+              likesCount: isActionLike
                 ? (prev.likesCount || 0) + 1
                 : Math.max(0, (prev.likesCount || 0) - 1),
             };
