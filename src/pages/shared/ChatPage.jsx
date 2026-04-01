@@ -52,26 +52,30 @@ const ChatPage = () => {
 
   const ADMIN_ID = "b290eedd-c923-4e1a-b286-61f6e8d727cb";
 
-  // ĐÃ THÊM: Hàm xử lý URL ảnh chuẩn xác cho môi trường thực tế
   const getImageUrl = (url) => {
     if (!url) return null;
+
     const baseUrl = import.meta.env.VITE_BACKEND_URL;
 
-    // 1. Chuyển đổi IP cũ thành HTTPS mới
-    if (url.includes("203.145.47.214:5173")) {
-      return url.replace("http://203.145.47.214:5173", baseUrl);
+    if (url.startsWith("http")) {
+      if (
+        url.includes("203.145.47.214") ||
+        url.includes("https://acnecare.io.vn/api/")
+      ) {
+        const parts = url.split("/api/");
+        const path = "/api/" + parts[parts.length - 1];
+        return `${baseUrl}${path}`;
+      }
+      return url;
     }
 
-    // 2. Trả về nguyên bản nếu là link ngoài đã chuẩn HTTP/HTTPS
-    if (url.startsWith("http")) return url;
+    const cleanPath = url.startsWith("/") ? url : `/${url}`;
 
-    // 3. Xử lý đường dẫn tương đối, chống lỗi nối trùng chữ /api/api
-    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
-    if (cleanUrl.startsWith("/api/")) {
-      return `${baseUrl}${cleanUrl}`;
+    if (cleanPath.startsWith("/api/")) {
+      return `${baseUrl}${cleanPath}`;
     }
 
-    return `${baseUrl}/api${cleanUrl}`;
+    return `${baseUrl}/api${cleanPath}`;
   };
 
   const getOtherUserId = (room) => {
