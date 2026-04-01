@@ -133,12 +133,8 @@ const PostComment = () => {
         new SockJS(`${backendUrl}/api/ws`, null, {
           withCredentials: true,
         }),
-      debug: (str) => {
-        console.log("📡 [STOMP RADAR]: " + str);
-      },
       reconnectDelay: 5000,
       onConnect: () => {
-        console.log("✅✅✅ [WEBSOCKET] ĐÃ BẮT TAY THÀNH CÔNG VỚI BACKEND!");
         client.subscribe(`/topic/posts/${postId}/comments`, (msg) => {
           const newComment = JSON.parse(msg.body);
           setPost((prev) => {
