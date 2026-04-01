@@ -4,7 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = 'acnecare-web-image'
         CONTAINER_NAME = 'acnecare-web-container'
-        HOST_PORT = '5173' 
+        HOST_PORT = '127.0.0.1:5173' 
     }
 
     stages {
