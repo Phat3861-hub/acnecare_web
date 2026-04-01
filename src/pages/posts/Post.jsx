@@ -244,12 +244,14 @@ const Post = () => {
 
     lockingPostsRef.current.add(postId);
 
+    dispatch(toggleLikeLocal({ postId, isLiked: !currentIsLiked }));
+
     try {
-      const responseData = await dispatch(toggleLikeThunk(postId)).unwrap();
+      await dispatch(toggleLikeThunk(postId)).unwrap();
     } catch (error) {
-      antdMessage.error("Lỗi khi tương tác: " + (error?.message || error));
+      dispatch(toggleLikeLocal({ postId, isLiked: currentIsLiked }));
+      antdMessage.error("Lỗi tương tác");
     } finally {
-      // Mở khóa cho phép click tiếp
       lockingPostsRef.current.delete(postId);
     }
   };
