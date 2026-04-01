@@ -100,21 +100,28 @@ const Post = () => {
 
   const getImageUrl = (url) => {
     if (!url) return null;
-    const baseUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:9090";
+
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
     if (url.startsWith("http")) {
       if (
         url.includes("203.145.47.214") ||
         url.includes("https://acnecare.io.vn/api/")
       ) {
         const parts = url.split("/api/");
-        return `${baseUrl}/api/${parts[parts.length - 1]}`;
+        const path = "/api/" + parts[parts.length - 1];
+        return `${baseUrl}${path}`;
       }
       return url;
     }
+
     const cleanPath = url.startsWith("/") ? url : `/${url}`;
-    return cleanPath.startsWith("/api/")
-      ? `${baseUrl}${cleanPath}`
-      : `${baseUrl}/api${cleanPath}`;
+
+    if (cleanPath.startsWith("/api/")) {
+      return `${baseUrl}${cleanPath}`;
+    }
+
+    return `${baseUrl}/api${cleanPath}`;
   };
 
   const handleFetchPosts = async (currentPage) => {
@@ -157,7 +164,8 @@ const Post = () => {
   );
 
   const postIdsString = posts.map((p) => p.id).join(",");
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL || "http://localhost:9090";
 
   useEffect(() => {
     if (!postIdsString) return;
@@ -165,17 +173,12 @@ const Post = () => {
     try {
       const currentToken = getCookie("accessToken");
       const client = new Client({
-        webSocketFactory: () =>
-          new SockJS(`${backendUrl}/api/ws`, null, { withCredentials: true }),
-        debug: (str) => {
-          console.log("📡 [STOMP RADAR]: " + str);
-        },
+        webSocketFactory: () => new SockJS(`${backendUrl}/api/ws`),
         connectHeaders: currentToken
           ? { Authorization: `Bearer ${currentToken}` }
           : {},
         reconnectDelay: 5000,
         onConnect: () => {
-          console.log("✅✅✅ [WEBSOCKET] ĐÃ BẮT TAY THÀNH CÔNG VỚI BACKEND!");
           client.subscribe("/topic/posts/delete", (msg) =>
             dispatch(deletePostRealtime(msg.body)),
           );
