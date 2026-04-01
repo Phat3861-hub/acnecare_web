@@ -83,24 +83,24 @@ const ManageProduct = () => {
   const getImageUrl = (url) => {
   if (!url) return null;
 
-  const baseUrl = "https://api.acnecare.io.vn"; // Ép cứng luôn để test cho chắc
+  const baseUrl = import.meta.env.VITE_BACKEND_URL; 
 
-  let cleanUrl = url;
-  if (cleanUrl.includes("203.145.47.214") || cleanUrl.includes("https://acnecare.io.vn/api/")) {
-     const parts = cleanUrl.split("/api/");
-     cleanUrl = "/api/" + parts[parts.length - 1];
+  if (url.startsWith("http")) {
+    if (url.includes("203.145.47.214") || url.includes("https://acnecare.io.vn/api/")) {
+      const parts = url.split("/api/");
+      const path = "/api/" + parts[parts.length - 1];
+      return `${baseUrl}${path}`;
+    }
+    return url;
   }
 
-  if (cleanUrl.startsWith(baseUrl)) return cleanUrl;
-
-  if (cleanUrl.startsWith("http") && !cleanUrl.includes("acnecare.io.vn")) return cleanUrl;
-
-  const finalPath = cleanUrl.startsWith("/") ? cleanUrl : `/${cleanUrl}`;
+  const cleanPath = url.startsWith("/") ? url : `/${url}`;
   
-  if (finalPath.startsWith("/api/")) {
-    return `${baseUrl}${finalPath}`;
+  if (cleanPath.startsWith("/api/")) {
+    return `${baseUrl}${cleanPath}`;
   }
-  return `${baseUrl}/api${finalPath}`;
+
+  return `${baseUrl}/api${cleanPath}`;
 };
 
   useEffect(() => {
