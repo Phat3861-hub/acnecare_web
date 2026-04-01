@@ -20,11 +20,12 @@ export const pathDefault = {
   appointmentSuccess: "/appointment-success",
   patientHistory: "/patient/history",
   appointmentDetail: "/patient/history/:id",
-  patientProfile: "/patient/profile", // 🚨 THÊM ĐƯỜNG DẪN NÀY
+  patientProfile: "/patient/profile",
   products: "/products",
   productDetail: "/products/:id",
-  chat: "/chat", // Đường dẫn Chat cho Patient
+  chat: "/chat",
   testModel: "/test-model",
+
   // Admin
   admin: "/admin",
   adminDashboard: "/admin/dashboard",
@@ -41,7 +42,7 @@ export const pathDefault = {
   doctorAvailability: "/doctor/availability",
   doctorProfile: "/doctor/profile",
   testModelDoctor: "/doctor/test-model",
-  doctorChat: "/doctor/chat", // Đường dẫn Chat cho Doctor
+  doctorChat: "/doctor/chat",
 
   // Brand
   brand: "/brand",
@@ -116,7 +117,7 @@ const PatientHistory = lazy(() => import("../pages/patient/PatientHistory"));
 const AppointmentDetail = lazy(
   () => import("../pages/patient/AppointmentDetail"),
 );
-const PatientProfile = lazy(() => import("../pages/patient/PatientProfile")); // 🚨 IMPORT COMPONENT MỚI Ở ĐÂY
+const PatientProfile = lazy(() => import("../pages/patient/PatientProfile"));
 const MyRoutines = lazy(() => import("../pages/patient/MyRoutines"));
 const RoutineBuilder = lazy(() => import("../pages/patient/RoutineBuilder"));
 const ProductList = lazy(() => import("../pages/patient/ProductList"));
@@ -273,7 +274,6 @@ const AppRoutes = () => {
             </ProtectedRoute>
           ),
         },
-        // 🚨 THÊM ROUTE PATIENT PROFILE VÀO ĐÂY
         {
           path: pathDefault.patientProfile,
           element: (
@@ -585,6 +585,40 @@ const AppRoutes = () => {
           element: (
             <Suspense fallback={<FallbackLoad />}>
               <ChatPage />
+            </Suspense>
+          ),
+        },
+
+        // 🚨 CHUỖI ROUTES CỘNG ĐỒNG CHO BRAND (ĐÃ CHUẨN HÓA PATH KHÔNG CÓ DẤU /)
+        {
+          path: "posts", // => /brand/posts
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <PostPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: "posts/:id", // => /brand/posts/:id (Để xem chi tiết comment)
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <PostCommentPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: "createpost", // => /brand/createpost
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <CreatePostPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: "editpost/:postId", // => /brand/editpost/:postId (Đã bỏ dấu / ở đầu)
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <EditPostPage />
             </Suspense>
           ),
         },

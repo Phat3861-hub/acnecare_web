@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { jwtDecode } from "jwt-decode";
 import { postService } from "../../services/PostService";
 
 import {
@@ -46,6 +45,33 @@ const Createpost = () => {
   const [imagePreviews, setImagePreviews] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // ==========================================
+  // 🚨 XÁC ĐỊNH ROLE ĐỂ ĐIỀU HƯỚNG CHO ĐÚNG
+  // ==========================================
+  let currentUserId = user?.id;
+  let currentUserRole = user?.role;
+
+  if (!currentUserId || !currentUserRole) {
+    try {
+      const userInfoStr = localStorage.getItem("userInfo");
+      if (userInfoStr) {
+        const userInfo = JSON.parse(userInfoStr);
+        currentUserId = currentUserId || userInfo.id;
+        currentUserRole = currentUserRole || userInfo.role;
+      }
+    } catch (err) {
+      console.error("Lỗi parse userInfo", err);
+    }
+  }
+
+  const getBaseRoute = () => {
+    if (currentUserRole === "ADMIN") return "/admin";
+    if (currentUserRole === "DOCTOR") return "/doctor";
+    if (currentUserRole === "BRAND") return "/brand";
+    return ""; // Mặc định cho Patient
+  };
+  const baseRoute = getBaseRoute();
+
   const getImageUrl = (url) => {
     if (!url) return null;
 
@@ -71,6 +97,7 @@ const Createpost = () => {
 
     return `${baseUrl}/api${cleanPath}`;
   };
+
   // 1. TỰ ĐỘNG TẢI DỮ LIỆU NẾU LÀ CHẾ ĐỘ SỬA
   useEffect(() => {
     if (isEditMode) {
@@ -128,20 +155,6 @@ const Createpost = () => {
 
   // 3. XỬ LÝ SUBMIT
   const onFinish = async (values) => {
-    let currentUserId = user?.id;
-
-    if (!currentUserId) {
-      const userInfoStr = localStorage.getItem("userInfo"); // Vẫn giữ thông tin public ở đây
-      if (userInfoStr) {
-        try {
-          const userInfo = JSON.parse(userInfoStr);
-          currentUserId = userInfo.id;
-        } catch (err) {
-          console.error("Lỗi parse userInfo", err);
-        }
-      }
-    }
-
     try {
       setIsLoading(true);
       let finalPostId = postId;
@@ -174,7 +187,8 @@ const Createpost = () => {
         antdMessage.success({ content: "Tải ảnh hoàn tất!", key: "uploading" });
       }
 
-      navigate("/posts");
+      // 🚨 ĐÃ SỬA: Điều hướng động theo Role thay vì fix cứng "/posts"
+      navigate(`${baseRoute}/posts`);
     } catch (error) {
       antdMessage.error(
         `Lỗi ${isEditMode ? "cập nhật" : "đăng"} bài: ` + error,
@@ -304,7 +318,6 @@ const Createpost = () => {
                           className="relative group aspect-square opacity-80"
                         >
                           <Image
-                            // ĐÃ SỬA: Bọc hàm getImageUrl
                             src={getImageUrl(url)}
                             className="w-full h-full object-cover rounded-lg border shadow-sm"
                             preview={false}

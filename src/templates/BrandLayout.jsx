@@ -7,6 +7,7 @@ import {
   UserOutlined,
   LogoutOutlined,
   MessageOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { logoutUser } from "../store/slice/UserSlice";
@@ -43,6 +44,11 @@ const BrandLayout = () => {
       key: "/brand/chat",
       icon: <MessageOutlined />,
       label: <Link to="/brand/chat">Tin nhắn</Link>,
+    },
+    {
+      key: "/brand/posts",
+      icon: <TeamOutlined />,
+      label: <Link to="/brand/posts">Cộng đồng</Link>,
     },
   ];
 
