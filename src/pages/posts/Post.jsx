@@ -18,6 +18,7 @@ import {
   Empty,
   message as antdMessage,
   Skeleton,
+  Alert,
 } from "antd";
 import {
   HeartOutlined,
@@ -59,7 +60,11 @@ const getCookie = (name) => {
 const Post = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  // Ref để quản lý WebSockets
   const stompClientRef = useRef(null);
+  const subscribedPostsRef = useRef(new Set());
+  const [isStompConnected, setIsStompConnected] = useState(false);
   const observer = useRef();
 
   const { user } = useSelector((state) => state.user);
@@ -78,7 +83,6 @@ const Post = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState(null);
 
-  // Lấy ID và ROLE người dùng hiện tại
   let currentUserId = null;
   let currentUserRole = null;
   try {
@@ -89,20 +93,17 @@ const Post = () => {
     console.error("🚨 [Lỗi] Không thể lấy thông tin User:", error);
   }
 
-  // 🚨 HÀM TỰ ĐỘNG TẠO ĐƯỜNG DẪN DỰA TRÊN ROLE
   const getBaseRoute = () => {
     if (currentUserRole === "ADMIN") return "/admin";
     if (currentUserRole === "DOCTOR") return "/doctor";
     if (currentUserRole === "BRAND") return "/brand";
-    return ""; // Default cho Patient (không có tiền tố)
+    return "";
   };
   const baseRoute = getBaseRoute();
 
   const getImageUrl = (url) => {
     if (!url) return null;
-
     const baseUrl = import.meta.env.VITE_BACKEND_URL;
-
     if (url.startsWith("http")) {
       if (
         url.includes("203.145.47.214") ||
@@ -114,13 +115,8 @@ const Post = () => {
       }
       return url;
     }
-
     const cleanPath = url.startsWith("/") ? url : `/${url}`;
-
-    if (cleanPath.startsWith("/api/")) {
-      return `${baseUrl}${cleanPath}`;
-    }
-
+    if (cleanPath.startsWith("/api/")) return `${baseUrl}${cleanPath}`;
     return `${baseUrl}/api${cleanPath}`;
   };
 
@@ -157,69 +153,86 @@ const Post = () => {
           });
         }
       });
-
       if (node) observer.current.observe(node);
     },
     [isLoading, hasMore],
   );
 
-  const postIdsString = posts.map((p) => p.id).join(",");
   const backendUrl =
     import.meta.env.VITE_BACKEND_URL || "http://localhost:9090";
 
+  // 1. CHỈ TẠO KẾT NỐI WEBSOCKET 1 LẦN DUY NHẤT KHI MOUNT
   useEffect(() => {
-    if (!postIdsString) return;
+    const currentToken = getCookie("accessToken");
+    const client = new Client({
+      webSocketFactory: () => new SockJS(`${backendUrl}/api/ws`),
+      connectHeaders: currentToken
+        ? { Authorization: `Bearer ${currentToken}` }
+        : {},
+      reconnectDelay: 5000,
+      onConnect: () => {
+        setIsStompConnected(true);
+        // Subscribe cho các tác vụ chung
+        client.subscribe("/topic/posts/delete", (msg) =>
+          dispatch(deletePostRealtime(msg.body)),
+        );
+        client.subscribe("/topic/posts/update", (msg) =>
+          dispatch(updatePostRealtime(JSON.parse(msg.body))),
+        );
+      },
+      onDisconnect: () => setIsStompConnected(false),
+    });
 
-    try {
-      const currentToken = getCookie("accessToken");
-      const client = new Client({
-        webSocketFactory: () => new SockJS(`${backendUrl}/api/ws`),
-        connectHeaders: currentToken
-          ? { Authorization: `Bearer ${currentToken}` }
-          : {},
-        reconnectDelay: 5000,
-        onConnect: () => {
-          client.subscribe("/topic/posts/delete", (msg) =>
-            dispatch(deletePostRealtime(msg.body)),
+    client.activate();
+    stompClientRef.current = client;
+
+    return () => {
+      client.deactivate();
+      subscribedPostsRef.current.clear();
+    };
+  }, [backendUrl, dispatch]);
+
+  // 2. SUBSCRIBE ĐỘNG CHO TỪNG BÀI VIẾT (Không ngắt kết nối cũ)
+  useEffect(() => {
+    if (!isStompConnected || !stompClientRef.current) return;
+    const client = stompClientRef.current;
+
+    posts.forEach((post) => {
+      if (!subscribedPostsRef.current.has(post.id)) {
+        subscribedPostsRef.current.add(post.id);
+
+        client.subscribe(`/topic/posts/${post.id}/likes`, (msg) => {
+          dispatch(
+            updateLikesRealtime({
+              postId: post.id,
+              isActionLike: JSON.parse(msg.body),
+            }),
           );
-          client.subscribe("/topic/posts/update", (msg) =>
-            dispatch(updatePostRealtime(JSON.parse(msg.body))),
+        });
+        client.subscribe(`/topic/posts/${post.id}/comments`, () => {
+          dispatch(
+            updateCommentsCountRealtime({ postId: post.id, type: "add" }),
           );
-
-          postIdsString.split(",").forEach((postId) => {
-            client.subscribe(`/topic/posts/${postId}/likes`, (msg) => {
-              dispatch(
-                updateLikesRealtime({
-                  postId,
-                  isActionLike: JSON.parse(msg.body),
-                }),
-              );
-            });
-            client.subscribe(`/topic/posts/${postId}/comments`, () => {
-              dispatch(updateCommentsCountRealtime({ postId, type: "add" }));
-            });
-            client.subscribe(`/topic/posts/${postId}/comments/delete`, () => {
-              dispatch(updateCommentsCountRealtime({ postId, type: "delete" }));
-            });
-            client.subscribe(`/topic/posts/${postId}/images/upload`, (msg) => {
-              dispatch(
-                addImagesRealtime({ postId, newImages: JSON.parse(msg.body) }),
-              );
-            });
-            client.subscribe(`/topic/posts/${postId}/images/delete`, (msg) => {
-              dispatch(removeImageRealtime({ postId, imageId: msg.body }));
-            });
-          });
-        },
-      });
-      client.activate();
-      stompClientRef.current = client;
-    } catch (error) {
-      console.error("🚨 [Lỗi WebSocket]:", error);
-    }
-
-    return () => stompClientRef.current?.deactivate();
-  }, [postIdsString, dispatch, backendUrl]);
+        });
+        client.subscribe(`/topic/posts/${post.id}/comments/delete`, () => {
+          dispatch(
+            updateCommentsCountRealtime({ postId: post.id, type: "delete" }),
+          );
+        });
+        client.subscribe(`/topic/posts/${post.id}/images/upload`, (msg) => {
+          dispatch(
+            addImagesRealtime({
+              postId: post.id,
+              newImages: JSON.parse(msg.body),
+            }),
+          );
+        });
+        client.subscribe(`/topic/posts/${post.id}/images/delete`, (msg) => {
+          dispatch(removeImageRealtime({ postId: post.id, imageId: msg.body }));
+        });
+      }
+    });
+  }, [posts, isStompConnected, dispatch]);
 
   const handleToggleLike = async (postId, currentIsLiked) => {
     dispatch(toggleLikeLocal({ postId, isLiked: !currentIsLiked }));
@@ -280,7 +293,7 @@ const Post = () => {
               type="primary"
               shape="round"
               className="bg-blue-600 hover:bg-blue-700 font-semibold px-6 shadow-md shadow-blue-200"
-              onClick={() => navigate(`${baseRoute}/createpost`)} // 🚨 SỬA Ở ĐÂY
+              onClick={() => navigate(`${baseRoute}/createpost`)}
               icon={<EditOutlined />}
             >
               Đăng bài
@@ -297,7 +310,7 @@ const Post = () => {
           >
             <div
               className="flex gap-3 items-center cursor-text"
-              onClick={() => navigate(`${baseRoute}/createpost`)} // 🚨 SỬA Ở ĐÂY
+              onClick={() => navigate(`${baseRoute}/createpost`)}
             >
               <Avatar
                 size={44}
@@ -314,7 +327,7 @@ const Post = () => {
               <Button
                 type="text"
                 className="text-slate-500 font-medium flex items-center gap-2 hover:bg-slate-50 rounded-lg px-8"
-                onClick={() => navigate(`${baseRoute}/createpost`)} // 🚨 SỬA Ở ĐÂY
+                onClick={() => navigate(`${baseRoute}/createpost`)}
               >
                 <PictureOutlined className="text-green-500 text-lg" /> Thêm ảnh
                 / Video
@@ -381,7 +394,7 @@ const Post = () => {
                           type="text"
                           onClick={() =>
                             navigate(`${baseRoute}/editpost/${post.id}`)
-                          } // 🚨 SỬA Ở ĐÂY
+                          }
                           className="text-slate-400 hover:text-blue-600"
                           icon={<EditOutlined />}
                         />
@@ -439,7 +452,7 @@ const Post = () => {
                     <Text
                       type="secondary"
                       className="text-sm cursor-pointer hover:underline"
-                      onClick={() => navigate(`${baseRoute}/posts/${post.id}`)} // 🚨 SỬA Ở ĐÂY
+                      onClick={() => navigate(`${baseRoute}/posts/${post.id}`)}
                     >
                       {post.commentsCount} bình luận
                     </Text>
