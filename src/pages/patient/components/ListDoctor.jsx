@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Button, Spin, Row, Col, message } from "antd"; // Import thêm message từ antd
+import { Button, Spin, Row, Col, message } from "antd";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchActiveDoctors } from "../../../store/slice/DoctorSlice";
@@ -12,6 +12,28 @@ const ListDoctor = () => {
   const { activeDoctors, loading } = useSelector((state) => state.doctor);
   // Lấy thêm state user từ Redux để kiểm tra đăng nhập
   const { user } = useSelector((state) => state.user);
+
+  // ĐÃ SỬA: Thêm hàm xử lý đường dẫn ảnh để fix lỗi 400 và Mixed Content
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+    // 1. Chuyển đổi IP cũ thành HTTPS mới
+    if (url.includes("203.145.47.214:5173")) {
+      return url.replace("http://203.145.47.214:5173", baseUrl);
+    }
+
+    // 2. Trả về nguyên bản nếu là link ngoài đã chuẩn HTTP/HTTPS
+    if (url.startsWith("http")) return url;
+
+    // 3. Xử lý đường dẫn tương đối
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    if (cleanUrl.startsWith("/api/")) {
+      return `${baseUrl}${cleanUrl}`;
+    }
+
+    return `${baseUrl}/api${cleanUrl}`;
+  };
 
   useEffect(() => {
     dispatch(fetchActiveDoctors());
@@ -63,7 +85,12 @@ const ListDoctor = () => {
               {/* Ảnh bác sĩ */}
               <div className="w-full aspect-[3/4] overflow-hidden bg-[#e0f0ff] rounded-sm mb-4">
                 <img
-                  src={doc.avatarUrl || "https://i.pravatar.cc/300"}
+                  // ĐÃ SỬA: Dùng getImageUrl để bọc url của ảnh lại
+                  src={
+                    doc.avatarUrl
+                      ? getImageUrl(doc.avatarUrl)
+                      : "https://i.pravatar.cc/300"
+                  }
                   alt={`Dr. ${doc.lastName}`}
                   className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
                 />

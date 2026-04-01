@@ -31,8 +31,9 @@ import {
 import { userService } from "../../services/UserService";
 import { http } from "../../api/config";
 import dayjs from "dayjs";
+
 const { Option } = Select;
-console.log("Backend URL:", import.meta.env.VITE_BACKEND_URL);
+
 const ManageUser = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -41,29 +42,40 @@ const ManageUser = () => {
   const [avatarFile, setAvatarFile] = useState(null);
   const [form] = Form.useForm();
 
-  // States cho phần xem chi tiết đa năng
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
-  // States chứa Profile riêng biệt theo Role
   const [patientProfile, setPatientProfile] = useState(null);
   const [doctorProfile, setDoctorProfile] = useState(null);
   const [brandProfile, setBrandProfile] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  // States cho phần Từ chối hồ sơ
   const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [rejectingType, setRejectingType] = useState("");
 
+  // ĐÃ SỬA: Hàm xử lý hình ảnh thông minh hơn để fix lỗi Mixed Content và 400
   const getImageUrl = (url) => {
     if (!url) return null;
-    if (url.startsWith("http")) return url;
-
     const baseUrl = import.meta.env.VITE_BACKEND_URL;
 
-    return `${baseUrl}/api${url}`;
+    // 1. Tự động chuyển đổi IP cũ thành Domain HTTPS mới
+    if (url.includes("203.145.47.214:5173")) {
+      return url.replace("http://203.145.47.214:5173", baseUrl);
+    }
+
+    // 2. Trả về nguyên bản nếu là link ngoài (vd: Google Avatar)
+    if (url.startsWith("http")) return url;
+
+    // 3. Xử lý đường dẫn tương đối, chống lỗi nối trùng chữ /api/api
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    if (cleanUrl.startsWith("/api/")) {
+      return `${baseUrl}${cleanUrl}`;
+    }
+
+    return `${baseUrl}/api${cleanUrl}`;
   };
+
   const fetchUsers = async () => {
     setLoading(true);
     try {
@@ -175,7 +187,6 @@ const ManageUser = () => {
     });
   };
 
-  // 🚨 CẬP NHẬT: LẤY ĐA LUỒNG THÔNG TIN PROFILE DỰA VÀO ROLE
   const handleViewDetails = async (record) => {
     setLoadingDetail(true);
     setIsDetailModalVisible(true);
@@ -185,13 +196,11 @@ const ManageUser = () => {
     setPatientProfile(null);
 
     try {
-      // 1. Luôn Lấy User Info chung
       const resUser = await userService.getUserById(record.id);
       if (resUser.data.code === 1000) {
         setSelectedUser(resUser.data.result);
       }
 
-      // 2. Phân loại Profile để gọi API
       const isPatient = record.roles?.some((r) => r.name === "PATIENT");
       const isDoctor = record.roles?.some((r) => r.name === "DOCTOR");
       const isBrand = record.roles?.some((r) => r.name === "BRAND");
@@ -668,7 +677,7 @@ const ManageUser = () => {
                     </div>
                   </div>
 
-                  {/* 🚨🚨🚨 PATIENT PROFILE SECTION 🚨🚨🚨 */}
+                  {/* PATIENT PROFILE SECTION */}
                   {selectedUser.roles?.some((r) => r.name === "PATIENT") && (
                     <div>
                       <Divider className="my-6 border-gray-200" />
@@ -732,7 +741,7 @@ const ManageUser = () => {
                     </div>
                   )}
 
-                  {/* 🚨🚨🚨 DOCTOR PROFILE SECTION 🚨🚨🚨 */}
+                  {/* DOCTOR PROFILE SECTION */}
                   {selectedUser.roles?.some((r) => r.name === "DOCTOR") && (
                     <div>
                       <Divider className="my-6 border-gray-200" />
@@ -823,7 +832,6 @@ const ManageUser = () => {
                             </div>
                           </div>
 
-                          {/* THAO TÁC DUYỆT (DOCTOR) */}
                           <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div className="text-gray-600 font-medium text-sm">
                               Thao tác xét duyệt hồ sơ chuyên môn:
@@ -866,7 +874,7 @@ const ManageUser = () => {
                     </div>
                   )}
 
-                  {/* 🚨🚨🚨 BRAND PROFILE SECTION 🚨🚨🚨 */}
+                  {/* BRAND PROFILE SECTION */}
                   {selectedUser.roles?.some((r) => r.name === "BRAND") && (
                     <div>
                       <Divider className="my-6 border-gray-200" />
@@ -949,7 +957,6 @@ const ManageUser = () => {
                             </div>
                           </div>
 
-                          {/* THAO TÁC DUYỆT (BRAND) */}
                           <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div className="text-gray-600 font-medium text-sm">
                               Thao tác xét duyệt hồ sơ thương hiệu:

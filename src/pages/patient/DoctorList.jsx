@@ -25,6 +25,28 @@ const DoctorList = () => {
   const [filteredDoctors, setFilteredDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // ĐÃ SỬA: Thêm hàm xử lý URL ảnh chuẩn xác cho môi trường thực tế
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+    // 1. Chuyển IP cũ thành HTTPS mới
+    if (url.includes("203.145.47.214:5173")) {
+      return url.replace("http://203.145.47.214:5173", baseUrl);
+    }
+
+    // 2. Link ngoài chuẩn thì giữ nguyên
+    if (url.startsWith("http")) return url;
+
+    // 3. Xử lý link tương đối (nối thêm backend url, tránh trùng /api/)
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    if (cleanUrl.startsWith("/api/")) {
+      return `${baseUrl}${cleanUrl}`;
+    }
+
+    return `${baseUrl}/api${cleanUrl}`;
+  };
+
   // 1. GỌI API LẤY DANH SÁCH BÁC SĨ
   useEffect(() => {
     const fetchDoctors = async () => {
@@ -107,9 +129,11 @@ const DoctorList = () => {
               >
                 <div className="relative h-64 bg-[#eef2f6] overflow-hidden flex justify-center items-end pt-6">
                   <img
+                    // ĐÃ SỬA: Chèn hàm getImageUrl vào đây
                     src={
-                      doctor.avatarUrl ||
-                      "https://via.placeholder.com/300x400?text=Doctor"
+                      doctor.avatarUrl
+                        ? getImageUrl(doctor.avatarUrl)
+                        : "https://via.placeholder.com/300x400?text=Doctor"
                     }
                     alt={doctor.firstName}
                     className="h-full object-cover rounded-t-2xl object-top group-hover:scale-105 transition-transform duration-500 w-full"

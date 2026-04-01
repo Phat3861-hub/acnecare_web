@@ -22,6 +22,28 @@ const ProductList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 9;
 
+  // ĐÃ THÊM: Hàm xử lý đường dẫn ảnh để fix lỗi 400 và Mixed Content
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+    // 1. Chuyển đổi IP cũ thành HTTPS mới
+    if (url.includes("203.145.47.214:5173")) {
+      return url.replace("http://203.145.47.214:5173", baseUrl);
+    }
+
+    // 2. Trả về nguyên bản nếu là link ngoài đã chuẩn HTTP/HTTPS
+    if (url.startsWith("http")) return url;
+
+    // 3. Xử lý đường dẫn tương đối
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    if (cleanUrl.startsWith("/api/")) {
+      return `${baseUrl}${cleanUrl}`;
+    }
+
+    return `${baseUrl}/api${cleanUrl}`;
+  };
+
   useEffect(() => {
     dispatch(fetchProducts());
     dispatch(fetchCategories());
@@ -116,9 +138,11 @@ const ProductList = () => {
                   {/* Hình ảnh */}
                   <div className="h-60 p-6 flex items-center justify-center relative bg-gray-50">
                     <img
+                      // ĐÃ SỬA: Bọc hàm getImageUrl
                       src={
-                        product.thumbnailUrl ||
-                        "https://via.placeholder.com/200"
+                        product.thumbnailUrl
+                          ? getImageUrl(product.thumbnailUrl)
+                          : "https://via.placeholder.com/200"
                       }
                       alt={product.name}
                       className="h-full object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-500 mix-blend-multiply"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { postService } from "../../services/PostService";
 import SockJS from "sockjs-client";
@@ -61,6 +61,28 @@ const PostComment = () => {
 
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editContent, setEditContent] = useState("");
+
+  // ĐÃ THÊM: Hàm xử lý URL ảnh chuẩn xác cho môi trường thực tế
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+    // 1. Chuyển IP cũ thành HTTPS mới
+    if (url.includes("203.145.47.214:5173")) {
+      return url.replace("http://203.145.47.214:5173", baseUrl);
+    }
+
+    // 2. Link ngoài chuẩn thì giữ nguyên
+    if (url.startsWith("http")) return url;
+
+    // 3. Xử lý link tương đối (nối thêm backend url, tránh trùng /api/)
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    if (cleanUrl.startsWith("/api/")) {
+      return `${baseUrl}${cleanUrl}`;
+    }
+
+    return `${baseUrl}/api${cleanUrl}`;
+  };
 
   // 1. TẢI DỮ LIỆU BÀI VIẾT BAN ĐẦU
   useEffect(() => {
@@ -309,7 +331,8 @@ const PostComment = () => {
                 {post.postsImage.map((img, index) => (
                   <Image
                     key={index}
-                    src={img.imageUrl}
+                    // ĐÃ SỬA: Bọc hàm getImageUrl
+                    src={getImageUrl(img.imageUrl)}
                     alt="Post media"
                     className="w-full h-64 object-cover"
                   />
@@ -366,7 +389,12 @@ const PostComment = () => {
                     className="flex gap-3 items-start bg-white"
                   >
                     <Avatar
-                      src={comment.avatarUrl}
+                      // ĐÃ SỬA: Bọc hàm getImageUrl, nếu null thì antd Avatar sẽ render phần children (chữ cái đầu)
+                      src={
+                        comment.avatarUrl
+                          ? getImageUrl(comment.avatarUrl)
+                          : undefined
+                      }
                       className="bg-blue-100 text-blue-600 font-bold border-none shrink-0"
                       size={40}
                     >

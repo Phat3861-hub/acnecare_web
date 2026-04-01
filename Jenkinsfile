@@ -4,7 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = 'acnecare-web-image'
         CONTAINER_NAME = 'acnecare-web-container'
-        HOST_PORT = '5173' 
+        HOST_PORT = '127.0.0.1:5173' 
     }
 
     stages {
@@ -33,7 +33,7 @@ pipeline {
                     docker run -d \
                     -p ${HOST_PORT}:80 \
                     --name ${CONTAINER_NAME} \
-                    -e VITE_BACKEND_URL="http://203.145.47.214:9090" \
+                    -e VITE_BACKEND_URL="https://api.acnecare.io.vn" \
                     --restart unless-stopped \
                     ${IMAGE_NAME}:latest
                     """

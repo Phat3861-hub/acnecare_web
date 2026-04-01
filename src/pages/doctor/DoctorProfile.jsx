@@ -54,14 +54,28 @@ const DoctorProfile = () => {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // ĐÃ SỬA: Đồng bộ hàm getImageUrl thông minh để fix triệt để lỗi 400 và Mixed Content
   const getImageUrl = (url) => {
     if (!url) return null;
-    if (url.startsWith("http")) return url;
-
     const baseUrl = import.meta.env.VITE_BACKEND_URL;
 
-    return `${baseUrl}/api${url}`;
+    // 1. Tự động chuyển đổi IP cũ thành Domain HTTPS mới
+    if (url.includes("203.145.47.214:5173")) {
+      return url.replace("http://203.145.47.214:5173", baseUrl);
+    }
+
+    // 2. Trả về nguyên bản nếu là link ngoài đã chuẩn HTTP/HTTPS
+    if (url.startsWith("http")) return url;
+
+    // 3. Xử lý đường dẫn tương đối, chống lỗi nối trùng chữ /api/api
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    if (cleanUrl.startsWith("/api/")) {
+      return `${baseUrl}${cleanUrl}`;
+    }
+
+    return `${baseUrl}/api${cleanUrl}`;
   };
+
   // Load cả 2 dữ liệu: User Info và Doctor Profile
   useEffect(() => {
     const fetchAllData = async () => {

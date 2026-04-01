@@ -29,6 +29,28 @@ const MyRoutines = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // ĐÃ THÊM: Hàm xử lý URL ảnh chuẩn xác cho môi trường thực tế
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+    // 1. Chuyển IP cũ thành HTTPS mới
+    if (url.includes("203.145.47.214:5173")) {
+      return url.replace("http://203.145.47.214:5173", baseUrl);
+    }
+
+    // 2. Link ngoài chuẩn thì giữ nguyên
+    if (url.startsWith("http")) return url;
+
+    // 3. Xử lý link tương đối (nối thêm backend url, tránh trùng /api/)
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    if (cleanUrl.startsWith("/api/")) {
+      return `${baseUrl}${cleanUrl}`;
+    }
+
+    return `${baseUrl}/api${cleanUrl}`;
+  };
+
   const fetchRoutines = async () => {
     setLoading(true);
     try {
@@ -79,8 +101,10 @@ const MyRoutines = () => {
                 {step.stepOrder}
               </div>
               <img
+                // ĐÃ SỬA: Bọc hàm getImageUrl
                 src={
-                  step.product?.thumbnailUrl || "https://via.placeholder.com/40"
+                  getImageUrl(step.product?.thumbnailUrl) ||
+                  "https://via.placeholder.com/40"
                 }
                 alt="thumb"
                 className="w-10 h-10 rounded object-cover border bg-white"
