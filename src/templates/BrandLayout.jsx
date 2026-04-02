@@ -26,6 +26,7 @@ const BrandLayout = () => {
   const handleLogout = () => {
     dispatch(logoutUser());
     localStorage.removeItem("userInfo");
+    localStorage.removeItem("token");
     navigate("/auth/login");
   };
 

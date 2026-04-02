@@ -180,17 +180,28 @@ const BookAppointment = () => {
 
     while (currentSlot.isBefore(endOfDay)) {
       const slotStart = currentSlot;
+      const slotEnd = slotStart.add(duration, "minute");
 
-      // Thêm điều kiện: Nếu là hôm nay thì chỉ hiện những giờ chưa tới
       const isPast =
         selectedDate.isSame(dayjs(), "day") && slotStart.isBefore(dayjs());
 
+      const isAvailable = availableSchedules.some((schedule) => {
+        const workStart = dayjs(schedule.startTime);
+        const workEnd = dayjs(schedule.endTime);
+
+        return (
+          (slotStart.isSame(workStart) || slotStart.isAfter(workStart)) &&
+          (slotEnd.isSame(workEnd) || slotEnd.isBefore(workEnd))
+        );
+      });
+
       if (isAvailable && !isPast) {
-        // Chỉ push nếu giờ đó chưa trôi qua
+        // Chỉ push nếu giờ đó bác sĩ rảnh và chưa trôi qua
         slots.push(slotStart.format("YYYY-MM-DDTHH:mm:00"));
       }
 
-      currentSlot = slotStart.add(30, "minute");
+      // 🚨 ĐÃ SỬA LỖI LOGIC: Dùng biến duration thay vì hardcode số 30
+      currentSlot = slotStart.add(duration, "minute");
     }
     return slots;
   };
@@ -321,7 +332,6 @@ const BookAppointment = () => {
             >
               <Select size="large" placeholder="Chọn thanh toán">
                 <Option value="CASH">Tiền mặt tại phòng khám</Option>
-                <Option value="VNPAY">Chuyển khoản VNPay</Option>
               </Select>
             </Form.Item>
 
