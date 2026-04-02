@@ -33,9 +33,10 @@ const DoctorLayout = () => {
   }, [location.pathname, navigate]);
 
   const handleLogout = () => {
-    dispatch(logoutUser()).then(() => {
-      navigate("/auth/login");
-    });
+    dispatch(logoutUser());
+    localStorage.removeItem("userInfo");
+    localStorage.removeItem("token");
+    navigate("/auth/login");
   };
 
   const userMenuItems = [

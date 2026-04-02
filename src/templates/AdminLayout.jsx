@@ -23,9 +23,10 @@ const AdminLayout = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
 
   const handleLogout = () => {
-    dispatch(logoutUser()).then(() => {
-      navigate("/auth/login");
-    });
+    dispatch(logoutUser());
+    localStorage.removeItem("userInfo");
+    localStorage.removeItem("token");
+    navigate("/auth/login");
   };
 
   useEffect(() => {

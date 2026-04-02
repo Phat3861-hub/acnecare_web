@@ -121,7 +121,6 @@ const PostComment = () => {
   }, [postId]);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
   useEffect(() => {
     if (!postId) return;
 
@@ -173,18 +172,14 @@ const PostComment = () => {
           });
         });
 
-        // BẠN TÌM ĐOẠN SUBSCRIBE NÀY
         client.subscribe(`/topic/posts/${postId}/likes`, (msg) => {
-          // Thay thế JSON.parse bằng đoạn này
-          const isActionLike = String(msg.body).trim().toLowerCase() === "true";
+          const payload = JSON.parse(msg.body);
 
           setPost((prev) => {
             if (!prev) return prev;
             return {
               ...prev,
-              likesCount: isActionLike
-                ? (prev.likesCount || 0) + 1
-                : Math.max(0, (prev.likesCount || 0) - 1),
+              likesCount: payload.likesCount,
             };
           });
         });

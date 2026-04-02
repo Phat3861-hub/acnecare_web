@@ -68,7 +68,7 @@ const Createpost = () => {
     if (currentUserRole === "ADMIN") return "/admin";
     if (currentUserRole === "DOCTOR") return "/doctor";
     if (currentUserRole === "BRAND") return "/brand";
-    return ""; // Mặc định cho Patient
+    return "";
   };
   const baseRoute = getBaseRoute();
 

@@ -200,15 +200,13 @@ const Post = () => {
       if (!subscribedPostsRef.current.has(post.id)) {
         subscribedPostsRef.current.add(post.id);
 
-        // BẠN TÌM ĐOẠN SUBSCRIBE NÀY
         client.subscribe(`/topic/posts/${post.id}/likes`, (msg) => {
-          // Thay thế JSON.parse bằng đoạn này
-          const isActionLike = String(msg.body).trim().toLowerCase() === "true";
+          const payload = JSON.parse(msg.body);
 
           dispatch(
             updateLikesRealtime({
               postId: post.id,
-              isActionLike: isActionLike,
+              likesCount: payload.likesCount,
             }),
           );
         });

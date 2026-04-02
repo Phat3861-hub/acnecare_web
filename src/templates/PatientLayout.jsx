@@ -58,6 +58,7 @@ const PatientLayout = () => {
   const handleLogout = () => {
     dispatch(logoutUser());
     localStorage.removeItem("userInfo");
+    localStorage.removeItem("token");
     navigate("/auth/login");
   };
 
@@ -92,6 +93,12 @@ const PatientLayout = () => {
       icon: <UnorderedListOutlined />,
       label: "Lịch trình của tôi",
       onClick: () => navigate("/my-routines"),
+    },
+    {
+      key: "history",
+      icon: <UnorderedListOutlined />,
+      label: "Lịch sử khám bệnh",
+      onClick: () => navigate("/patient/history"),
     },
     {
       key: "chat",

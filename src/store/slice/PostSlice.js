@@ -143,13 +143,11 @@ const postSlice = createSlice({
 
     // 2. KHI WEBSOCKET BÁO VỀ THÌ MỚI ĐƯỢC CỘNG/TRỪ SỐ
     updateLikesRealtime: (state, action) => {
-      const { postId, isActionLike } = action.payload;
+      const { postId, likesCount } = action.payload;
       const post = state.posts.find((p) => p.id === postId);
 
       if (post) {
-        post.likesCount = isActionLike
-          ? (post.likesCount || 0) + 1
-          : Math.max(0, (post.likesCount || 0) - 1);
+        post.likesCount = likesCount;
       }
     },
     addImagesRealtime: (state, action) => {
