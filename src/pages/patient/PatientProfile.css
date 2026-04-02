@@ -1,0 +1,43 @@
+/* PatientProfile.css */
+.profile-page-container {
+  background: linear-gradient(135deg, #fcfcfd 0%, #f3f5fa 100%);
+  min-height: 100vh;
+}
+
+.profile-card-main {
+  border-radius: 32px !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.03) !important;
+  border: 1px solid rgba(140, 82, 255, 0.05) !important;
+  background: white;
+}
+
+.profile-header {
+  background: linear-gradient(45deg, #1e255e, #8C52FF) !important;
+}
+
+.profile-title {
+  background: -webkit-linear-gradient(45deg, #1e255e, #8C52FF);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.profile-btn-primary {
+  background: linear-gradient(45deg, #1e255e, #8C52FF) !important;
+  color: white !important;
+  border: none !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 10px 20px rgba(140, 82, 255, 0.2) !important;
+}
+
+.profile-btn-primary:not(:disabled):hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 15px 30px rgba(140, 82, 255, 0.35) !important;
+}
+
+.profile-avatar-wrap {
+  position: relative;
+  border-radius: 50%;
+  padding: 4px;
+  background: linear-gradient(45deg, #1e255e, #8C52FF);
+}

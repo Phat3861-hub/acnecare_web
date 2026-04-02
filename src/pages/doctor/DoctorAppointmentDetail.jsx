@@ -25,6 +25,7 @@ import {
 import { appointmentService } from "../../services/AppointmentService";
 import { ConsultationService } from "../../services/ConsultationService";
 import dayjs from "dayjs";
+import "./DoctorAppointmentDetail.css";
 
 const { TextArea } = Input;
 
@@ -115,11 +116,12 @@ const DoctorAppointmentDetail = () => {
     );
 
   return (
-    <div className="p-8 max-w-4xl mx-auto bg-white my-8 rounded-xl shadow-sm border border-gray-200">
-      {/* HEADER QUAY LẠI */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-gray-800">Chi tiết ca khám</h2>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
+    <div className="doctor-appointment-detail-container min-h-screen py-8">
+      <div className="p-8 max-w-4xl mx-auto bg-white doctor-appointment-detail-card">
+        {/* HEADER QUAY LẠI */}
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-black doctor-appointment-detail-title">Chi tiết ca khám</h2>
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
           Quay lại
         </Button>
       </div>
@@ -236,7 +238,7 @@ const DoctorAppointmentDetail = () => {
             type="primary"
             size="large"
             icon={<EditOutlined />}
-            className="bg-[#1e255e] font-bold rounded-lg px-8 shadow-md"
+            className="font-bold rounded-xl px-8 h-12 doctor-appointment-detail-btn"
             onClick={handleOpenConsultationModal}
           >
             {detail.status === "COMPLETED"
@@ -357,6 +359,7 @@ const DoctorAppointmentDetail = () => {
           </div>
         </Form>
       </Modal>
+      </div>
     </div>
   );
 };

@@ -1,0 +1,51 @@
+/* DoctorList.css */
+.doctor-page-container {
+  background: linear-gradient(135deg, #fcfcfd 0%, #f3f5fa 100%);
+}
+
+.doctor-list-card {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: 1px solid rgba(140, 82, 255, 0.05);
+}
+
+.doctor-list-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(140, 82, 255, 0.15);
+  border-color: rgba(140, 82, 255, 0.2);
+}
+
+.doctor-avatar-wrapper {
+  background: radial-gradient(circle at top, #ffffff 0%, #eef2f6 100%);
+  transition: all 0.4s ease;
+}
+
+.doctor-list-card:hover .doctor-avatar-wrapper {
+  background: radial-gradient(circle at top, #ffffff 0%, #e2e8ff 100%);
+}
+
+.doctor-name-text {
+  background: -webkit-linear-gradient(45deg, #1e255e, #8C52FF);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: all 0.3s;
+}
+
+.doctor-booking-btn {
+  background: linear-gradient(45deg, #1e255e, #8C52FF) !important;
+  color: white !important;
+  border: none !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 10px 20px rgba(140, 82, 255, 0.2) !important;
+}
+
+.doctor-booking-btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 15px 30px rgba(140, 82, 255, 0.35) !important;
+}
+
+.doctor-badge-tag {
+  background: rgba(140, 82, 255, 0.1) !important;
+  color: #8C52FF !important;
+  border-radius: 999px !important;
+}

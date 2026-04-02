@@ -29,6 +29,7 @@ import isBetween from "dayjs/plugin/isBetween";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { appointmentService } from "../../services/AppointmentService";
+import "./BookAppointment.css";
 
 dayjs.extend(isBetween);
 
@@ -180,17 +181,28 @@ const BookAppointment = () => {
 
     while (currentSlot.isBefore(endOfDay)) {
       const slotStart = currentSlot;
+      const slotEnd = slotStart.add(duration, "minute");
 
-      // Thêm điều kiện: Nếu là hôm nay thì chỉ hiện những giờ chưa tới
       const isPast =
         selectedDate.isSame(dayjs(), "day") && slotStart.isBefore(dayjs());
 
+      const isAvailable = availableSchedules.some((schedule) => {
+        const workStart = dayjs(schedule.startTime);
+        const workEnd = dayjs(schedule.endTime);
+
+        return (
+          (slotStart.isSame(workStart) || slotStart.isAfter(workStart)) &&
+          (slotEnd.isSame(workEnd) || slotEnd.isBefore(workEnd))
+        );
+      });
+
       if (isAvailable && !isPast) {
-        // Chỉ push nếu giờ đó chưa trôi qua
+        // Chỉ push nếu giờ đó bác sĩ rảnh và chưa trôi qua
         slots.push(slotStart.format("YYYY-MM-DDTHH:mm:00"));
       }
 
-      currentSlot = slotStart.add(30, "minute");
+      // 🚨 ĐÃ SỬA LỖI LOGIC: Dùng biến duration thay vì hardcode số 30
+      currentSlot = slotStart.add(duration, "minute");
     }
     return slots;
   };
@@ -233,8 +245,9 @@ const BookAppointment = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6 mt-8 bg-white rounded-xl shadow-sm border border-gray-100 mb-10">
-      <div className="flex justify-between items-center border-b pb-6 mb-6">
+    <div className="booking-page-container">
+    <div className="max-w-5xl mx-auto p-8 booking-card-main">
+      <div className="flex justify-between items-center border-b border-gray-100 pb-6 mb-8">
         <div className="flex items-center gap-4">
           <Avatar
             size={80}
@@ -243,24 +256,21 @@ const BookAppointment = () => {
             className="shadow-sm"
           />
           <div>
-            <h2 className="text-2xl font-bold m-0 text-gray-800">
+            <h2 className="text-2xl font-black m-0 booking-title">
               Bác sĩ {doctor.firstName} {doctor.lastName}
             </h2>
             <p className="text-gray-500 m-0 mt-1">Chuyên khoa Da liễu</p>
           </div>
         </div>
-        <Button onClick={() => navigate("/")} className="font-medium">
+        <Button onClick={() => navigate("/book-appointment")} className="font-medium">
           Đổi bác sĩ
         </Button>
       </div>
 
       <Form form={form} layout="vertical" onFinish={handleBooking}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-          {/* =======================================================
-              CỘT TRÁI: CHỌN DỊCH VỤ (BƯỚC 1)
-              ======================================================= */}
           <div>
-            <h3 className="text-lg font-bold mb-4 text-gray-800 border-l-4 border-indigo-600 pl-3">
+            <h3 className="text-lg font-bold mb-6 booking-step-title">
               1. Lựa chọn Dịch vụ
             </h3>
 
@@ -283,16 +293,16 @@ const BookAppointment = () => {
             </Form.Item>
 
             {selectedServiceObj && (
-              <div className="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-lg animate-fade-in">
-                <div className="flex justify-between items-center mb-2">
+              <div className="mb-6 p-5 booking-info-box animate-fade-in">
+                <div className="flex justify-between items-center mb-3">
                   <span className="text-gray-600 font-medium">Thời lượng:</span>
-                  <span className="font-semibold bg-white px-2 py-1 rounded text-sm text-indigo-700">
+                  <span className="font-bold bg-white/60 px-3 py-1 rounded-full text-sm text-[#8C52FF] shadow-sm">
                     {selectedServiceObj.durationMinutes} phút
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-lg mt-3 pt-3 border-t border-indigo-100/50">
-                  <span className="text-gray-800 font-bold">Phí dịch vụ:</span>
-                  <span className="font-bold text-indigo-700 text-xl">
+                <div className="flex justify-between items-center text-lg mt-4 pt-4 border-t border-[rgba(140,82,255,0.1)]">
+                  <span className="text-[#1e255e] font-black">Phí dịch vụ:</span>
+                  <span className="font-black text-[#8C52FF] text-2xl">
                     {selectedServiceObj.price.toLocaleString("vi-VN")}{" "}
                     {selectedServiceObj.currency}
                   </span>
@@ -321,7 +331,6 @@ const BookAppointment = () => {
             >
               <Select size="large" placeholder="Chọn thanh toán">
                 <Option value="CASH">Tiền mặt tại phòng khám</Option>
-                <Option value="VNPAY">Chuyển khoản VNPay</Option>
               </Select>
             </Form.Item>
 
@@ -344,7 +353,7 @@ const BookAppointment = () => {
               CỘT PHẢI: CHỌN GIỜ VÀ XÁC NHẬN (BƯỚC 2)
               ======================================================= */}
           <div>
-            <h3 className="text-lg font-bold mb-4 text-gray-800 border-l-4 border-indigo-600 pl-3">
+            <h3 className="text-lg font-bold mb-6 booking-step-title">
               2. Chọn Ngày & Giờ khám
             </h3>
 
@@ -360,18 +369,18 @@ const BookAppointment = () => {
               disabled={!selectedServiceObj} // Khóa lịch nếu chưa chọn dịch vụ
             />
 
-            <div className="min-h-[250px] border border-gray-200 p-5 rounded-xl bg-gray-50 mb-6 relative">
-              <p className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                <ClockCircleOutlined className="text-indigo-600" /> Các khung
+            <div className="min-h-[250px] p-6 mb-6 relative booking-time-container">
+              <p className="text-sm font-bold text-[#1e255e] mb-5 flex items-center gap-2">
+                <ClockCircleOutlined style={{ color: "#8C52FF" }} /> Các khung
                 giờ có sẵn:
               </p>
 
               {!selectedServiceObj ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 bg-white/80 rounded-xl backdrop-blur-sm z-10">
-                  <InfoCircleOutlined className="text-3xl mb-2 text-indigo-400" />
-                  <p className="font-medium text-gray-500">
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 rounded-2xl backdrop-blur-sm z-10 text-center">
+                  <InfoCircleOutlined className="text-4xl mb-3 text-[#8C52FF]" />
+                  <p className="font-bold text-[#1e255e] m-0">
                     Vui lòng chọn Dịch vụ (Bước 1) <br />
-                    để xem khung giờ rảnh tương ứng.
+                    <span className="font-medium text-gray-500">để xem khung giờ khám trống.</span>
                   </p>
                 </div>
               ) : fetchingSchedules ? (
@@ -389,8 +398,8 @@ const BookAppointment = () => {
                       <Button
                         key={timeString}
                         disabled={isBusy}
-                        type={isSelected ? "primary" : "default"}
-                        className={`h-11 font-medium transition-all ${isSelected ? "bg-indigo-600 shadow-md transform scale-105 border-indigo-600" : isBusy ? "line-through text-gray-400 bg-gray-200 border-transparent cursor-not-allowed" : "bg-white text-gray-700 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"}`}
+                        type="default"
+                        className={`h-12 font-bold time-slot-btn ${isSelected ? "time-slot-btn-selected" : isBusy ? "line-through text-gray-400 bg-gray-100 border-transparent cursor-not-allowed" : "time-slot-btn-default text-gray-600 border-gray-200"}`}
                         onClick={() => setSelectedTime(timeString)}
                       >
                         {timeLabel}
@@ -412,7 +421,7 @@ const BookAppointment = () => {
               type="primary"
               htmlType="submit"
               size="large"
-              className="w-full bg-indigo-700 hover:bg-indigo-600 h-14 text-lg font-bold shadow-lg rounded-xl flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+              className="w-full h-14 text-lg font-bold flex items-center justify-center gap-2 booking-submit-btn rounded-xl"
               loading={loading}
               disabled={!selectedTime || !selectedServiceObj}
             >
@@ -421,6 +430,7 @@ const BookAppointment = () => {
           </div>
         </div>
       </Form>
+    </div>
     </div>
   );
 };

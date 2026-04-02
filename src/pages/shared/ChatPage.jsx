@@ -31,6 +31,7 @@ import {
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 import dayjs from "dayjs";
+import "./SharedPages.css";
 
 const { Sider, Content } = Layout;
 const { Text } = Typography;
@@ -50,7 +51,7 @@ const ChatPage = () => {
   const stompClient = useRef(null);
   const messagesEndRef = useRef(null);
 
-  const ADMIN_ID = "b290eedd-c923-4e1a-b286-61f6e8d727cb";
+  const ADMIN_ID = "f663c3df-8192-4a7b-a1ea-4a4ccdb69462";
 
   const getImageUrl = (url) => {
     if (!url) return null;
@@ -286,7 +287,7 @@ const ChatPage = () => {
   };
 
   return (
-    <Layout className="h-[88vh] bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden m-4 lg:mx-10 lg:my-6 flex flex-row">
+    <Layout className="h-[88vh] bg-white shared-card-main overflow-hidden m-4 lg:mx-10 lg:my-6 flex flex-row">
       <Sider
         width={350}
         theme="light"
@@ -295,7 +296,7 @@ const ChatPage = () => {
         <div className="p-4 flex justify-between items-center">
           <Text
             strong
-            className="text-2xl font-black text-gray-800 tracking-tight"
+            className="text-2xl font-black shared-title tracking-tight"
           >
             Đoạn chat
           </Text>
@@ -500,8 +501,8 @@ const ChatPage = () => {
                           <div
                             className={`px-4 py-2 text-[15px] ${
                               isMe
-                                ? "bg-[#0084ff] text-white rounded-2xl rounded-tr-sm"
-                                : "bg-[#e4e6eb] text-black rounded-2xl rounded-tl-sm"
+                                ? "shared-chat-bubble-me"
+                                : "shared-chat-bubble-other"
                             }`}
                             style={{ wordBreak: "break-word" }}
                           >
@@ -554,7 +555,7 @@ const ChatPage = () => {
                   type="text"
                   shape="circle"
                   onClick={handleSendMessage}
-                  icon={<SendOutlined className="text-xl text-blue-600" />}
+                  icon={<SendOutlined className="text-xl text-[color:#8C52FF]" />}
                 />
               ) : (
                 <Button
@@ -582,7 +583,7 @@ const ChatPage = () => {
             <Button
               type="primary"
               size="large"
-              className="mt-6 bg-blue-600 rounded-full px-8 font-semibold shadow-md"
+              className="mt-6 px-8 font-bold shared-btn-primary rounded-full"
               onClick={handleChatWithAdmin}
               loading={isConnectingAdmin}
             >

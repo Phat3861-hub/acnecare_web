@@ -45,6 +45,7 @@ import dayjs from "dayjs";
 const { Option } = Select;
 const { Search, TextArea } = Input;
 const { Title, Text } = Typography;
+import "./SharedPages.css";
 
 const TreatmentCaseDetail = () => {
   const { id } = useParams();
@@ -492,7 +493,7 @@ const TreatmentCaseDetail = () => {
       : null;
 
   return (
-    <div className="bg-gray-50 min-h-screen py-8 px-4 md:px-12 lg:px-24">
+    <div className="shared-page-container min-h-screen py-8 px-4 md:px-12 lg:px-24">
       <div className="max-w-5xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <Breadcrumb>
@@ -515,10 +516,10 @@ const TreatmentCaseDetail = () => {
           </Button>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 mb-8">
+        <div className="bg-white shared-card-main p-6 md:p-8 mb-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-100 pb-4 mb-6 gap-4">
             <div>
-              <h2 className="text-2xl font-black text-[#1e255e] mb-2">
+              <h2 className="text-2xl font-black shared-title mb-2">
                 Hồ sơ Điều trị Da liễu
               </h2>
               <div className="flex items-center gap-3">
@@ -543,7 +544,7 @@ const TreatmentCaseDetail = () => {
               <Button
                 type="primary"
                 icon={<MedicineBoxOutlined />}
-                className="bg-purple-600 hover:bg-purple-500 font-semibold rounded-lg h-10 px-6 shadow-sm border-none"
+                className="font-bold rounded-xl h-12 px-6 shared-btn-primary"
                 onClick={handleOpenCreateModal}
               >
                 Thiết Kế Phác Đồ Mới
@@ -709,12 +710,12 @@ const TreatmentCaseDetail = () => {
           </div>
         )}
 
-        <h3 className="text-xl font-bold text-gray-800 mb-6 px-2 flex items-center gap-2">
-          <ClockCircleOutlined className="text-blue-600" /> Lịch sử Khám & Đánh
+        <h3 className="text-xl font-bold shared-title mb-6 px-2 flex items-center gap-2">
+          <ClockCircleOutlined className="text-[#8C52FF]" /> Lịch sử Khám & Đánh
           giá
         </h3>
 
-        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
+        <div className="bg-white p-6 md:p-8 shared-card-main mt-4">
           {currentCase.consultations && currentCase.consultations.length > 0 ? (
             <Timeline mode="left" className="mt-4">
               {[...currentCase.consultations]

@@ -1,0 +1,37 @@
+/* PostComment.css */
+.post-detail-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8f9ff 0%, #f1f4fb 100%);
+}
+
+.post-detail-card {
+  background: white;
+  border-radius: 20px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.03) !important;
+  border: 1px solid rgba(140, 82, 255, 0.03) !important;
+}
+
+.post-detail-title {
+  color: #1e255e !important;
+  font-weight: 800 !important;
+}
+
+.post-detail-comment-card {
+  background: linear-gradient(to right, #fcfcfd, #ffffff);
+  border: 1px solid rgba(140, 82, 255, 0.06);
+  border-radius: 16px;
+  border-top-left-radius: 4px;
+}
+
+.post-detail-btn-back {
+  background: white !important;
+  border: 1px solid rgba(140, 82, 255, 0.1) !important;
+  color: #1e255e !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.3s ease !important;
+}
+
+.post-detail-btn-back:hover {
+  border-color: rgba(140, 82, 255, 0.4) !important;
+  color: #8C52FF !important;
+}

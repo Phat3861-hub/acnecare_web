@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProducts } from "../../store/slice/ProductSlice";
 import { fetchCategories } from "../../store/slice/CategorySlice";
-import { Input, Spin, Empty, Pagination, Tag } from "antd";
+import { Input, Spin, Empty, Pagination, Tag, Select } from "antd";
 import { SearchOutlined, ArrowRightOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
+import "./ProductList.css";
 
 const ProductList = () => {
   const dispatch = useDispatch();
@@ -81,11 +82,11 @@ const ProductList = () => {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen py-10 px-4 md:px-12 lg:px-24">
+    <div className="min-h-screen py-10 px-4 md:px-12 lg:px-24 list-page-container">
       <div className="max-w-6xl mx-auto">
         {/* HEADER & TABS */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
-          <h2 className="text-2xl md:text-3xl font-black text-gray-800 m-0">
+          <h2 className="text-2xl md:text-3xl font-black m-0 title-list-view">
             Dược Mỹ Phẩm Khuyên Dùng
           </h2>
 
@@ -101,19 +102,39 @@ const ProductList = () => {
               >
                 Tất cả
               </span>
-              {categories.map((cat) => (
+              {categories.slice(0, 3).map((cat) => (
                 <span
                   key={cat.id}
                   onClick={() => handleCategoryChange(cat.id)}
                   className={`cursor-pointer px-4 py-2 rounded-full transition-colors ${
                     activeCategory === cat.id
-                      ? "bg-blue-600 text-white shadow-md"
+                      ? "bg-[#8C52FF] text-white shadow-md"
                       : "bg-white text-gray-500 hover:bg-gray-200"
                   }`}
                 >
                   {cat.name}
                 </span>
               ))}
+
+              {categories.length > 3 && (
+                <Select
+                  value={
+                    activeCategory !== "all" && !categories.slice(0, 3).find(c => c.id === activeCategory)
+                      ? activeCategory 
+                      : "more"
+                  }
+                  onChange={(value) => {
+                    if (value !== "more") handleCategoryChange(value);
+                  }}
+                  className="category-select-custom"
+                  style={{ minWidth: "120px" }}
+                  options={[
+                    { value: "more", label: "Danh mục khác...", disabled: true },
+                    ...categories.slice(3).map(cat => ({ value: cat.id, label: cat.name }))
+                  ]}
+                  dropdownStyle={{ borderRadius: "12px", overflow: "hidden" }}
+                />
+              )}
             </div>
 
             <Input
@@ -137,10 +158,10 @@ const ProductList = () => {
                 <div
                   key={product.id}
                   onClick={() => navigate(`/products/${product.id}`)}
-                  className="flex flex-col bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 cursor-pointer group"
+                  className="flex flex-col bg-white overflow-hidden cursor-pointer group list-product-card"
                 >
                   {/* Hình ảnh */}
-                  <div className="h-60 p-6 flex items-center justify-center relative bg-gray-50">
+                  <div className="h-60 p-6 flex items-center justify-center relative list-product-img-box">
                     <img
                       // ĐÃ SỬA: Bọc hàm getImageUrl
                       src={
@@ -149,12 +170,11 @@ const ProductList = () => {
                           : "https://via.placeholder.com/200"
                       }
                       alt={product.name}
-                      className="h-full object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-500 mix-blend-multiply"
+                      className="h-full object-contain mix-blend-multiply list-product-img"
                     />
                     <div className="absolute top-4 left-4">
                       <Tag
-                        color="blue"
-                        className="rounded-full px-3 font-semibold shadow-sm"
+                        className="rounded-full px-3 font-semibold shadow-sm brand-tag-custom"
                       >
                         {product.brand}
                       </Tag>
@@ -174,7 +194,7 @@ const ProductList = () => {
                       <span className="text-sm font-medium text-gray-500">
                         Xem chi tiết
                       </span>
-                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                      <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-[#8C52FF] group-hover:bg-[#8C52FF] group-hover:text-white transition-colors">
                         <ArrowRightOutlined />
                       </div>
                     </div>

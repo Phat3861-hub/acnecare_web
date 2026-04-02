@@ -32,6 +32,7 @@ import {
   EnvironmentOutlined,
 } from "@ant-design/icons";
 import { logoutUser } from "../store/slice/UserSlice";
+import "./PatientLayout.css";
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text } = Typography;
@@ -58,6 +59,7 @@ const PatientLayout = () => {
   const handleLogout = () => {
     dispatch(logoutUser());
     localStorage.removeItem("userInfo");
+    localStorage.removeItem("token");
     navigate("/auth/login");
   };
 
@@ -94,6 +96,12 @@ const PatientLayout = () => {
       onClick: () => navigate("/my-routines"),
     },
     {
+      key: "history",
+      icon: <UnorderedListOutlined />,
+      label: "Lịch sử khám bệnh",
+      onClick: () => navigate("/patient/history"),
+    },
+    {
       key: "chat",
       icon: <MessageOutlined style={{ color: BRAND_COLOR }} />,
       label: "Tin nhắn (Chat)",
@@ -117,9 +125,9 @@ const PatientLayout = () => {
         },
       }}
     >
-      <Layout className="min-h-screen font-sans bg-[#fcfcfc]">
+      <Layout className="min-h-screen font-sans patient-layout-bg">
         {/* HEADER */}
-        <Header className="bg-white flex justify-between items-center shadow-sm px-4 md:px-12 lg:px-24 h-20 sticky top-0 z-50">
+        <Header className="glass-header flex justify-between items-center px-4 md:px-12 lg:px-24 h-20 sticky top-0 z-50">
           <div className="flex items-center gap-4">
             <Button
               type="text"
@@ -139,8 +147,7 @@ const PatientLayout = () => {
                 className="h-10 md:h-12 w-auto object-contain"
               />
               <span
-                className="ml-2 font-black text-2xl tracking-tighter hidden sm:inline-block"
-                style={{ color: BRAND_COLOR }}
+                className="ml-2 font-black text-2xl tracking-tighter hidden sm:inline-block hero-logo-text"
               >
                 acneCare
               </span>
@@ -157,7 +164,7 @@ const PatientLayout = () => {
                   color:
                     location.pathname === link.path ? BRAND_COLOR : "#64748b",
                 }}
-                className="hover:text-[#8C52FF] transition-all"
+                className={`hover:text-[#8C52FF] transition-all patient-nav-link ${location.pathname === link.path ? "active-link" : ""}`}
               >
                 {link.label}
               </Link>
@@ -172,7 +179,7 @@ const PatientLayout = () => {
                 placement="bottomRight"
               >
                 <div
-                  className="flex items-center gap-2 text-white px-3 md:px-4 py-1.5 rounded-full cursor-pointer transition-all shadow-md text-sm font-bold"
+                  className="flex items-center gap-2 text-white px-3 md:px-4 py-1.5 rounded-full cursor-pointer transition-all text-sm font-bold patient-btn-primary"
                   style={{ backgroundColor: BRAND_COLOR }}
                 >
                   <span className="hidden sm:inline">
@@ -189,7 +196,7 @@ const PatientLayout = () => {
             ) : (
               <Link
                 to="/auth/login"
-                className="flex items-center gap-2 bg-white border-2 px-5 py-1.5 rounded-full font-bold transition-all"
+                className="flex items-center gap-2 bg-white border-2 px-5 py-1.5 rounded-full font-bold transition-all patient-btn-outline"
                 style={{ color: BRAND_COLOR, borderColor: BRAND_COLOR }}
               >
                 Đăng nhập
@@ -236,13 +243,13 @@ const PatientLayout = () => {
         </Content>
 
         {/* FOOTER */}
-        <Footer className="bg-[#0f112a] text-white pt-16 pb-8 px-4 md:px-12 lg:px-24">
+        <Footer className="text-white pt-16 pb-8 px-4 md:px-12 lg:px-24 patient-footer">
           <div className="max-w-7xl mx-auto">
             <Row gutter={[32, 40]}>
               <Col xs={24} md={9}>
                 <div className="flex items-center gap-2 mb-6">
                   <img src="/acnecare_logo.png" alt="logo" className="h-10  " />
-                  <span className="font-black text-2xl text-white tracking-tighter">
+                  <span className="font-black text-2xl tracking-tighter hero-logo-text">
                     acneCare
                   </span>
                 </div>

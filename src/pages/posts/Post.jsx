@@ -18,6 +18,7 @@ import {
   Empty,
   message as antdMessage,
   Skeleton,
+  Alert,
 } from "antd";
 import {
   HeartOutlined,
@@ -36,11 +37,11 @@ import {
   deletePostRealtime,
   updatePostRealtime,
   updateLikesRealtime,
-  updateCommentsCountRealtime,
   addImagesRealtime,
   removeImageRealtime,
   toggleLikeLocal,
 } from "../../store/slice/PostSlice";
+import "./Post.css";
 
 const { Header, Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -59,9 +60,13 @@ const getCookie = (name) => {
 const Post = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const stompClientRef = useRef(null);
-  const observer = useRef();
 
+  // Ref để quản lý WebSockets
+  const stompClientRef = useRef(null);
+  const subscribedPostsRef = useRef(new Set());
+  const [isStompConnected, setIsStompConnected] = useState(false);
+  const observer = useRef();
+  const lockingPostsRef = useRef(new Set());
   const { user } = useSelector((state) => state.user);
   const {
     posts,
@@ -78,7 +83,6 @@ const Post = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState(null);
 
-  // Lấy ID và ROLE người dùng hiện tại
   let currentUserId = null;
   let currentUserRole = null;
   try {
@@ -89,32 +93,31 @@ const Post = () => {
     console.error("🚨 [Lỗi] Không thể lấy thông tin User:", error);
   }
 
-  // 🚨 HÀM TỰ ĐỘNG TẠO ĐƯỜNG DẪN DỰA TRÊN ROLE
   const getBaseRoute = () => {
     if (currentUserRole === "ADMIN") return "/admin";
     if (currentUserRole === "DOCTOR") return "/doctor";
     if (currentUserRole === "BRAND") return "/brand";
-    return ""; // Default cho Patient (không có tiền tố)
+    return "";
   };
   const baseRoute = getBaseRoute();
 
   const getImageUrl = (url) => {
     if (!url) return null;
-    const baseUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:9090";
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
     if (url.startsWith("http")) {
       if (
         url.includes("203.145.47.214") ||
         url.includes("https://acnecare.io.vn/api/")
       ) {
         const parts = url.split("/api/");
-        return `${baseUrl}/api/${parts[parts.length - 1]}`;
+        const path = "/api/" + parts[parts.length - 1];
+        return `${baseUrl}${path}`;
       }
       return url;
     }
     const cleanPath = url.startsWith("/") ? url : `/${url}`;
-    return cleanPath.startsWith("/api/")
-      ? `${baseUrl}${cleanPath}`
-      : `${baseUrl}/api${cleanPath}`;
+    if (cleanPath.startsWith("/api/")) return `${baseUrl}${cleanPath}`;
+    return `${baseUrl}/api${cleanPath}`;
   };
 
   const handleFetchPosts = async (currentPage) => {
@@ -150,81 +153,103 @@ const Post = () => {
           });
         }
       });
-
       if (node) observer.current.observe(node);
     },
     [isLoading, hasMore],
   );
 
-  const postIdsString = posts.map((p) => p.id).join(",");
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   useEffect(() => {
-    if (!postIdsString) return;
+    const currentToken = getCookie("accessToken");
+    const client = new Client({
+      webSocketFactory: () => new SockJS(`${backendUrl}/api/ws`),
+      connectHeaders: currentToken
+        ? { Authorization: `Bearer ${currentToken}` }
+        : {},
+      reconnectDelay: 5000,
+      onConnect: () => {
+        setIsStompConnected(true);
+        // Subscribe cho các tác vụ chung
+        client.subscribe("/topic/posts/delete", (msg) =>
+          dispatch(deletePostRealtime(msg.body)),
+        );
+        client.subscribe("/topic/posts/update", (msg) =>
+          dispatch(updatePostRealtime(JSON.parse(msg.body))),
+        );
+      },
+      onDisconnect: () => setIsStompConnected(false),
+    });
 
-    try {
-      const currentToken = getCookie("accessToken");
-      const client = new Client({
-        webSocketFactory: () =>
-          new SockJS(`${backendUrl}/api/ws`, null, { withCredentials: true }),
-        debug: (str) => {
-          console.log("📡 [STOMP RADAR]: " + str);
-        },
-        connectHeaders: currentToken
-          ? { Authorization: `Bearer ${currentToken}` }
-          : {},
-        reconnectDelay: 5000,
-        onConnect: () => {
-          console.log("✅✅✅ [WEBSOCKET] ĐÃ BẮT TAY THÀNH CÔNG VỚI BACKEND!");
-          client.subscribe("/topic/posts/delete", (msg) =>
-            dispatch(deletePostRealtime(msg.body)),
+    client.activate();
+    stompClientRef.current = client;
+
+    return () => {
+      client.deactivate();
+      subscribedPostsRef.current.clear();
+    };
+  }, [backendUrl, dispatch]);
+
+  // 2. SUBSCRIBE ĐỘNG CHO TỪNG BÀI VIẾT (Không ngắt kết nối cũ)
+  useEffect(() => {
+    if (!isStompConnected || !stompClientRef.current) return;
+    const client = stompClientRef.current;
+
+    posts.forEach((post) => {
+      if (!subscribedPostsRef.current.has(post.id)) {
+        subscribedPostsRef.current.add(post.id);
+
+        client.subscribe(`/topic/posts/${post.id}/likes`, (msg) => {
+          const payload = JSON.parse(msg.body);
+
+          dispatch(
+            updateLikesRealtime({
+              postId: post.id,
+              likesCount: payload.likesCount,
+            }),
           );
-          client.subscribe("/topic/posts/update", (msg) =>
-            dispatch(updatePostRealtime(JSON.parse(msg.body))),
+        });
+        client.subscribe(`/topic/posts/${post.id}/comments`, () => {
+          dispatch(
+            updateCommentsCountRealtime({ postId: post.id, type: "add" }),
           );
-
-          postIdsString.split(",").forEach((postId) => {
-            client.subscribe(`/topic/posts/${postId}/likes`, (msg) => {
-              dispatch(
-                updateLikesRealtime({
-                  postId,
-                  isActionLike: JSON.parse(msg.body),
-                }),
-              );
-            });
-            client.subscribe(`/topic/posts/${postId}/comments`, () => {
-              dispatch(updateCommentsCountRealtime({ postId, type: "add" }));
-            });
-            client.subscribe(`/topic/posts/${postId}/comments/delete`, () => {
-              dispatch(updateCommentsCountRealtime({ postId, type: "delete" }));
-            });
-            client.subscribe(`/topic/posts/${postId}/images/upload`, (msg) => {
-              dispatch(
-                addImagesRealtime({ postId, newImages: JSON.parse(msg.body) }),
-              );
-            });
-            client.subscribe(`/topic/posts/${postId}/images/delete`, (msg) => {
-              dispatch(removeImageRealtime({ postId, imageId: msg.body }));
-            });
-          });
-        },
-      });
-      client.activate();
-      stompClientRef.current = client;
-    } catch (error) {
-      console.error("🚨 [Lỗi WebSocket]:", error);
-    }
-
-    return () => stompClientRef.current?.deactivate();
-  }, [postIdsString, dispatch, backendUrl]);
+        });
+        client.subscribe(`/topic/posts/${post.id}/comments/delete`, () => {
+          dispatch(
+            updateCommentsCountRealtime({ postId: post.id, type: "delete" }),
+          );
+        });
+        client.subscribe(`/topic/posts/${post.id}/images/upload`, (msg) => {
+          dispatch(
+            addImagesRealtime({
+              postId: post.id,
+              newImages: JSON.parse(msg.body),
+            }),
+          );
+        });
+        client.subscribe(`/topic/posts/${post.id}/images/delete`, (msg) => {
+          dispatch(removeImageRealtime({ postId: post.id, imageId: msg.body }));
+        });
+      }
+    });
+  }, [posts, isStompConnected, dispatch]);
 
   const handleToggleLike = async (postId, currentIsLiked) => {
+    if (lockingPostsRef.current.has(postId)) {
+      return;
+    }
+
+    lockingPostsRef.current.add(postId);
+
     dispatch(toggleLikeLocal({ postId, isLiked: !currentIsLiked }));
+
     try {
       await dispatch(toggleLikeThunk(postId)).unwrap();
     } catch (error) {
       dispatch(toggleLikeLocal({ postId, isLiked: currentIsLiked }));
       antdMessage.error("Lỗi tương tác");
+    } finally {
+      lockingPostsRef.current.delete(postId);
     }
   };
 
@@ -263,12 +288,12 @@ const Post = () => {
   };
 
   return (
-    <Layout className="min-h-screen bg-[#F0F2F5]">
-      <Header className="bg-white border-b px-4 sticky top-0 z-50 flex items-center justify-center h-16 shadow-sm">
+    <Layout className="post-community-container">
+      <Header className="post-community-header px-4 sticky top-0 z-50 flex items-center justify-center h-16">
         <div className="max-w-2xl w-full flex justify-between items-center">
           <Title
             level={4}
-            className="m-0 text-blue-600 font-black tracking-tight"
+            className="m-0 post-community-title tracking-tight"
           >
             AcneCare Community
           </Title>
@@ -276,8 +301,8 @@ const Post = () => {
             <Button
               type="primary"
               shape="round"
-              className="bg-blue-600 hover:bg-blue-700 font-semibold px-6 shadow-md shadow-blue-200"
-              onClick={() => navigate(`${baseRoute}/createpost`)} // 🚨 SỬA Ở ĐÂY
+              className="post-btn-primary font-semibold px-6"
+              onClick={() => navigate(`${baseRoute}/createpost`)}
               icon={<EditOutlined />}
             >
               Đăng bài
@@ -286,15 +311,15 @@ const Post = () => {
         </div>
       </Header>
 
-      <Content className="p-4 flex flex-col items-center">
+      <Content className="p-4 flex flex-col items-center mt-4">
         <div className="max-w-2xl w-full space-y-6">
           <Card
-            className="shadow-sm rounded-xl border-none"
-            bodyStyle={{ padding: "16px" }}
+            className="post-card-container"
+            bodyStyle={{ padding: "20px" }}
           >
             <div
               className="flex gap-3 items-center cursor-text"
-              onClick={() => navigate(`${baseRoute}/createpost`)} // 🚨 SỬA Ở ĐÂY
+              onClick={() => navigate(`${baseRoute}/createpost`)}
             >
               <Avatar
                 size={44}
@@ -302,7 +327,7 @@ const Post = () => {
               >
                 {user?.name?.charAt(0).toUpperCase() || "U"}
               </Avatar>
-              <div className="bg-slate-100 hover:bg-slate-200 transition-colors w-full rounded-full py-2.5 px-4 text-slate-500 font-medium">
+              <div className="post-create-input w-full rounded-full py-3 px-5 text-sm font-medium transition-all pointer-events-none">
                 Bạn đang nghĩ gì về làn da của mình?
               </div>
             </div>
@@ -311,7 +336,7 @@ const Post = () => {
               <Button
                 type="text"
                 className="text-slate-500 font-medium flex items-center gap-2 hover:bg-slate-50 rounded-lg px-8"
-                onClick={() => navigate(`${baseRoute}/createpost`)} // 🚨 SỬA Ở ĐÂY
+                onClick={() => navigate(`${baseRoute}/createpost`)}
               >
                 <PictureOutlined className="text-green-500 text-lg" /> Thêm ảnh
                 / Video
@@ -341,7 +366,7 @@ const Post = () => {
               <Card
                 key={post.id}
                 ref={isLastPost ? lastPostElementRef : null}
-                className="shadow-sm rounded-xl border-none hover:shadow-md transition-shadow duration-300"
+                className="post-card-container transition-shadow duration-300 mb-6"
                 bodyStyle={{ padding: "0px" }}
               >
                 <div className="p-4">
@@ -378,7 +403,7 @@ const Post = () => {
                           type="text"
                           onClick={() =>
                             navigate(`${baseRoute}/editpost/${post.id}`)
-                          } // 🚨 SỬA Ở ĐÂY
+                          }
                           className="text-slate-400 hover:text-blue-600"
                           icon={<EditOutlined />}
                         />
@@ -436,7 +461,7 @@ const Post = () => {
                     <Text
                       type="secondary"
                       className="text-sm cursor-pointer hover:underline"
-                      onClick={() => navigate(`${baseRoute}/posts/${post.id}`)} // 🚨 SỬA Ở ĐÂY
+                      onClick={() => navigate(`${baseRoute}/posts/${post.id}`)}
                     >
                       {post.commentsCount} bình luận
                     </Text>
@@ -481,7 +506,7 @@ const Post = () => {
                       >
                         {user?.name?.charAt(0).toUpperCase() || "U"}
                       </Avatar>
-                      <div className="flex-1 flex bg-white border border-slate-200 rounded-2xl p-1 shadow-sm focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+                      <div className="flex-1 flex post-comment-input-wrap rounded-2xl p-1.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
                         <Input.TextArea
                           autoSize={{ minRows: 1, maxRows: 4 }}
                           placeholder="Viết bình luận..."
@@ -493,14 +518,14 @@ const Post = () => {
                               handleCommentSubmit(post.id);
                             }
                           }}
-                          className="border-none shadow-none focus:ring-0 resize-none py-1.5 px-3"
+                          className="border-none shadow-none focus:ring-0 resize-none py-1.5 px-3 bg-transparent"
                         />
                         <Button
                           type="primary"
                           shape="circle"
                           loading={isCommenting}
                           onClick={() => handleCommentSubmit(post.id)}
-                          className="bg-blue-600 flex-shrink-0 self-end mb-0.5 mr-0.5"
+                          className="post-btn-primary flex-shrink-0 self-end mb-0.5 mr-0.5"
                           disabled={!commentText.trim()}
                         >
                           ↑

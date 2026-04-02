@@ -7,6 +7,7 @@ import * as Yup from "yup";
 import { jwtDecode } from "jwt-decode";
 
 import { authService } from "../../services/AuthService";
+import { userService } from "../../services/UserService"; // 🚨 THÊM IMPORT NÀY
 import { setCredentials } from "../../store/slice/UserSlice";
 import "./Login.css";
 
@@ -41,20 +42,37 @@ const Login = () => {
           else if (tokenRoles.includes("DOCTOR")) role = "DOCTOR";
           else if (tokenRoles.includes("BRAND")) role = "BRAND";
 
-          dispatch(
-            setCredentials({
-              user: {
-                id: decodedToken.sub,
-                role: role,
-              },
-            }),
-          );
+          // 🚨 BƯỚC 1: Lưu token vào Cookie (Để AppRoutes tự đọc và giải mã Role an toàn)
+          // Lưu ý: Nếu Backend đã tự set Cookie HttpOnly thì bạn không cần dòng này.
+          // Nhưng nếu Backend trả token qua body, bạn phải tự lưu nó vào Cookie ở Frontend.
+          document.cookie = `accessToken=${tokenBody}; path=/; max-age=86400; SameSite=Strict`;
+
+          try {
+            // 🚨 BƯỚC 2: GỌI NGAY API LẤY THÔNG TIN FULL PROFILE (Tên, Avatar...)
+            const userRes = await userService.getMyInfo();
+            const realUserInfo = userRes.data?.result || userRes.data;
+
+            // Lưu toàn bộ thông tin thật vào Redux
+            dispatch(
+              setCredentials({
+                user: {
+                  ...realUserInfo,
+                  role: role, // Vẫn lưu để hiển thị linh tinh, nhưng không dùng để bảo vệ route nữa
+                },
+              }),
+            );
+          } catch (profileError) {
+            console.error("Lỗi lấy thông tin profile:", profileError);
+            // Fallback nếu lỗi API getMyInfo
+            dispatch(setCredentials({ user: { id: decodedToken.sub, role } }));
+          }
 
           message.success("Đăng nhập thành công!");
 
+          // 🚨 BƯỚC 3: Điều hướng
           if (role === "ADMIN") navigate("/admin/dashboard");
           else if (role === "DOCTOR") navigate("/doctor/schedule");
-          else if (role === "BRAND") navigate("/brand/");
+          else if (role === "BRAND") navigate("/brand/profile");
           else navigate("/");
         }
       } catch (error) {
@@ -68,7 +86,6 @@ const Login = () => {
   });
 
   return (
-    // 🚨 Chú ý: Đã thêm class "auth-wrapper" ở đây
     <div className="auth-wrapper flex min-h-screen bg-background">
       <div className="hidden w-1/2 items-center justify-center gradient-primary lg:flex">
         <div className="max-w-md px-12 text-white animate-fade-in">

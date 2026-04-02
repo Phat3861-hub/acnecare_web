@@ -23,6 +23,7 @@ import {
 } from "@ant-design/icons";
 import { PatientRoutineService } from "../../services/PatientRoutineService";
 import { useLocation, useNavigate } from "react-router-dom"; // Thêm hook điều hướng
+import "./Routine.css";
 
 const { Title, Text } = Typography;
 const { Search, TextArea } = Input;
@@ -238,7 +239,7 @@ const RoutineBuilder = () => {
 
   const renderDropZone = (title, timeOfDay, icon, bgColor) => (
     <div
-      className={`p-4 rounded-lg mb-4 border-2 border-dashed ${bgColor} transition-all duration-300 min-h-[150px]`}
+      className={`p-4 mb-4 border-2 border-dashed drop-zone-custom ${bgColor} min-h-[150px]`}
       onDragOver={handleDragOver}
       onDrop={(e) => handleDrop(e, timeOfDay)}
     >
@@ -306,10 +307,10 @@ const RoutineBuilder = () => {
   );
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-6 routine-page-container">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <Title level={3} className="m-0">
+        <div className="flex justify-between items-center mb-8">
+          <Title level={2} className="m-0 routine-title font-black">
             {editingId ? "Cập Nhật Routine" : "Thiết Kế Routine"}
           </Title>
           <Button onClick={() => navigate("/my-routines")}>Quay lại</Button>
@@ -317,7 +318,7 @@ const RoutineBuilder = () => {
 
         <Row gutter={[24, 24]}>
           <Col xs={24} lg={14}>
-            <Card className="rounded-xl shadow-sm h-full">
+            <Card className="routine-card-main h-full p-2">
               <Form form={form} layout="vertical">
                 <Form.Item
                   name="routineName"
@@ -365,7 +366,7 @@ const RoutineBuilder = () => {
                 type="primary"
                 size="large"
                 icon={<SaveOutlined />}
-                className={`w-full mt-4 ${editingId ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700"}`}
+                className="w-full mt-4 h-14 text-lg font-bold rounded-xl routine-btn-primary"
                 onClick={handleSaveRoutine}
                 loading={isSaving}
               >
@@ -375,12 +376,12 @@ const RoutineBuilder = () => {
           </Col>
 
           <Col xs={24} lg={10}>
-            <Card className="rounded-xl shadow-sm h-full">
-              <Title level={4} className="mb-4">
+            <Card className="routine-card-main h-full p-2">
+              <Title level={4} className="mb-6 font-bold text-[#1e255e]">
                 Tủ Sản Phẩm
               </Title>
 
-              <div className="flex gap-2 mb-4">
+              <div className="flex gap-2 mb-6">
                 <Select
                   allowClear
                   placeholder="Lọc danh mục"
@@ -414,7 +415,7 @@ const RoutineBuilder = () => {
                         key={product.id}
                         draggable
                         onDragStart={(e) => handleDragStart(e, product)}
-                        className="border rounded-lg p-3 bg-white cursor-grab hover:shadow-md hover:border-blue-400 transition-all flex flex-col items-center text-center"
+                        className="p-3 bg-white cursor-grab flex flex-col items-center text-center rounded-xl product-drag-item"
                       >
                         <img
                           // ĐÃ SỬA: Chèn hàm getImageUrl vào đây

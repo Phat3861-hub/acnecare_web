@@ -1,0 +1,66 @@
+.patient-layout-bg {
+  background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+}
+
+.glass-header {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05) !important;
+}
+
+.patient-nav-link {
+  position: relative;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.patient-nav-link::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -4px;
+  left: 0;
+  background-color: #8C52FF;
+  transition: width 0.3s ease;
+}
+
+.patient-nav-link:hover::after, .patient-nav-link.active-link::after {
+  width: 100%;
+}
+
+.patient-btn-primary {
+  transition: all 0.3s ease !important;
+  box-shadow: 0 4px 15px rgba(140, 82, 255, 0.3) !important;
+}
+
+.patient-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(140, 82, 255, 0.4) !important;
+}
+
+.patient-btn-outline {
+  transition: all 0.3s ease !important;
+}
+
+.patient-btn-outline:hover {
+  background: #8C52FF !important;
+  color: #fff !important;
+  transform: translateY(-2px);
+}
+
+.patient-footer {
+  background: linear-gradient(180deg, #151836 0%, #0f112a 100%) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hero-logo-text {
+  background: -webkit-linear-gradient(45deg, #8C52FF, #FF91E6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0px 2px 10px rgba(140, 82, 255, 0.2);
+}

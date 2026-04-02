@@ -21,6 +21,7 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { PatientRoutineService } from "../../services/PatientRoutineService";
+import "./Routine.css";
 
 const { Title, Text } = Typography;
 
@@ -131,10 +132,10 @@ const MyRoutines = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-8 routine-page-container">
       <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <Title level={3} className="m-0 text-gray-800">
+        <div className="flex justify-between items-center mb-10">
+          <Title level={2} className="m-0 routine-title font-black">
             Lịch Trình Skincare Của Tôi
           </Title>
           <Button
@@ -142,7 +143,7 @@ const MyRoutines = () => {
             size="large"
             icon={<PlusOutlined />}
             onClick={() => navigate("/routine-builder")}
-            className="bg-blue-600 font-semibold"
+            className="routine-btn-primary rounded-xl font-bold px-6 h-12"
           >
             Tạo Lịch Trình Mới
           </Button>
@@ -166,12 +167,12 @@ const MyRoutines = () => {
             {routines.map((routine) => (
               <Col xs={24} md={12} xl={8} key={routine.id}>
                 <Card
-                  className="rounded-xl shadow-sm h-full hover:shadow-md transition-shadow border-gray-200"
+                  className="h-full my-routine-card"
                   actions={[
                     // NÚT CẬP NHẬT
                     <Button
                       type="text"
-                      className="text-blue-600"
+                      className="text-[#8C52FF] font-medium"
                       icon={<EditOutlined />}
                       // Truyền toàn bộ data của routine này sang trang Builder
                       onClick={() =>
@@ -198,10 +199,10 @@ const MyRoutines = () => {
                     </Popconfirm>,
                   ]}
                 >
-                  <div className="mb-5 pb-4 border-b">
+                  <div className="mb-5 pb-4 border-b border-gray-100">
                     <Title
                       level={4}
-                      className="text-blue-600 m-0 mb-1 line-clamp-1"
+                      className="m-0 mb-1 line-clamp-1 text-[#1e255e]"
                       title={routine.routineName}
                     >
                       {routine.routineName}

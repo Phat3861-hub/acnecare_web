@@ -27,6 +27,7 @@ import {
   deletePostImageThunk,
   uploadPostImagesThunk,
 } from "../../store/slice/PostSlice";
+import "./EditPost.css";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -191,14 +192,14 @@ const EditPost = () => {
   };
 
   return (
-    <Layout className="min-h-screen bg-slate-50 py-8 px-4">
+    <Layout className="edit-post-container py-8 px-4">
       <Content className="max-w-3xl mx-auto w-full">
         <Card
           bordered={false}
-          className="shadow-md rounded-2xl overflow-hidden"
+          className="edit-post-card overflow-hidden"
           title={
             <Space direction="vertical" size={0} className="py-2">
-              <Title level={3} className="m-0 text-blue-700">
+              <Title level={3} className="m-0 edit-post-title">
                 Chỉnh sửa bài viết
               </Title>
               <Text type="secondary">
@@ -281,7 +282,7 @@ const EditPost = () => {
                   >
                     <Button
                       block
-                      className="h-12 border-dashed border-blue-300 text-blue-600 font-medium rounded-lg"
+                      className="h-12 edit-post-upload-btn font-medium rounded-lg"
                     >
                       Tải lên ảnh mới
                     </Button>
@@ -367,7 +368,7 @@ const EditPost = () => {
                   htmlType="submit"
                   size="large"
                   loading={isLoading}
-                  className="rounded-lg px-8 bg-blue-600 hover:bg-blue-700 font-bold"
+                  className="rounded-lg px-8 edit-post-btn-primary font-bold"
                 >
                   Cập nhật bài viết
                 </Button>

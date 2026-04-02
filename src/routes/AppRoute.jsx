@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from "react";
 import { useRoutes, Navigate, Link } from "react-router-dom";
 import { Spin, Button, Result } from "antd";
 import ScrollToTop from "../components/ui/ScrollToTop";
+import { jwtDecode } from "jwt-decode";
 
 // ==========================================
 // 1. ĐỊNH NGHĨA ĐƯỜNG DẪN
@@ -50,23 +51,47 @@ export const pathDefault = {
   manageProductBrand: "/brand/manage-products",
 };
 
-// ==========================================
-// 2. COMPONENT BẢO VỆ ROUTE
-// ==========================================
+const getCookie = (name) => {
+  try {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
+    return null;
+  } catch (error) {
+    return null;
+  }
+};
 const ProtectedRoute = ({ allowedRoles, children }) => {
-  const userInfoStr = localStorage.getItem("userInfo");
-  const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
-  const userRole = userInfo ? userInfo.role : null;
+  let userRole = null;
 
+  const token = getCookie("accessToken");
+
+  if (token) {
+    try {
+      const decoded = jwtDecode(token);
+      // Cắt bỏ chữ "ROLE_" nếu có
+      if (decoded.roles && decoded.roles.startsWith("ROLE_")) {
+        userRole = decoded.roles.replace("ROLE_", "");
+      } else {
+        userRole = decoded.roles;
+      }
+    } catch (err) {
+      console.error("🚨 Token không hợp lệ:", err);
+    }
+  }
+
+  // Xác định trang chủ theo Role để điều hướng nếu đi lạc
   let homePath = pathDefault.home;
   if (userRole === "ADMIN") homePath = pathDefault.adminDashboard;
   else if (userRole === "DOCTOR") homePath = pathDefault.doctorSchedule;
   else if (userRole === "BRAND") homePath = pathDefault.brandProfile;
 
-  if (!userInfo) {
+  // Nếu không có Token -> Đá về Login
+  if (!userRole) {
     return <Navigate to={pathDefault.login} replace />;
   }
 
+  // Nếu Role lấy từ Token KHÔNG nằm trong danh sách cho phép -> Đá ra 403
   if (
     allowedRoles &&
     allowedRoles.length > 0 &&
@@ -77,10 +102,10 @@ const ProtectedRoute = ({ allowedRoles, children }) => {
         <Result
           status="403"
           title="403"
-          subTitle="Xin lỗi, bạn không có quyền truy cập vào khu vực này!"
+          subTitle="Hành vi truy cập trái phép đã bị chặn! Bạn không có quyền vào khu vực này."
           extra={
             <Link to={homePath}>
-              <Button type="primary">Về Bảng Điều Khiển</Button>
+              <Button type="primary">Về đúng vị trí của bạn</Button>
             </Link>
           }
         />
@@ -542,6 +567,38 @@ const AppRoutes = () => {
           element: (
             <Suspense fallback={<FallbackLoad />}>
               <ChatPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: "posts",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <PostPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: "posts/:id",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <PostCommentPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: "createpost",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <CreatePostPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: "editpost/:postId",
+          element: (
+            <Suspense fallback={<FallbackLoad />}>
+              <EditPostPage />
             </Suspense>
           ),
         },

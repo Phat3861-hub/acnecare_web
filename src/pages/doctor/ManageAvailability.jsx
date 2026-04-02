@@ -24,6 +24,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { doctorScheduleService } from "../../services/DoctorScheduleService";
+import "./ManageAvailability.css";
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -344,12 +345,12 @@ const ManageAvailability = () => {
 
   return (
     // Bỏ padding mặc định khi ở mobile, giữ padding lớn ở tablet/PC
-    <div className="p-3 sm:p-4 md:p-8 bg-gray-50 min-h-screen">
-      <div className="max-w-6xl mx-auto">
+    <div className="p-3 sm:p-4 md:p-8 manage-availability-container min-h-screen">
+      <div className="max-w-6xl mx-auto bg-white manage-availability-card p-6 md:p-8">
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
-            <h2 className="text-xl md:text-2xl font-bold text-gray-800 m-0">
+            <h2 className="text-xl md:text-2xl font-black manage-availability-title m-0">
               Thêm thời gian làm việc
             </h2>
             <p className="text-gray-500 m-0 mt-1 text-sm md:text-base">
@@ -361,14 +362,13 @@ const ManageAvailability = () => {
             size="large"
             icon={<PlusOutlined />}
             onClick={() => handleAddNew(selectedDate)}
-            className="bg-indigo-600 shadow-md hover:shadow-lg transition-all w-full sm:w-auto"
+            className="font-bold w-full sm:w-auto rounded-xl manage-availability-btn"
           >
             Thêm lịch
           </Button>
         </div>
-
         {/* CALENDAR */}
-        <div className="bg-white p-2 md:p-6 rounded-xl shadow-sm border border-gray-200">
+        <div className="p-2 md:p-6 mt-4 border-t border-gray-100">
           <Calendar
             cellRender={cellRender}
             onSelect={onSelectDate}
