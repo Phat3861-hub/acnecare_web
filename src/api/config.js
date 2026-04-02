@@ -14,7 +14,6 @@ export const http = axios.create({
   },
 });
 
-console.log("BACKEND_URL:", BACKEND_URL);
 let refreshTokenRequest = null;
 
 http.interceptors.response.use(
