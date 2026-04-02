@@ -1,0 +1,77 @@
+/* BookAppointment.css */
+.booking-page-container {
+  background: linear-gradient(135deg, #fcfcfd 0%, #f3f5fa 100%);
+  min-height: 100vh;
+  padding: 40px 24px;
+}
+
+.booking-card-main {
+  background: white;
+  border-radius: 32px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(140, 82, 255, 0.05);
+  overflow: hidden;
+}
+
+.booking-title {
+  background: -webkit-linear-gradient(45deg, #1e255e, #8C52FF);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.booking-step-title {
+  color: #1e255e;
+  border-left: 4px solid #8C52FF;
+  padding-left: 12px;
+}
+
+.booking-info-box {
+  background: linear-gradient(to right, #fbfaff, #f3f0ff);
+  border: 1px solid rgba(140, 82, 255, 0.15);
+  border-radius: 16px;
+}
+
+.booking-submit-btn {
+  background: linear-gradient(45deg, #1e255e, #8C52FF) !important;
+  color: white !important;
+  border: none !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 10px 20px rgba(140, 82, 255, 0.2) !important;
+}
+
+.booking-submit-btn:not(:disabled):hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 15px 30px rgba(140, 82, 255, 0.35) !important;
+}
+
+.booking-submit-btn:disabled {
+  background: #e2e8f0 !important;
+  color: #94a3b8 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.time-slot-btn {
+  border-radius: 12px !important;
+  transition: all 0.3s !important;
+}
+
+.time-slot-btn-selected {
+  background: #8C52FF !important;
+  color: white !important;
+  border-color: #8C52FF !important;
+  box-shadow: 0 5px 15px rgba(140, 82, 255, 0.3) !important;
+  transform: scale(1.05);
+}
+
+.time-slot-btn-default:hover {
+  border-color: #8C52FF !important;
+  color: #8C52FF !important;
+}
+
+.booking-time-container {
+  background: #fdfdfd;
+  border: 1px dashed rgba(140, 82, 255, 0.2);
+  border-radius: 20px;
+}

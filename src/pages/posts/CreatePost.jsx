@@ -25,6 +25,7 @@ import {
   updatePostThunk,
   uploadPostImagesThunk,
 } from "../../store/slice/PostSlice";
+import "./CreatePost.css";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -199,14 +200,14 @@ const Createpost = () => {
   };
 
   return (
-    <Layout className="min-h-screen bg-slate-50 py-8 px-4">
+    <Layout className="create-post-container py-8 px-4">
       <Content className="max-w-3xl mx-auto w-full">
         <Card
           bordered={false}
-          className="shadow-md rounded-2xl overflow-hidden"
+          className="create-post-card overflow-hidden"
           title={
             <Space direction="vertical" size={0} className="py-2">
-              <Title level={3} className="m-0 text-blue-700">
+              <Title level={3} className="m-0 create-post-title">
                 {isEditMode ? "Chỉnh sửa bài viết" : "Tạo bài viết mới"}
               </Title>
               <Text type="secondary">
@@ -303,7 +304,7 @@ const Createpost = () => {
                   >
                     <Button
                       block
-                      className="h-12 border-dashed border-blue-300 text-blue-600 font-medium rounded-lg hover:bg-blue-50"
+                      className="h-12 create-post-upload-btn font-medium rounded-lg"
                     >
                       Chọn ảnh tải lên
                     </Button>
@@ -380,7 +381,7 @@ const Createpost = () => {
                   htmlType="submit"
                   size="large"
                   loading={isLoading}
-                  className="rounded-lg px-8 bg-blue-600 hover:bg-blue-700 font-bold"
+                  className="rounded-lg px-8 create-post-btn-primary font-bold"
                 >
                   {isEditMode ? "Cập nhật bài" : "Đăng bài ngay"}
                 </Button>

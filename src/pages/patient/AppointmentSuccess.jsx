@@ -4,6 +4,7 @@ import { useNavigate, Navigate } from "react-router-dom";
 import { Button } from "antd";
 import dayjs from "dayjs";
 import { resetAppointmentState } from "../../store/slice/AppointmentSlice";
+import "./AppointmentPages.css";
 
 const AppointmentSuccess = () => {
   const navigate = useNavigate();
@@ -18,11 +19,11 @@ const AppointmentSuccess = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-10">
-      <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-10 text-center">
+    <div className="appointment-page-container flex items-center justify-center">
+      <div className="max-w-3xl w-full mx-auto p-10 text-center appointment-card-main animate-fade-in">
         {/* Header Trạng Thái */}
-        <div className="flex justify-between items-center border-b pb-4 mb-8">
-          <h2 className="text-2xl font-bold">Đặt lịch thành công</h2>
+        <div className="flex justify-between items-center border-b border-gray-100 pb-6 mb-8">
+          <h2 className="text-2xl font-black appointment-title m-0">Đặt lịch thành công !</h2>
           <div className="text-lg font-medium">
             Trạng thái: <span className="text-yellow-500">Đang chờ xử lý</span>
           </div>
@@ -38,7 +39,7 @@ const AppointmentSuccess = () => {
         </div>
 
         {/* Thông tin chi tiết */}
-        <div className="grid grid-cols-2 gap-8 text-left bg-gray-50 p-6 rounded-lg mb-8">
+        <div className="grid grid-cols-2 gap-8 text-left appointment-content-box mb-10 border-none">
           <div>
             <p className="text-lg mb-2">
               <span className="font-bold">Tên bác sĩ:</span>{" "}
@@ -72,12 +73,12 @@ const AppointmentSuccess = () => {
           </div>
         </div>
 
-        <h2 className="text-3xl font-bold mb-6">Cảm ơn quý khách !</h2>
+        <h2 className="text-3xl font-black mb-8 text-gradient">Cảm ơn quý khách !</h2>
 
         <Button
           type="primary"
           size="large"
-          className="bg-indigo-800 hover:bg-indigo-700 px-10 h-12"
+          className="appointment-primary-btn px-10 h-14 text-lg font-bold rounded-xl"
           onClick={() => {
             dispatch(resetAppointmentState());
             navigate("/");

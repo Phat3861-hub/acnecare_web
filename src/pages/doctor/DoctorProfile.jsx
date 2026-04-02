@@ -35,6 +35,7 @@ import {
   updateDoctorProfile,
 } from "../../store/slice/DoctorProfileSlice";
 import { userService } from "../../services/UserService";
+import "./DoctorProfile.css";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -226,9 +227,9 @@ const DoctorProfile = () => {
   const isLoading = profileLoading || userLoading;
 
   return (
-    <div className="p-3 sm:p-4 md:p-6 bg-gray-50 min-h-screen">
-      <div className="max-w-5xl mx-auto">
-        <h2 className="text-xl md:text-2xl font-bold mb-6 text-gray-800">
+    <div className="doctor-profile-container p-3 sm:p-4 md:p-6 lg:p-8 min-h-screen">
+      <div className="max-w-5xl mx-auto bg-white doctor-profile-card p-4 md:p-8">
+        <h2 className="text-xl md:text-2xl font-black doctor-profile-title mb-6">
           Thông Tin Cá Nhân & Chuyên Môn
         </h2>
 
@@ -236,7 +237,7 @@ const DoctorProfile = () => {
         {doctorProfile && (
           <Row gutter={[16, 16]} className="mb-6">
             <Col xs={24} sm={12} md={8}>
-              <Card className="rounded-xl shadow-sm border border-gray-100 h-full">
+              <Card className="rounded-2xl border-none shadow-sm h-full" style={{ background: "linear-gradient(to right, #f8f9ff, #ffffff)" }}>
                 <Statistic
                   title={
                     <span className="font-semibold text-gray-500">
@@ -250,7 +251,7 @@ const DoctorProfile = () => {
               </Card>
             </Col>
             <Col xs={24} sm={12} md={8}>
-              <Card className="rounded-xl shadow-sm border border-gray-100 h-full">
+              <Card className="rounded-2xl border-none shadow-sm h-full" style={{ background: "linear-gradient(to right, #f8f9ff, #ffffff)" }}>
                 <Statistic
                   title={
                     <span className="font-semibold text-gray-500">
@@ -266,7 +267,7 @@ const DoctorProfile = () => {
               </Card>
             </Col>
             <Col xs={24} sm={24} md={8}>
-              <Card className="rounded-xl shadow-sm border border-gray-100 h-full">
+              <Card className="rounded-2xl border-none shadow-sm h-full" style={{ background: "linear-gradient(to right, #f8f9ff, #ffffff)" }}>
                 <Statistic
                   title={
                     <span className="font-semibold text-gray-500">
@@ -294,10 +295,7 @@ const DoctorProfile = () => {
           )}
 
         {/* Form Cập Nhật */}
-        <Card
-          className="rounded-xl shadow-sm border border-gray-200"
-          loading={isLoading}
-        >
+        <div className="mt-8">
           <Form
             form={form}
             layout="vertical"
@@ -493,13 +491,13 @@ const DoctorProfile = () => {
                 size="large"
                 icon={<SaveOutlined />}
                 loading={isUpdating}
-                className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto px-8"
+                className="font-bold w-full sm:w-auto px-8 py-6 rounded-xl doctor-profile-btn"
               >
                 Lưu Toàn Bộ Hồ Sơ
               </Button>
             </div>
           </Form>
-        </Card>
+        </div>
       </div>
     </div>
   );

@@ -25,6 +25,7 @@ import {
   updateCommentThunk,
   deleteCommentThunk,
 } from "../../store/slice/PostSlice";
+import "./PostComment.css";
 
 const { Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -277,8 +278,8 @@ const PostComment = () => {
 
   if (pageError || !post) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full text-center rounded-2xl shadow-sm border-slate-200 p-6">
+      <div className="post-detail-container flex items-center justify-center p-4">
+        <Card className="post-detail-card max-w-md w-full text-center p-6">
           <Text type="danger" strong className="text-lg block mb-4">
             {pageError || "Không tìm thấy bài viết."}
           </Text>
@@ -294,7 +295,7 @@ const PostComment = () => {
   }
 
   return (
-    <Layout className="min-h-screen bg-slate-50 py-6 px-4">
+    <Layout className="post-detail-container py-6 px-4">
       <Content className="max-w-3xl mx-auto w-full flex flex-col gap-6 relative">
         {isProcessing && (
           <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-50 rounded-2xl flex items-center justify-center">
@@ -305,17 +306,17 @@ const PostComment = () => {
         <div>
           <Button
             onClick={() => navigate(-1)}
-            className="bg-white border-slate-200 text-slate-600 font-medium rounded-lg hover:text-blue-600 hover:border-blue-400"
+            className="post-detail-btn-back font-bold rounded-xl px-6 h-10"
           >
             Quay lại bảng tin
           </Button>
         </div>
 
         <Card
-          className="rounded-2xl shadow-sm border-slate-200"
+          className="post-detail-card"
           bodyStyle={{ padding: "24px" }}
         >
-          <Title level={4} className="m-0 text-slate-800">
+          <Title level={4} className="m-0 post-detail-title">
             {post.postTitle}
           </Title>
           <div className="text-sm text-slate-500 mt-2 mb-4">
@@ -364,12 +365,12 @@ const PostComment = () => {
         </Card>
 
         <Card
-          className="rounded-2xl shadow-sm border-slate-200"
+          className="post-detail-card"
           bodyStyle={{ padding: "24px" }}
         >
           <Title
             level={5}
-            className="m-0 mb-6 text-blue-700 pb-3 border-b border-slate-100"
+            className="m-0 mb-6 post-detail-title pb-3 border-b border-slate-100"
           >
             Tất cả bình luận ({post.comments?.length || 0})
           </Title>
@@ -403,7 +404,7 @@ const PostComment = () => {
                       {!comment.avatarUrl && fullName.charAt(0).toUpperCase()}
                     </Avatar>
 
-                    <div className="flex-1 bg-slate-50 p-3.5 rounded-2xl rounded-tl-none border border-slate-100">
+                    <div className="flex-1 post-detail-comment-card p-4">
                       <div className="flex justify-between items-start mb-1.5">
                         <Text strong className="text-slate-800">
                           {fullName}

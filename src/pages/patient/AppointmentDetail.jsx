@@ -25,6 +25,7 @@ import {
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import dayjs from "dayjs";
+import "./AppointmentPages.css";
 
 const AppointmentDetail = () => {
   const { id } = useParams();
@@ -89,9 +90,10 @@ const AppointmentDetail = () => {
     );
 
   return (
-    <div className="p-8 max-w-4xl mx-auto bg-white my-8 rounded-xl shadow-sm border border-gray-200">
+    <div className="appointment-page-container">
+    <div className="p-8 max-w-4xl mx-auto appointment-card-main">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Chi tiết lịch hẹn</h2>
+        <h2 className="text-2xl font-black appointment-title m-0">Chi tiết lịch hẹn</h2>
         <div className="flex gap-3">
           {/* HIỂN THỊ NÚT HỦY NẾU HỢP LỆ */}
           {(detail.status === "PENDING" || detail.status === "CONFIRMED") && (
@@ -120,7 +122,7 @@ const AppointmentDetail = () => {
 
         {/* BỔ SUNG DỊCH VỤ KHÁM BÊN BỆNH NHÂN */}
         <Descriptions.Item label="Dịch vụ" span={2}>
-          <span className="font-bold text-indigo-700 text-base">
+          <span className="font-bold text-[#8C52FF] text-base">
             {detail.serviceName || "Khám da liễu tổng quát"}
           </span>
         </Descriptions.Item>
@@ -176,11 +178,11 @@ const AppointmentDetail = () => {
       </Descriptions>
 
       <Divider orientation="left">Thông tin Bác sĩ</Divider>
-      <div className="flex items-center gap-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
+      <div className="flex items-center gap-4 mb-6 p-5 appointment-content-box border-none">
         <img
           src={detail.doctorAvatar || "https://via.placeholder.com/50"}
           alt="doctor"
-          className="w-16 h-16 rounded-full object-cover border border-gray-200"
+          className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm"
         />
         <div>
           <h3 className="text-lg font-bold text-gray-800 m-0">
@@ -193,7 +195,7 @@ const AppointmentDetail = () => {
       {detail.mode === "ONLINE" && detail.meetingUrl && (
         <>
           <Divider orientation="left">Phòng khám Online</Divider>
-          <div className="p-5 bg-indigo-50 border border-indigo-100 rounded-lg">
+          <div className="p-5 appointment-content-box border-none">
             <p className="text-gray-700 mb-2">
               Bác sĩ đã tạo phòng khám trực tuyến. Vui lòng bấm vào link dưới
               đây khi đến giờ:
@@ -202,7 +204,7 @@ const AppointmentDetail = () => {
               href={detail.meetingUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-indigo-600 font-bold underline text-lg block"
+              className="text-[#8C52FF] font-bold underline text-lg block link-gradient"
             >
               {detail.meetingUrl}
             </a>
@@ -267,7 +269,7 @@ const AppointmentDetail = () => {
                   type="primary"
                   htmlType="submit"
                   size="large"
-                  className="bg-indigo-600"
+                  className="appointment-primary-btn rounded-xl px-8"
                 >
                   Gửi đánh giá
                 </Button>
@@ -276,6 +278,7 @@ const AppointmentDetail = () => {
           </div>
         </>
       )}
+    </div>
     </div>
   );
 };

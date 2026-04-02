@@ -1,0 +1,45 @@
+.brand-layout-bg {
+  background: #f8fafc !important;
+}
+
+.brand-sidebar {
+  background: linear-gradient(195deg, #1e255e 0%, #111432 100%) !important;
+  box-shadow: 4px 0 30px rgba(30, 37, 94, 0.2) !important;
+}
+
+.brand-sidebar .ant-menu-dark {
+  background: transparent !important;
+}
+
+.brand-sidebar .ant-menu-item {
+  border-radius: 10px;
+  margin: 8px 12px;
+  width: calc(100% - 24px);
+  transition: all 0.3s;
+}
+
+.brand-sidebar .ant-menu-item-selected {
+  background: linear-gradient(90deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%) !important;
+  border-left: 4px solid #4f46e5;
+}
+
+.brand-logo-container {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.brand-header {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02) !important;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.brand-content {
+  background: #ffffff;
+  border-radius: 24px !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.03) !important;
+  border: 1px solid rgba(0,0,0,0.02);
+}

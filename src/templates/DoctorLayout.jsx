@@ -16,6 +16,7 @@ import {
   CloseOutlined,
   MessageOutlined,
 } from "@ant-design/icons";
+import "./DoctorLayout.css";
 
 const { Header, Sider, Content } = Layout;
 
@@ -108,7 +109,7 @@ const DoctorLayout = () => {
   };
 
   return (
-    <Layout hasSider className="h-screen overflow-hidden bg-gray-50">
+    <Layout hasSider className="h-screen overflow-hidden doctor-layout-bg">
       <div
         className={`fixed inset-0 bg-black/40 z-40 lg:hidden transition-opacity duration-300 ease-in-out ${
           collapsed
@@ -121,7 +122,7 @@ const DoctorLayout = () => {
       <Sider
         width={260}
         theme="light"
-        className={`shadow-2xl z-50 h-screen overflow-y-auto border-r border-gray-200 !fixed lg:!static left-0 top-0 bottom-0 transition-transform duration-300 ease-in-out ${
+        className={`doctor-sidebar shadow-2xl z-50 h-screen overflow-y-auto !fixed lg:!static left-0 top-0 bottom-0 transition-transform duration-300 ease-in-out ${
           collapsed ? "-translate-x-full lg:translate-x-0" : "translate-x-0"
         }`}
       >
@@ -146,7 +147,7 @@ const DoctorLayout = () => {
       </Sider>
 
       <Layout className="flex flex-col h-screen overflow-hidden w-full relative">
-        <Header className="bg-white px-4 md:px-6 flex justify-between items-center shadow-sm shrink-0 z-10 border-b border-gray-200">
+        <Header className="px-4 md:px-6 flex justify-between items-center shrink-0 z-10 doctor-header">
           <Button
             type="text"
             icon={<MenuOutlined className="text-lg" />}
@@ -178,8 +179,8 @@ const DoctorLayout = () => {
         </Header>
 
         {/* 👇 ĐÃ CHỈNH SỬA PHẦN NÀY 👇 */}
-        <Content className="flex-1 flex flex-col overflow-hidden bg-gray-50/50 p-4 md:p-6 lg:p-8 relative">
-          <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex-1 overflow-y-auto transition-all">
+        <Content className="flex-1 flex flex-col overflow-hidden doctor-layout-bg p-4 md:p-6 lg:p-8 relative">
+          <div className="doctor-content-wrapper p-4 md:p-6 flex-1 overflow-y-auto transition-all">
             <Outlet />
           </div>
         </Content>

@@ -22,6 +22,7 @@ import {
   LeftOutlined,
   RightOutlined,
 } from "@ant-design/icons";
+import "./ProductDetail.css";
 
 const { Title, Paragraph } = Typography;
 
@@ -108,7 +109,7 @@ const ProductDetail = () => {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen py-8 px-4 md:px-12 lg:px-24">
+    <div className="min-h-screen py-8 px-4 md:px-12 lg:px-24 detail-page-container">
       <div className="max-w-6xl mx-auto">
         <Breadcrumb className="mb-6">
           <Breadcrumb.Item
@@ -131,9 +132,9 @@ const ProductDetail = () => {
         {/* ========================================== */}
         {/* PHẦN 1: THÔNG TIN CHI TIẾT SẢN PHẨM */}
         {/* ========================================== */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col md:flex-row mb-12">
+        <div className="bg-white overflow-hidden flex flex-col md:flex-row mb-12 detail-product-main border-none">
           {/* Cột trái: Hình ảnh */}
-          <div className="w-full md:w-5/12 bg-[#fdfdfd] p-8 flex flex-col items-center justify-center border-r border-gray-100 relative">
+          <div className="w-full md:w-5/12 p-8 flex flex-col items-center justify-center relative detail-img-box">
             <Image
               // ĐÃ SỬA: Bọc hàm getImageUrl
               src={
@@ -142,7 +143,7 @@ const ProductDetail = () => {
                   : "https://via.placeholder.com/400"
               }
               alt={currentProduct.name}
-              className="object-contain mix-blend-multiply drop-shadow-lg rounded-lg"
+              className="object-contain mix-blend-multiply rounded-lg detail-img-main"
               style={{ maxHeight: "380px" }}
             />
 
@@ -179,7 +180,7 @@ const ProductDetail = () => {
 
             <Title
               level={2}
-              className="text-[#1e255e] mt-2 mb-6 font-black leading-tight"
+              className="mt-2 mb-6 font-black leading-tight detail-title"
             >
               {currentProduct.name}
             </Title>
@@ -219,7 +220,7 @@ const ProductDetail = () => {
                 type="primary"
                 size="large"
                 icon={<PlusSquareOutlined />}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-[#1e255e] hover:from-blue-700 hover:to-blue-900 border-none h-[52px] text-[15px] font-bold rounded-xl shadow-lg shadow-blue-200"
+                className="flex-1 h-[52px] text-[15px] font-bold rounded-xl routine-btn"
                 onClick={() => navigate("/routine-builder")}
               >
                 Thêm vào Routine
@@ -229,7 +230,7 @@ const ProductDetail = () => {
                 <Button
                   size="large"
                   icon={<ShoppingCartOutlined />}
-                  className="flex-1 h-[52px] text-[15px] font-bold rounded-xl text-[#1e255e] border-[#1e255e] hover:bg-blue-50"
+                  className="flex-1 h-[52px] text-[15px] font-bold rounded-xl buy-btn"
                   onClick={() =>
                     window.open(currentProduct.affiliateUrl, "_blank")
                   }
@@ -275,7 +276,7 @@ const ProductDetail = () => {
                 <div
                   key={product.id}
                   onClick={() => navigate(`/products/${product.id}`)}
-                  className="min-w-[260px] max-w-[260px] snap-start bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col"
+                  className="min-w-[260px] max-w-[260px] snap-start bg-white border border-gray-100 rounded-xl overflow-hidden cursor-pointer flex flex-col suggest-card-dynamic group"
                 >
                   <div className="h-48 bg-[#fdfdfd] p-4 flex items-center justify-center relative">
                     <img
@@ -309,21 +310,6 @@ const ProductDetail = () => {
           </div>
         )}
       </div>
-
-      {/* CSS Ẩn thanh cuộn webkit cho gọn gàng */}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        .hide-scroll::-webkit-scrollbar {
-          display: none;
-        }
-        .hide-scroll {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `,
-        }}
-      />
     </div>
   );
 };

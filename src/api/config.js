@@ -2,7 +2,8 @@ import axios from "axios";
 import { message } from "antd";
 
 // Lấy URL Backend từ biến môi trường do Vite nạp vào lúc Build Docker
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
+// const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
+const BACKEND_URL = "http://localhost:9090";
 
 export const http = axios.create({
   baseURL: `${BACKEND_URL}/api`,

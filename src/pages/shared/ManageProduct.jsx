@@ -32,6 +32,7 @@ import { fetchProducts } from "../../store/slice/ProductSlice";
 import { fetchCategories } from "../../store/slice/CategorySlice";
 import { productService } from "../../services/ProductService";
 import { jwtDecode } from "jwt-decode";
+import "./SharedPages.css";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -407,11 +408,12 @@ const ManageProduct = () => {
 
   return (
     // Bỏ padding mặc định khi ở mobile, giữ padding lớn ở tablet/PC
-    <div className="bg-white p-3 sm:p-4 md:p-8 rounded-xl md:rounded-2xl shadow-sm border border-gray-100 min-h-screen">
+    <div className="shared-page-container p-3 sm:p-4 md:p-8 rounded-xl md:rounded-2xl border-none min-h-screen">
+      <div className="bg-white shared-card-main p-4 sm:p-6 md:p-8">
       {/* HEADER TỪNG TRANG */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-800">
+          <h2 className="text-xl md:text-2xl font-bold shared-title">
             Quản lý Sản phẩm
           </h2>
           <p className="text-gray-500 text-xs md:text-sm mt-1">
@@ -423,7 +425,7 @@ const ManageProduct = () => {
           onClick={() => openModal()}
           size="large"
           icon={<PlusOutlined />}
-          className="w-full md:w-auto rounded-lg shadow-md hover:shadow-lg transition-shadow"
+          className="w-full md:w-auto rounded-xl shared-btn-primary"
         >
           Thêm Sản phẩm
         </Button>
@@ -468,6 +470,7 @@ const ManageProduct = () => {
           // Cho phép cuộn ngang nếu bảng bị tràn trên mobile
           scroll={{ x: "max-content" }}
         />
+      </div>
       </div>
 
       {/* MODAL THÊM/SỬA SẢN PHẨM */}
