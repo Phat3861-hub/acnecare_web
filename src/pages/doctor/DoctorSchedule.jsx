@@ -20,6 +20,7 @@ import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { Link } from "react-router-dom";
 import locale from "antd/es/date-picker/locale/vi_VN";
+import "./DoctorSchedule.css";
 const { Option } = Select;
 
 const DoctorSchedule = () => {
@@ -151,7 +152,6 @@ const DoctorSchedule = () => {
 
     return (
       <div className="w-full overflow-x-auto bg-white custom-scrollbar">
-        {/* SỬA LỖI LỆCH GRID: Chuyển height và overflow-y-auto lên thẻ bọc ngoài cùng này */}
         <div
           className="min-w-[800px] lg:min-w-full flex flex-col relative overflow-y-auto overflow-x-hidden custom-scrollbar"
           style={{ height: "65vh", minHeight: "500px" }}
@@ -496,11 +496,11 @@ const DoctorSchedule = () => {
   }
 
   return (
-    <div className="p-0 sm:p-2 md:p-6 bg-transparent md:bg-gray-50 h-full">
-      <div className="max-w-7xl mx-auto h-full flex flex-col">
+    <div className="p-0 sm:p-2 md:p-6 bg-transparent md:doctor-schedule-container h-full min-h-screen">
+      <div className="max-w-7xl mx-auto h-full flex flex-col bg-white doctor-schedule-card p-4 md:p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 gap-4">
           <div className="flex flex-wrap items-center gap-4 md:gap-6 w-full md:w-auto">
-            <h2 className="text-xl md:text-2xl font-bold text-gray-900 m-0">
+            <h2 className="text-xl md:text-2xl font-black doctor-schedule-title m-0">
               Lịch làm việc
             </h2>
 
@@ -575,8 +575,7 @@ const DoctorSchedule = () => {
             </div>
           )}
         </div>
-
-        <div className="border border-gray-200 rounded-xl shadow-sm bg-white overflow-hidden flex-1">
+        <div className="mt-4 overflow-hidden flex-1 border-t border-gray-100 pt-4">
           {viewMode === "month" ? (
             <div className="p-2 md:p-4 overflow-x-auto custom-scrollbar">
               <div className="min-w-[600px] lg:min-w-full">

@@ -20,6 +20,7 @@ import { SaveOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import axios from "axios";
 import { http } from "../../api/config";
+import "./SharedPages.css";
 
 const { TextArea } = Input;
 
@@ -415,7 +416,7 @@ const TestAcneModel = () => {
             type="primary"
             icon={<SaveOutlined />}
             size="large"
-            className="w-full bg-green-600 hover:bg-green-700 font-bold h-12 rounded-lg shadow-md"
+            className="w-full font-bold h-12 rounded-xl shared-btn-primary"
             onClick={handleOpenSaveModal}
           >
             Lưu Kết Quả Phân Tích Này
@@ -426,10 +427,10 @@ const TestAcneModel = () => {
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <div className="p-8 shared-page-container min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 text-center">
-          <h2 className="text-3xl font-bold text-gray-800">
+          <h2 className="text-3xl font-bold shared-title">
             Trợ Lý AI Phân Tích Da
           </h2>
         </div>
@@ -486,7 +487,7 @@ const TestAcneModel = () => {
                     type="primary"
                     htmlType="submit"
                     size="large"
-                    className="w-full bg-blue-600 font-bold h-12 rounded-lg shadow-md"
+                    className="w-full font-bold h-12 rounded-xl shared-btn-primary"
                     loading={isLoading}
                     disabled={!base64Image}
                   >
@@ -592,7 +593,7 @@ const TestAcneModel = () => {
               type="primary"
               htmlType="submit"
               loading={isSaving}
-              className="bg-green-600"
+              className="shared-btn-primary h-10 px-6 font-bold rounded-lg"
             >
               Xác Nhận Lưu
             </Button>

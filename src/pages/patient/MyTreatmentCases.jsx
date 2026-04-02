@@ -10,6 +10,7 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
+import "./Treatment.css";
 
 const MyTreatmentCases = () => {
   const dispatch = useDispatch();
@@ -56,9 +57,10 @@ const MyTreatmentCases = () => {
     );
 
   return (
+    <div className="treatment-page-container">
     <div className="max-w-5xl mx-auto py-10 px-4">
       <div className="mb-8">
-        <h2 className="text-3xl font-black text-[#1e255e] mb-2 flex items-center gap-3">
+        <h2 className="text-3xl font-black treatment-title mb-2 flex items-center gap-3">
           <FolderOpenOutlined /> Hồ sơ Điều trị của tôi
         </h2>
         <p className="text-gray-500">
@@ -71,7 +73,7 @@ const MyTreatmentCases = () => {
           {cases.map((c) => (
             <div
               key={c.id}
-              className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col cursor-pointer group relative"
+              className="p-6 flex flex-col cursor-pointer group relative treatment-card"
               onClick={() => navigate(`/treatment-cases/${c.id}`)}
             >
               <div className="flex justify-between items-start mb-4">
@@ -86,7 +88,7 @@ const MyTreatmentCases = () => {
                 </span>
               </div>
 
-              <h3 className="text-xl font-bold text-gray-800 mb-1">
+              <h3 className="text-xl font-bold text-[#1e255e] mb-1">
                 Điều trị với BS. {c.doctorName}
               </h3>
               <p className="text-gray-500 text-sm line-clamp-2 mb-4 flex-1">
@@ -100,7 +102,7 @@ const MyTreatmentCases = () => {
                   <span className="text-sm text-gray-500 font-medium">
                     {c.consultations?.length || 0} lần khám
                   </span>
-                  <span className="text-blue-600 font-semibold group-hover:underline flex items-center gap-1">
+                  <span className="text-[#8C52FF] font-semibold group-hover:underline flex items-center gap-1">
                     Xem chi tiết <RightOutlined className="text-[10px]" />
                   </span>
                 </div>
@@ -108,7 +110,7 @@ const MyTreatmentCases = () => {
                 {/* NÚT LIÊN HỆ BÁC SĨ */}
                 <Button
                   type="default"
-                  className="w-full flex items-center justify-center text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-400 rounded-xl h-10 font-medium transition-colors"
+                  className="w-full flex items-center justify-center rounded-xl h-12 font-bold treatment-btn-outline"
                   icon={<MessageOutlined />}
                   onClick={(e) => handleContactDoctor(e, c.doctorId)} // Truyền doctorId vào đây
                   loading={connectingDoctorId === c.doctorId}
@@ -125,6 +127,7 @@ const MyTreatmentCases = () => {
           className="bg-white py-16 rounded-2xl border border-gray-100 shadow-sm"
         />
       )}
+    </div>
     </div>
   );
 };

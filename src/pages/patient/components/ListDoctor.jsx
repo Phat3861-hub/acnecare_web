@@ -8,6 +8,7 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { fetchActiveDoctors } from "../../../store/slice/DoctorSlice";
 import { useNavigate } from "react-router-dom";
+import "./ListDoctor.css";
 
 const { Title, Text } = Typography;
 
@@ -65,7 +66,7 @@ const ListDoctor = () => {
     );
 
   return (
-    <div className="py-20 px-4 md:px-12 lg:px-24 bg-[#fcfcfc]">
+    <div className="py-20 px-4 md:px-12 lg:px-24 doctors-section">
       {/* Tiêu đề phần Bác sĩ */}
       <div className="text-center max-w-2xl mx-auto mb-16">
         <h2
@@ -85,11 +86,11 @@ const ListDoctor = () => {
         {activeDoctors.slice(0, 4).map((doc) => (
           <Col xs={24} sm={12} md={6} key={doc.id}>
             <div
-              className="flex flex-col items-center group cursor-pointer"
+              className="flex flex-col items-center group cursor-pointer doctor-card-dynamic"
               onClick={() => handleBookAppointment(doc.id)}
             >
               {/* Khung ảnh bác sĩ với Border Radius lớn hơn cho mềm mại */}
-              <div className="w-full aspect-[3/4] overflow-hidden bg-[#f3f0ff] rounded-[24px] mb-5 shadow-sm transition-all duration-500 group-hover:shadow-2xl group-hover:shadow-purple-200 relative">
+              <div className="mb-5 relative doctor-img-wrapper">
                 <img
                   src={
                     doc.avatarUrl
@@ -97,15 +98,15 @@ const ListDoctor = () => {
                       : "https://i.pravatar.cc/300"
                   }
                   alt={`Dr. ${doc.lastName}`}
-                  className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-110"
+                  className="w-full h-full object-cover object-top doctor-img-inner"
                 />
 
                 {/* Lớp phủ khi hover */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#8C52FF]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#8C52FF]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
 
                 {/* Badge nhỏ khi hover */}
-                <div className="absolute bottom-4 right-4 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-                  <div className="bg-white p-2 rounded-full shadow-lg text-[#8C52FF]">
+                <div className="absolute bottom-4 right-4 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 z-20 flex items-center justify-center">
+                  <div className="p-2 rounded-full doctor-badge-dynamic flex items-center justify-center">
                     <ArrowRightOutlined />
                   </div>
                 </div>

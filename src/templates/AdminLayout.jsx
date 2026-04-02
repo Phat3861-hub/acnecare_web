@@ -12,6 +12,7 @@ import {
   LogoutOutlined,
   MessageOutlined, // Thêm Icon Chat
 } from "@ant-design/icons";
+import "./AdminLayout.css";
 
 const { Header, Sider, Content } = Layout;
 
@@ -62,11 +63,11 @@ const AdminLayout = () => {
   ];
 
   return (
-    <Layout className="min-h-screen bg-gray-100">
+    <Layout className="min-h-screen admin-layout-bg">
       <Sider
         theme="dark"
         width={260}
-        className="hidden md:block"
+        className="hidden md:block admin-sidebar"
         style={{
           overflow: "auto",
           height: "100vh",
@@ -95,7 +96,7 @@ const AdminLayout = () => {
         onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
         width={260}
-        bodyStyle={{ padding: 0 }}
+        styles={{ body: { padding: 0 } }}
         className="md:hidden"
       >
         <Menu
@@ -107,7 +108,7 @@ const AdminLayout = () => {
       </Drawer>
 
       <Layout className="md:ml-[260px] transition-all duration-300">
-        <Header className="bg-white px-4 md:px-6 flex justify-between md:justify-end items-center shadow-sm sticky top-0 z-50 p-0 w-full h-16">
+        <Header className="px-4 md:px-6 flex justify-between md:justify-end items-center sticky top-0 z-50 p-0 w-full h-16 admin-header">
           <Button
             type="text"
             icon={<MenuOutlined className="text-lg" />}
@@ -122,7 +123,7 @@ const AdminLayout = () => {
             <span className="hidden sm:inline">Đăng xuất</span>
           </button>
         </Header>
-        <Content className="m-4 md:m-6 p-4 md:p-6 bg-white rounded-xl shadow-sm min-h-[280px]">
+        <Content className="m-4 md:m-6 p-4 md:p-6 admin-content min-h-[280px]">
           <Outlet />
         </Content>
       </Layout>

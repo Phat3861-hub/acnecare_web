@@ -1,0 +1,42 @@
+.doctor-layout-bg {
+  background: #f4f7fe !important;
+}
+
+.doctor-sidebar {
+  background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%) !important;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02) !important;
+  border-right: none !important;
+}
+
+.doctor-sidebar .ant-menu-item {
+  border-radius: 12px;
+  margin: 8px 16px;
+  width: calc(100% - 32px);
+  transition: all 0.3s ease;
+}
+
+.doctor-sidebar .ant-menu-item-selected {
+  background: rgba(37, 99, 235, 0.1) !important;
+  color: #2563eb !important;
+  font-weight: 700;
+}
+
+.doctor-sidebar .ant-menu-item:hover {
+  transform: translateX(4px);
+}
+
+.doctor-header {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.03) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01) !important;
+}
+
+.doctor-content-wrapper {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.02);
+  margin: 16px;
+  min-height: calc(100vh - 100px);
+}

@@ -17,6 +17,7 @@ import {
 } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { ConsultationService } from "../../services/ConsultationService";
+import "./DoctorConsultationService.css";
 const { Title } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
@@ -181,19 +182,19 @@ const DoctorConsultationService = () => {
 
   return (
     // Responsive padding
-    <div className="p-3 sm:p-4 md:p-6 bg-gray-50 min-h-screen">
+    <div className="doctor-consultation-container p-3 sm:p-4 md:p-6 min-h-screen">
       <div className="max-w-6xl mx-auto">
-        <Card className="rounded-xl shadow-sm border border-gray-200">
+        <Card className="doctor-consultation-card border-none">
           {/* Header Card: Xếp dọc trên mobile, ngang trên PC */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 md:mb-6 gap-4">
-            <h2 className="text-xl md:text-2xl font-bold text-gray-800 m-0">
+            <h2 className="text-xl md:text-2xl font-black doctor-consultation-title m-0">
               Quản Lý Dịch Vụ Khám
             </h2>
             <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={() => handleOpenModal()}
-              className="bg-blue-600 font-semibold w-full sm:w-auto"
+              className="font-bold w-full sm:w-auto rounded-xl doctor-consultation-btn"
               size="large"
             >
               Thêm Dịch Vụ

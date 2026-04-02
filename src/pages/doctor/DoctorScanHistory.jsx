@@ -23,6 +23,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { http } from "../../api/config";
+import "./DoctorScanHistory.css";
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -185,9 +186,9 @@ const DoctorScanHistory = () => {
 
   return (
     // Padding responsive: nhỏ trên mobile, rộng trên tablet/PC
-    <div className="p-3 sm:p-4 md:p-6 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-gray-800">
+    <div className="doctor-scan-history-container p-3 sm:p-4 md:p-6 lg:p-8 min-h-screen">
+      <div className="max-w-7xl mx-auto bg-white doctor-scan-history-card p-4 md:p-8">
+        <h2 className="text-xl md:text-2xl font-black doctor-scan-history-title mb-4 md:mb-6">
           Hồ Sơ & Lịch Sử Quét Da
         </h2>
 
@@ -204,7 +205,8 @@ const DoctorScanHistory = () => {
                 />
               }
               // Trên mobile giới hạn chiều cao 350px để không choán hết màn hình, PC thì full
-              className="rounded-xl shadow-sm border border-gray-200 h-[350px] lg:h-[calc(100vh-120px)] overflow-hidden flex flex-col"
+              className="rounded-2xl border-none shadow-sm h-[350px] lg:h-[calc(100vh-120px)] overflow-hidden flex flex-col"
+              style={{ background: "#f8f9ff" }}
               bodyStyle={{ padding: 0, flex: 1, overflowY: "auto" }}
             >
               {isLoadingPatients ? (
@@ -258,7 +260,7 @@ const DoctorScanHistory = () => {
           {/* CỘT PHẢI: CHI TIẾT & LỊCH SỬ QUÉT */}
           <Col xs={24} lg={16} xl={17} id="patient-details-section">
             {selectedPatient ? (
-              <Card className="rounded-xl shadow-sm border border-gray-200 min-h-[400px] lg:min-h-[calc(100vh-120px)]">
+              <Card className="rounded-2xl border-none shadow-sm min-h-[400px] lg:min-h-[calc(100vh-120px)]" style={{ background: "#f8f9ff" }}>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 md:mb-6 gap-2">
                   <div>
                     <h3 className="text-lg md:text-xl font-bold m-0 text-blue-700">
@@ -299,7 +301,7 @@ const DoctorScanHistory = () => {
               </Card>
             ) : (
               // Màn hình chờ: Thu gọn trên mobile, bự trên PC
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 h-[200px] lg:min-h-[calc(100vh-120px)] flex flex-col items-center justify-center text-gray-400 p-6 text-center">
+              <div className="rounded-2xl border-none min-h-[400px] shadow-sm lg:min-h-[calc(100vh-120px)] flex flex-col items-center justify-center text-gray-400 p-6 text-center" style={{ background: "#f8f9ff" }}>
                 <UserOutlined className="text-4xl lg:text-6xl mb-3 lg:mb-4 opacity-30" />
                 <h3 className="text-base lg:text-lg font-medium text-gray-400 m-0">
                   Chọn một bệnh nhân ở cột bên trái để xem hồ sơ

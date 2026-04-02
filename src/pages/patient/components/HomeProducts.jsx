@@ -8,6 +8,7 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { fetchProducts } from "../../../store/slice/ProductSlice";
+import "./HomeProducts.css";
 
 const { Title, Text } = Typography;
 
@@ -60,14 +61,14 @@ const HomeProducts = () => {
   }, [products]);
 
   return (
-    <div className="py-20 px-4 md:px-12 lg:px-24 flex flex-col md:flex-row gap-12 items-center bg-[#fcfcfc]">
+    <div className="py-20 px-4 md:px-12 lg:px-24 flex flex-col md:flex-row gap-12 items-center products-section">
       {/* Cột trái: Giới thiệu & Điều hướng */}
       <div className="w-full md:w-1/3 text-center md:text-left">
         <h2
           className="text-3xl md:text-5xl font-black mb-4 leading-[1.1] tracking-tight"
           style={{ color: "#1a1b3a" }}
         >
-          Giải pháp <span style={{ color: BRAND_COLOR }}>trị mụn</span>
+          Giải pháp <span className="products-title-highlight" style={{ color: BRAND_COLOR }}>trị mụn</span>
           <br />
           tối ưu nhất.
         </h2>
@@ -111,17 +112,17 @@ const HomeProducts = () => {
             <div
               key={product.id}
               onClick={() => navigate(`/products/${product.id}`)}
-              className="flex-1 bg-white rounded-[24px] overflow-hidden border border-transparent shadow-md hover:shadow-2xl hover:shadow-purple-100 hover:-translate-y-2 transition-all duration-500 cursor-pointer group flex flex-col"
+              className="flex-1 cursor-pointer group flex flex-col product-card-dynamic"
             >
               {/* Ảnh sản phẩm */}
-              <div className="h-56 bg-gray-50/50 overflow-hidden relative p-8 flex items-center justify-center">
+              <div className="h-56 overflow-hidden relative p-8 flex items-center justify-center product-img-box">
                 <img
                   src={
                     getImageUrl(product.thumbnailUrl) ||
                     "https://via.placeholder.com/500"
                   }
                   alt={product.name}
-                  className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-700"
+                  className="w-full h-full object-contain mix-blend-multiply product-img-dynamic"
                 />
                 <div className="absolute top-4 left-4">
                   <Tag

@@ -5,6 +5,7 @@ import { Table, Tag, Button, Input } from "antd";
 import { EyeOutlined, SearchOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
+import "./DoctorTreatmentCases.css";
 
 const DoctorTreatmentCases = () => {
   const dispatch = useDispatch();
@@ -79,10 +80,11 @@ const DoctorTreatmentCases = () => {
   ];
 
   return (
-    <div>
+    <div className="doctor-treatment-cases-container p-4 md:p-8">
+      <div className="bg-white doctor-treatment-cases-card p-6 md:p-8">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-1">
+          <h2 className="text-2xl font-black doctor-treatment-cases-title mb-1">
             Quản lý Ca điều trị
           </h2>
           <p className="text-gray-500 m-0">
@@ -109,6 +111,7 @@ const DoctorTreatmentCases = () => {
           onClick: () => navigate(`/doctor/treatment-cases/${record.id}`),
         })}
       />
+      </div>
     </div>
   );
 };

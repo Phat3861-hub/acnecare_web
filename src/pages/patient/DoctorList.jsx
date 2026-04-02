@@ -17,6 +17,7 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { userService } from "../../services/UserService";
+import "./DoctorList.css";
 
 const DoctorList = () => {
   const navigate = useNavigate();
@@ -90,7 +91,7 @@ const DoctorList = () => {
   }
 
   return (
-    <div className="bg-[#fcfcfc] min-h-screen py-8 px-4 md:px-12 lg:px-24">
+    <div className="min-h-screen py-8 px-4 md:px-12 lg:px-24 doctor-page-container">
       <div className="max-w-6xl mx-auto">
         <Breadcrumb className="mb-8">
           <Breadcrumb.Item
@@ -106,7 +107,7 @@ const DoctorList = () => {
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
           <div>
-            <h2 className="text-3xl font-black text-[#1e255e] mb-2 leading-tight">
+            <h2 className="text-3xl font-black mb-2 leading-tight doctor-name-text">
               Đội ngũ Bác sĩ <br /> Chuyên khoa Da liễu
             </h2>
             <p className="text-gray-500">
@@ -129,9 +130,9 @@ const DoctorList = () => {
             {filteredDoctors.map((doctor) => (
               <div
                 key={doctor.id}
-                className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group"
+                className="bg-white rounded-2xl overflow-hidden shadow-sm flex flex-col group doctor-list-card"
               >
-                <div className="relative h-64 bg-[#eef2f6] overflow-hidden flex justify-center items-end pt-6">
+                <div className="relative h-64 overflow-hidden flex justify-center items-end pt-6 doctor-avatar-wrapper">
                   <img
                     // ĐÃ SỬA: Chèn hàm getImageUrl vào đây
                     src={
@@ -149,7 +150,7 @@ const DoctorList = () => {
 
                 <div className="p-6 flex flex-col flex-1">
                   <div className="flex justify-between items-start mb-2">
-                    <div className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+                    <div className="text-xs font-bold text-[#8C52FF] uppercase tracking-wider">
                       {/* Dữ liệu giả lập vì UserResponse chưa có */}
                       {doctor.specialty || "Da liễu Tổng quát"}
                     </div>
@@ -158,7 +159,7 @@ const DoctorList = () => {
                     </div>
                   </div>
 
-                  <h3 className="text-xl font-black text-[#1e255e] mb-1 line-clamp-1">
+                  <h3 className="text-xl font-black mb-1 line-clamp-1 doctor-name-text">
                     {/* Gộp Họ và Tên */}
                     BS. {doctor.lastName} {doctor.firstName}
                   </h3>
@@ -185,7 +186,7 @@ const DoctorList = () => {
                     {["Tư vấn tận tâm", "Skincare Routine"].map((tag, idx) => (
                       <Tag
                         key={idx}
-                        className="m-0 rounded-full bg-blue-50 text-blue-600 border-none text-[11px] px-2 py-0.5"
+                        className="m-0 rounded-full text-[11px] px-2 py-0.5 doctor-badge-tag border-none"
                       >
                         {tag}
                       </Tag>
@@ -196,7 +197,7 @@ const DoctorList = () => {
                     type="primary"
                     size="large"
                     icon={<CalendarOutlined />}
-                    className="w-full bg-[#1e255e] hover:bg-blue-700 h-12 rounded-xl font-bold text-base shadow-md transition-colors"
+                    className="w-full h-12 rounded-xl font-bold text-base doctor-booking-btn"
                     onClick={() => navigate(`/book-appointment/${doctor.id}`)}
                   >
                     Đặt lịch khám

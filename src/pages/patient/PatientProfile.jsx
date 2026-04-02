@@ -28,6 +28,7 @@ import {
   HeartOutlined,
   ProfileOutlined,
 } from "@ant-design/icons";
+import "./PatientProfile.css";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -175,21 +176,21 @@ const PatientProfile = () => {
   const isLoading = profileLoading || userLoading;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 flex justify-center">
+    <div className="profile-page-container p-4 md:p-8 flex justify-center">
       <div className="max-w-4xl w-full">
         <Card
-          className="shadow-sm border-slate-200 rounded-2xl overflow-hidden"
+          className="profile-card-main overflow-hidden border-none"
           bodyStyle={{ padding: 0 }}
         >
           {/* Header Xanh Biển siêu đẹp */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-8 text-white text-center">
-            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-white/50 backdrop-blur-sm">
-              <HeartOutlined className="text-4xl text-white" />
+          <div className="profile-header p-10 text-white text-center">
+            <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-5 border-2 border-white/30 backdrop-blur-md shadow-lg">
+              <HeartOutlined className="text-5xl text-white" />
             </div>
             <Title level={3} className="!text-white !m-0 !mb-1">
               Hồ sơ Y tế & Cá nhân
             </Title>
-            <Text className="text-blue-100 text-sm">
+            <Text className="text-purple-100 text-sm font-medium">
               Thông tin này giúp bác sĩ và hệ thống chẩn đoán AI đưa ra phác đồ
               điều trị chính xác nhất cho bạn.
             </Text>
@@ -206,7 +207,7 @@ const PatientProfile = () => {
               >
                 {/* --- PHẦN 1: THÔNG TIN TÀI KHOẢN (USER) --- */}
                 <Divider orientation="left" plain>
-                  <span className="text-blue-600 font-bold text-base flex items-center gap-2">
+                  <span className="profile-title font-black text-lg flex items-center gap-2">
                     <UserOutlined /> 1. Thông tin cá nhân (Tài khoản)
                   </span>
                 </Divider>
@@ -214,12 +215,14 @@ const PatientProfile = () => {
                 <div className="flex flex-col md:flex-row gap-8 mb-6">
                   {/* Cột Upload Avatar */}
                   <div className="flex flex-col items-center gap-3">
+                    <div className="profile-avatar-wrap">
                     <Avatar
                       size={120}
                       src={avatarPreview}
                       icon={<UserOutlined />}
-                      className="border shadow-sm object-cover"
+                      className="object-cover border-4 border-white"
                     />
+                    </div>
                     <Upload
                       showUploadList={false}
                       beforeUpload={() => false}
@@ -304,7 +307,7 @@ const PatientProfile = () => {
 
                 {/* --- PHẦN 2: THÔNG TIN Y TẾ (PATIENT PROFILE) --- */}
                 <Divider orientation="left" plain className="mt-8">
-                  <span className="text-blue-600 font-bold text-base flex items-center gap-2">
+                  <span className="profile-title font-black text-lg flex items-center gap-2">
                     <ProfileOutlined /> 2. Chỉ số Y tế & Giao hàng
                   </span>
                 </Divider>
@@ -434,7 +437,7 @@ const PatientProfile = () => {
                     size="large"
                     icon={<SaveOutlined />}
                     loading={isUpdating}
-                    className="bg-blue-600 hover:bg-blue-700 px-10 rounded-xl font-semibold h-12 w-full md:w-auto"
+                    className="profile-btn-primary px-10 rounded-xl font-bold text-lg h-14 w-full md:w-auto"
                   >
                     Lưu Toàn Bộ Hồ Sơ
                   </Button>
