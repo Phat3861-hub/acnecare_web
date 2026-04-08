@@ -51,7 +51,15 @@ const ChatPage = () => {
   const stompClient = useRef(null);
   const messagesEndRef = useRef(null);
 
-  const ADMIN_ID = "f663c3df-8192-4a7b-a1ea-4a4ccdb69462";
+  const isAdminUser = (user) => {
+    const roles = user?.roles || [];
+    return roles.some((role) => {
+      if (typeof role === "string") return role.toUpperCase() === "ADMIN";
+      return role?.name?.toUpperCase() === "ADMIN";
+    });
+  };
+
+  const currentUserIsAdmin = isAdminUser(currentUser);
 
   const getImageUrl = (url) => {
     if (!url) return null;
@@ -116,7 +124,7 @@ const ChatPage = () => {
       for (const room of rooms) {
         const partnerId = getOtherUserId(room);
 
-        if (partnerId && partnerId !== ADMIN_ID && !newPartners[partnerId]) {
+        if (partnerId && !newPartners[partnerId]) {
           try {
             const res = await userService.getUserById(partnerId);
             const userInfo = res.data?.result || res.data?.data || res.data;
@@ -160,14 +168,6 @@ const ChatPage = () => {
       };
     }
 
-    if (partnerId === ADMIN_ID) {
-      return {
-        name: "Hỗ trợ viên (AcneCare)",
-        avatar: null,
-        isAdmin: true,
-      };
-    }
-
     const partnerInfo = chatPartners[partnerId];
     if (partnerInfo) {
       if (partnerInfo.error) {
@@ -183,9 +183,11 @@ const ChatPage = () => {
       const fullName = `${lastName} ${firstName}`.trim();
 
       return {
-        name: fullName || "Người dùng ẩn danh",
+        name: isAdminUser(partnerInfo)
+          ? "Hỗ trợ viên (AcneCare)"
+          : fullName || "Người dùng ẩn danh",
         avatar: partnerInfo.avatarUrl || partnerInfo.avatar_url || null,
-        isAdmin: false,
+        isAdmin: isAdminUser(partnerInfo),
       };
     }
 
@@ -271,12 +273,12 @@ const ChatPage = () => {
   };
 
   const handleChatWithAdmin = async () => {
-    if (currentUser.id === ADMIN_ID)
+    if (currentUserIsAdmin)
       return antMessage.warning("Bạn đang là Admin!");
 
     setIsConnectingAdmin(true);
     try {
-      const res = await chatService.createChatRoom(currentUser.id, ADMIN_ID);
+      const res = await chatService.createSupportChatRoom();
       dispatch(fetchChatRooms(currentUser.id));
       dispatch(setActiveRoom(res.data.result));
     } catch (error) {

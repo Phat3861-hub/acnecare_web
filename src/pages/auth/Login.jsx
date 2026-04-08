@@ -4,18 +4,75 @@ import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { jwtDecode } from "jwt-decode";
+import { GoogleOutlined } from "@ant-design/icons";
 
 import { authService } from "../../services/AuthService";
 import { userService } from "../../services/UserService"; // 🚨 THÊM IMPORT NÀY
 import { setCredentials } from "../../store/slice/UserSlice";
 import "./Login.css";
 
+const resolvePrimaryRole = (roles) => {
+  if (!Array.isArray(roles)) {
+    return "PATIENT";
+  }
+
+  const roleNames = roles
+    .map((role) => role?.name)
+    .filter(Boolean)
+    .map((name) => name.toUpperCase());
+
+  if (roleNames.includes("ADMIN")) return "ADMIN";
+  if (roleNames.includes("DOCTOR")) return "DOCTOR";
+  if (roleNames.includes("BRAND")) return "BRAND";
+  if (roleNames.includes("PATIENT")) return "PATIENT";
+  return "PATIENT";
+};
+
+const normalizeUserProfile = (profile) => {
+  if (!profile) return null;
+
+  return {
+    ...profile,
+    id: profile.id ?? profile.user_id,
+    firstName: profile.firstName ?? profile.first_name ?? "",
+    lastName: profile.lastName ?? profile.last_name ?? "",
+    phone: profile.phone ?? "",
+    dob: profile.dob ?? null,
+    avatarUrl: profile.avatarUrl ?? profile.avatar_url ?? null,
+    roles: profile.roles ?? [],
+    hasPassword: Boolean(profile.hasPassword),
+    googleLinked: Boolean(profile.googleLinked),
+  };
+};
+
 const Login = () => {
   const [loading, setLoading] = useState(false);
   const [backendError, setBackendError] = useState("");
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  const googleClientId =
+    import.meta.env.VITE_GOOGLE_CLIENT_ID || import.meta.env.VITE_GOOGLE_CLIENT;
+  const googleRedirectUri =
+    import.meta.env.VITE_GOOGLE_REDIRECT_URI ||
+    `${window.location.origin}/authenticate`;
+
+  const handleGoogleLogin = () => {
+    if (!googleClientId) {
+      message.error("Thiếu cấu hình VITE_GOOGLE_CLIENT_ID (hoặc VITE_GOOGLE_CLIENT).");
+      return;
+    }
+
+    const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+    authUrl.searchParams.set("client_id", googleClientId);
+    authUrl.searchParams.set("redirect_uri", googleRedirectUri);
+    authUrl.searchParams.set("response_type", "code");
+    authUrl.searchParams.set("scope", "openid email profile");
+    authUrl.searchParams.set("access_type", "offline");
+    authUrl.searchParams.set("prompt", "consent");
+
+    window.location.href = authUrl.toString();
+  };
 
   const formik = useFormik({
     initialValues: { email: "", password: "" },
@@ -33,47 +90,30 @@ const Login = () => {
         const res = await authService.login(values);
 
         if (res.data.code === 1000) {
-          const tokenBody = res.data.result.accessToken;
-          const decodedToken = jwtDecode(tokenBody);
-          const tokenRoles = decodedToken.roles || "";
-
-          let role = "PATIENT";
-          if (tokenRoles.includes("ADMIN")) role = "ADMIN";
-          else if (tokenRoles.includes("DOCTOR")) role = "DOCTOR";
-          else if (tokenRoles.includes("BRAND")) role = "BRAND";
-
-          // 🚨 BƯỚC 1: Lưu token vào Cookie (Để AppRoutes tự đọc và giải mã Role an toàn)
-          // Lưu ý: Nếu Backend đã tự set Cookie HttpOnly thì bạn không cần dòng này.
-          // Nhưng nếu Backend trả token qua body, bạn phải tự lưu nó vào Cookie ở Frontend.
-          document.cookie = `accessToken=${tokenBody}; path=/; max-age=86400; SameSite=Strict`;
-
           try {
-            // 🚨 BƯỚC 2: GỌI NGAY API LẤY THÔNG TIN FULL PROFILE (Tên, Avatar...)
             const userRes = await userService.getMyInfo();
-            const realUserInfo = userRes.data?.result || userRes.data;
+            const rawUserInfo = userRes.data?.result || userRes.data;
+            const realUserInfo = normalizeUserProfile(rawUserInfo);
+            const role = resolvePrimaryRole(realUserInfo.roles);
 
-            // Lưu toàn bộ thông tin thật vào Redux
             dispatch(
               setCredentials({
                 user: {
                   ...realUserInfo,
-                  role: role, // Vẫn lưu để hiển thị linh tinh, nhưng không dùng để bảo vệ route nữa
+                  role,
                 },
               }),
             );
+
+            message.success("Đăng nhập thành công!");
+            if (role === "ADMIN") navigate("/admin/dashboard");
+            else if (role === "DOCTOR") navigate("/doctor/schedule");
+            else if (role === "BRAND") navigate("/brand/profile");
+            else navigate("/");
           } catch (profileError) {
             console.error("Lỗi lấy thông tin profile:", profileError);
-            // Fallback nếu lỗi API getMyInfo
-            dispatch(setCredentials({ user: { id: decodedToken.sub, role } }));
+            message.error("Không thể tải thông tin người dùng sau đăng nhập.");
           }
-
-          message.success("Đăng nhập thành công!");
-
-          // 🚨 BƯỚC 3: Điều hướng
-          if (role === "ADMIN") navigate("/admin/dashboard");
-          else if (role === "DOCTOR") navigate("/doctor/schedule");
-          else if (role === "BRAND") navigate("/brand/profile");
-          else navigate("/");
         }
       } catch (error) {
         setBackendError(
@@ -176,6 +216,15 @@ const Login = () => {
                 className="!mt-2 !h-12 !rounded-xl !border-none !bg-[#1e255e] !font-semibold hover:!bg-[#2a3175]"
               >
                 Đăng nhập
+              </Button>
+              <Button
+                size="large"
+                block
+                icon={<GoogleOutlined />}
+                className="!h-12 !rounded-xl !font-semibold"
+                onClick={handleGoogleLogin}
+              >
+                Đăng nhập Google
               </Button>
             </form>
 

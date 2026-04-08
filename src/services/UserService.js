@@ -37,4 +37,10 @@ export const userService = {
       },
     });
   },
+  changeMyPassword: (payload) => {
+    return http.put("/users/me/change-password", payload);
+  },
+  createMyPassword: (payload) => {
+    return http.put("/users/me/create-password", payload);
+  },
 };

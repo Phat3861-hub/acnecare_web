@@ -11,6 +11,7 @@ export const pathDefault = {
   home: "/",
   login: "/auth/login",
   register: "/auth/register",
+  authenticate: "/authenticate",
 
   // Patient
   posts: "/posts",
@@ -64,19 +65,28 @@ const getCookie = (name) => {
 const ProtectedRoute = ({ allowedRoles, children }) => {
   let userRole = null;
 
-  const token = getCookie("accessToken");
+  try {
+    const userInfo = JSON.parse(localStorage.getItem("userInfo") || "null");
+    if (userInfo?.role) {
+      userRole = String(userInfo.role).toUpperCase();
+    }
+  } catch (error) {
+    userRole = null;
+  }
 
-  if (token) {
-    try {
-      const decoded = jwtDecode(token);
-      // Cắt bỏ chữ "ROLE_" nếu có
-      if (decoded.roles && decoded.roles.startsWith("ROLE_")) {
-        userRole = decoded.roles.replace("ROLE_", "");
-      } else {
-        userRole = decoded.roles;
+  if (!userRole) {
+    const token = getCookie("access_token");
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        if (decoded.roles && decoded.roles.startsWith("ROLE_")) {
+          userRole = decoded.roles.replace("ROLE_", "");
+        } else {
+          userRole = decoded.roles;
+        }
+      } catch (err) {
+        console.error("🚨 Token không hợp lệ:", err);
       }
-    } catch (err) {
-      console.error("🚨 Token không hợp lệ:", err);
     }
   }
 
@@ -130,6 +140,7 @@ const BrandLayout = lazy(() => import("../templates/BrandLayout"));
 
 const Login = lazy(() => import("../pages/auth/Login"));
 const Register = lazy(() => import("../pages/auth/Register"));
+const Authenticate = lazy(() => import("../pages/auth/Authenticate"));
 
 // Patient
 const Home = lazy(() => import("../pages/patient/Home"));
@@ -407,6 +418,14 @@ const AppRoutes = () => {
       element: (
         <Suspense fallback={<FallbackLoad />}>
           <Register />
+        </Suspense>
+      ),
+    },
+    {
+      path: pathDefault.authenticate,
+      element: (
+        <Suspense fallback={<FallbackLoad />}>
+          <Authenticate />
         </Suspense>
       ),
     },

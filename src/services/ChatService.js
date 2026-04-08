@@ -9,6 +9,8 @@ export const chatService = {
   createChatRoom: (senderId, receiverId) =>
     http.post("/chatroom", { senderId, receiverId }),
 
+  createSupportChatRoom: () => http.post("/chatroom/support"),
+
   sendImage: (formData) =>
     http.post("/messages/image", formData, {
       headers: { "Content-Type": "multipart/form-data" },

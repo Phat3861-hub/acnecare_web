@@ -24,6 +24,7 @@ http.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (
         originalRequest.url.includes("/auth/login") ||
+        originalRequest.url.includes("/auth/outbound/authentication") ||
         originalRequest.url.includes("/auth/refresh")
       ) {
         return Promise.reject(error);

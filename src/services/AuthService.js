@@ -4,6 +4,9 @@ export const authService = {
   login: (data) => {
     return http.post("/auth/login", data);
   },
+  outboundAuthenticate: (code) => {
+    return http.post(`/auth/outbound/authentication?code=${encodeURIComponent(code)}`);
+  },
   logout: (data) => {
     return http.post("/auth/logout", data);
   },

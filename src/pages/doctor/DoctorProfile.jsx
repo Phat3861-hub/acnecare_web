@@ -17,6 +17,7 @@ import {
   Alert,
   Upload,
   Avatar,
+  Modal,
 } from "antd";
 import {
   UserOutlined,
@@ -27,6 +28,7 @@ import {
   StarFilled,
   UploadOutlined,
   IdcardOutlined,
+  LockOutlined,
 } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import dayjs from "dayjs";
@@ -40,9 +42,26 @@ import "./DoctorProfile.css";
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
+const normalizeUserProfile = (profile) => {
+  if (!profile) return null;
+
+  return {
+    ...profile,
+    id: profile.id ?? profile.user_id,
+    firstName: profile.firstName ?? profile.first_name ?? "",
+    lastName: profile.lastName ?? profile.last_name ?? "",
+    phone: profile.phone ?? "",
+    dob: profile.dob ?? null,
+    avatarUrl: profile.avatarUrl ?? profile.avatar_url ?? null,
+    hasPassword: Boolean(profile.hasPassword),
+    googleLinked: Boolean(profile.googleLinked),
+  };
+};
+
 const DoctorProfile = () => {
   const dispatch = useDispatch();
   const [form] = Form.useForm();
+  const [changePasswordForm] = Form.useForm();
 
   const { profile: doctorProfile, loading: profileLoading } = useSelector(
     (state) => state.doctorProfile,
@@ -54,6 +73,10 @@ const DoctorProfile = () => {
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const hasPassword = Boolean(userInfo?.hasPassword);
+  const isGoogleOnly = Boolean(userInfo?.googleLinked) && !hasPassword;
 
   // ĐÃ SỬA: Đồng bộ hàm getImageUrl thông minh để fix triệt để lỗi 400 và Mixed Content
   const getImageUrl = (url) => {
@@ -89,8 +112,9 @@ const DoctorProfile = () => {
       try {
         const userRes = await userService.getMyInfo();
         if (userRes.data.code === 1000) {
-          setUserInfo(userRes.data.result);
-          setAvatarPreview(getImageUrl(userRes.data.result.avatarUrl));
+          const normalizedUserInfo = normalizeUserProfile(userRes.data.result);
+          setUserInfo(normalizedUserInfo);
+          setAvatarPreview(getImageUrl(normalizedUserInfo.avatarUrl));
         }
       } catch (error) {
         message.error("Lỗi lấy thông tin tài khoản!");
@@ -135,7 +159,6 @@ const DoctorProfile = () => {
         firstName: values.firstName,
         lastName: values.lastName,
         phone: values.phone,
-        password: values.password, // Bắt buộc từ Backend
         roles: ["DOCTOR"], // Bắt buộc từ Backend
         dob: values.dob ? values.dob.format("YYYY-MM-DD") : null,
       };
@@ -160,8 +183,6 @@ const DoctorProfile = () => {
       await dispatch(updateDoctorProfile(doctorData)).unwrap();
 
       message.success("Cập nhật toàn bộ hồ sơ thành công!");
-      // Reset trường mật khẩu sau khi lưu
-      form.setFieldsValue({ password: "" });
     } catch (error) {
       // 🚨 FIX LỖI TẠI ĐÂY: Ép kiểu lỗi về dạng String
       const errorMsg =
@@ -171,6 +192,59 @@ const DoctorProfile = () => {
       message.error(errorMsg);
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleOpenPasswordModal = () => {
+    changePasswordForm.resetFields();
+    setIsPasswordModalOpen(true);
+  };
+
+  const handleChangePassword = async () => {
+    try {
+      const values = await changePasswordForm.validateFields();
+      setIsChangingPassword(true);
+      if (hasPassword) {
+        await userService.changeMyPassword({
+          oldPassword: values.oldPassword,
+          newPassword: values.newPassword,
+        });
+        message.success("Đổi mật khẩu thành công!");
+      } else {
+        await userService.createMyPassword({
+          newPassword: values.newPassword,
+        });
+        setUserInfo((prev) =>
+          prev
+            ? {
+                ...prev,
+                hasPassword: true,
+              }
+            : prev,
+        );
+        const storageUser = JSON.parse(localStorage.getItem("userInfo"));
+        if (storageUser) {
+          localStorage.setItem(
+            "userInfo",
+            JSON.stringify({
+              ...storageUser,
+              hasPassword: true,
+            }),
+          );
+        }
+        message.success("Tạo mật khẩu thành công!");
+      }
+      setIsPasswordModalOpen(false);
+      changePasswordForm.resetFields();
+    } catch (error) {
+      if (error?.errorFields) return;
+      const errorMsg =
+        error?.response?.data?.message ||
+        (typeof error === "string" ? error : error?.message) ||
+        "Đổi mật khẩu thất bại!";
+      message.error(errorMsg);
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -363,25 +437,6 @@ const DoctorProfile = () => {
                     format="YYYY-MM-DD"
                   />
                 </Form.Item>
-                <Form.Item
-                  name="password"
-                  label={
-                    <span className="font-medium">
-                      Xác nhận Mật khẩu (Bắt buộc)
-                    </span>
-                  }
-                  rules={[
-                    {
-                      required: true,
-                      message:
-                        "Vui lòng nhập mật khẩu cũ hoặc mật khẩu mới để xác nhận lưu!",
-                    },
-                    { min: 8, message: "Mật khẩu tối thiểu 8 ký tự" },
-                  ]}
-                  tooltip="Hệ thống yêu cầu xác nhận mật khẩu để bảo mật khi thay đổi thông tin cá nhân."
-                >
-                  <Input.Password size="large" placeholder="Nhập mật khẩu..." />
-                </Form.Item>
               </div>
             </div>
 
@@ -485,6 +540,19 @@ const DoctorProfile = () => {
             </Form.Item>
 
             <div className="flex justify-end pt-4 border-t mt-6">
+              {isGoogleOnly && (
+                <Text className="mr-3 self-center text-slate-500">
+                  Tài khoản của bạn đang đăng nhập bằng Google.
+                </Text>
+              )}
+              <Button
+                size="large"
+                icon={<LockOutlined />}
+                onClick={handleOpenPasswordModal}
+                className="w-full sm:w-auto px-8 py-6 rounded-xl mr-3"
+              >
+                {hasPassword ? "Đổi mật khẩu" : "Tạo mật khẩu"}
+              </Button>
               <Button
                 type="primary"
                 htmlType="submit"
@@ -497,6 +565,61 @@ const DoctorProfile = () => {
               </Button>
             </div>
           </Form>
+
+          <Modal
+            title={hasPassword ? "Đổi mật khẩu" : "Tạo mật khẩu"}
+            open={isPasswordModalOpen}
+            onCancel={() => setIsPasswordModalOpen(false)}
+            onOk={handleChangePassword}
+            okText="Lưu mật khẩu mới"
+            cancelText="Hủy"
+            confirmLoading={isChangingPassword}
+            destroyOnHidden
+          >
+            <Form form={changePasswordForm} layout="vertical">
+              {hasPassword && (
+                <Form.Item
+                  name="oldPassword"
+                  label="Mật khẩu cũ"
+                  rules={[
+                    { required: true, message: "Vui lòng nhập mật khẩu cũ!" },
+                  ]}
+                >
+                  <Input.Password placeholder="Nhập mật khẩu cũ" />
+                </Form.Item>
+              )}
+              <Form.Item
+                name="newPassword"
+                label="Mật khẩu mới"
+                rules={[
+                  { required: true, message: "Vui lòng nhập mật khẩu mới!" },
+                  { min: 8, message: "Mật khẩu tối thiểu 8 ký tự" },
+                ]}
+              >
+                <Input.Password placeholder="Nhập mật khẩu mới" />
+              </Form.Item>
+              <Form.Item
+                name="confirmNewPassword"
+                label="Xác nhận mật khẩu mới"
+                dependencies={["newPassword"]}
+                rules={[
+                  { required: true, message: "Vui lòng xác nhận mật khẩu mới!" },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || getFieldValue("newPassword") === value) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(
+                        new Error("Mật khẩu xác nhận không khớp!"),
+                      );
+                    },
+                  }),
+                ]}
+              >
+                <Input.Password placeholder="Nhập lại mật khẩu mới" />
+              </Form.Item>
+            </Form>
+          </Modal>
         </div>
       </div>
     </div>
